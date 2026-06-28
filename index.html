@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JMM Salon Cashier System - Tablet UI Gold</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="tablet-shell" aria-label="JMM Salon tablet cashier prototype">
+      <section class="tablet-screen view active" id="home-view" aria-label="Homepage utama">
+        <header class="topbar home-topbar">
+          <div class="home-header-left">
+            <div class="home-title">
+              <p class="eyebrow">Selamat datang kembali,</p>
+              <h1>Kasir JMM Salon</h1>
+              <p class="subtitle">Pilih menu utama langsung dari layar tablet.</p>
+            </div>
+          </div>
+          <img class="home-header-logo" src="JMMSALON2Transparant.png" alt="JMM Salon" />
+          <div class="home-header-spacer">
+            <div class="operator home-operator">
+              <div class="date-block">
+                <strong>Sabtu, 27 Juni 2026</strong>
+                <span>16:30 WIB</span>
+              </div>
+              <span class="avatar">K</span>
+              <div class="operator-info">
+                <strong>Kasir JMM</strong>
+                <span>Kasir</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div class="home-grid">
+          <button class="menu-tile" data-target="pos-view">
+            <span class="tile-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+            </span>
+            <strong>Penjualan POS</strong>
+            <small>Transaksi cepat</small>
+          </button>
+          <button class="menu-tile" data-target="customer-list-view">
+            <span class="tile-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </span>
+            <strong>Pelanggan</strong>
+            <small>Data pelanggan</small>
+          </button>
+          <button class="menu-tile" data-target="sales-view">
+            <span class="tile-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </span>
+            <strong>Daftar Penjualan</strong>
+            <small>Riwayat transaksi</small>
+          </button>
+          <button class="menu-tile" data-target="pending-view">
+            <span class="tile-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+              </svg>
+            </span>
+            <strong>Daftar Pending</strong>
+            <small>Transaksi pending</small>
+          </button>
+          <button class="menu-tile" data-target="customer-list-view">
+            <span class="tile-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="8.5" cy="7" r="4"></circle>
+                <line x1="20" y1="8" x2="20" y2="14"></line>
+                <line x1="23" y1="11" x2="17" y2="11"></line>
+              </svg>
+            </span>
+            <strong>Registrasi Member</strong>
+            <small>Daftar member baru</small>
+          </button>
+          <button class="menu-tile" data-target="reminder-view">
+            <span class="tile-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+              </svg>
+            </span>
+            <strong>Reminder</strong>
+            <small>Follow-up pelanggan</small>
+          </button>
+        </div>
+
+        <footer class="bottom-command">
+          <span>Siap melayani pelanggan berikutnya</span>
+          <button class="logout-button" id="logout-button" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Logout
+          </button>
+        </footer>
+      </section>
+
+      <section class="tablet-screen view" id="pos-view" aria-label="Penjualan POS">
+        <header class="topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Penjualan POS</h1>
+          </div>
+        </header>
+
+        <div class="pos-layout">
+          <section class="pos-catalog">
+            <div class="customer-strip" id="customer-picker">
+              <div class="customer-summary empty" id="customer-summary">
+                <span>Pelanggan</span>
+                <strong>Belum dipilih</strong>
+                <small>Pilih pelanggan untuk transaksi ini</small>
+              </div>
+              <span class="badge muted" id="customer-status">Kosong</span>
+              <button class="soft-action" id="customer-toggle" type="button">Pilih</button>
+              <div class="customer-dropdown" id="customer-dropdown" aria-label="Pilihan pelanggan"></div>
+            </div>
+
+            <div class="catalog-toolbar">
+              <div class="category-tabs" role="tablist" aria-label="Kategori POS">
+                <button class="category active" data-filter="service" type="button">
+                  <span class="tab-icon" aria-hidden="true">✂</span>
+                  <strong>Jasa</strong>
+                </button>
+                <button class="category" data-filter="product" type="button">
+                  <span class="tab-icon" aria-hidden="true">▯</span>
+                  <strong>Produk</strong>
+                </button>
+              </div>
+              <label class="search-box">
+                <input id="item-search" type="search" placeholder="Cari jasa..." autocomplete="off" />
+                <span aria-hidden="true">⌕</span>
+              </label>
+            </div>
+
+            <div class="section-heading">
+              <h2>Jasa & Produk Salon</h2>
+            </div>
+
+            <div class="item-grid" id="item-grid"></div>
+          </section>
+
+          <aside class="cart-panel" aria-label="Keranjang transaksi">
+            <div class="cart-head">
+              <div>
+                <h2>Keranjang</h2>
+              </div>
+              <span class="badge">3 item</span>
+            </div>
+
+            <div class="cart-list" id="cart-list"></div>
+
+            <div class="payment-summary">
+              <h3>Ringkasan Pembayaran</h3>
+              <div class="summary-line adjustment" id="reward-line" hidden>
+                <span id="reward-label">Gratis Member</span>
+                <strong class="saving" id="reward">- Rp 0</strong>
+              </div>
+              <div class="summary-line adjustment" id="dp-line" hidden>
+                <span>DP</span>
+                <strong class="saving" id="dp">- Rp 0</strong>
+              </div>
+              <div class="summary-line total">
+                <span>Total</span>
+                <strong id="total">Rp 0</strong>
+              </div>
+            </div>
+
+            <div class="payment-methods">
+              <button type="button" data-payment="Tunai">
+                <span class="method-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <rect x="3" y="6" width="18" height="12" rx="2"></rect>
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M6 9h2M16 15h2"></path>
+                  </svg>
+                </span>
+                Tunai
+              </button>
+              <button class="active" type="button" data-payment="QRIS">
+                <span class="method-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"></path>
+                    <path d="M14 14h2v2h-2zM18 14h2v6h-2zM14 18h2v2h-2z"></path>
+                  </svg>
+                </span>
+                QRIS
+              </button>
+            </div>
+
+            <div class="cart-actions">
+              <button class="secondary-action" id="draft-button" type="button">Simpan Draft</button>
+              <button class="primary-action" id="pay-button" type="button">Bayar</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="tablet-screen view" id="customer-list-view" aria-label="Daftar pelanggan">
+        <header class="topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Daftar Pelanggan</h1>
+          </div>
+        </header>
+
+        <section class="customer-list-panel">
+          <div class="customer-list-tools">
+            <button class="add-customer-button" id="add-customer-button" type="button">
+              <span aria-hidden="true">+</span>
+              Tambah Pelanggan
+            </button>
+            <label class="customer-search">
+              <span>Cari</span>
+              <input id="customer-search" type="search" autocomplete="off" placeholder="Nama atau nomor HP" />
+            </label>
+          </div>
+
+          <div class="customer-table">
+            <div class="customer-table-head">
+              <span>ID</span>
+              <span>Pelanggan</span>
+              <span>Status</span>
+              <span>Benefit Member</span>
+              <span>Terakhir</span>
+              <span>Action</span>
+            </div>
+            <div class="customer-list" id="customer-list"></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="tablet-screen view" id="customer-view" aria-label="Detail pelanggan">
+        <header class="topbar">
+          <button class="back-button" data-target="customer-list-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Detail Pelanggan</h1>
+          </div>
+        </header>
+
+        <div class="customer-layout">
+          <aside class="profile-card">
+            <h2 id="detail-name">Dewi Anggraini</h2>
+            <div id="detail-badge"></div>
+            <p id="detail-phone">No HP: 0812 3456 7890</p>
+            <div class="visit-count">
+              <strong id="detail-visits">18 kali</strong>
+              <span>Total kunjungan</span>
+            </div>
+            <div class="reward-box" id="detail-reward"></div>
+            <div class="reminder-box">
+              <strong>Reminder otomatis</strong>
+              <span id="detail-reminder">Hubungi 7 hari setelah jasa terakhir: 04 Jul 2026.</span>
+            </div>
+            <button class="whatsapp-action">WhatsApp Pelanggan</button>
+          </aside>
+
+          <section class="history-panel">
+            <div class="section-heading plain">
+              <div>
+                <h2>Sejarah Treatment</h2>
+                <p>Tanggal treatment, jasa, petugas yang menangani, dan nilai transaksi.</p>
+              </div>
+            </div>
+            <div class="history-list" id="detail-history-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tablet-screen view" id="reminder-view" aria-label="Reminder pelanggan">
+        <header class="topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Reminder Pelanggan</h1>
+          </div>
+        </header>
+
+        <div class="stats-row">
+          <div class="stat-card">
+            <span>Perlu dihubungi</span>
+            <strong>12 pelanggan</strong>
+            <small>Hari ini</small>
+          </div>
+          <div class="stat-card">
+            <span>Sudah dihubungi</span>
+            <strong>7 pelanggan</strong>
+            <small>Follow-up selesai</small>
+          </div>
+          <div class="stat-card">
+            <span>Belum kembali</span>
+            <strong>5 pelanggan</strong>
+            <small>Prioritas</small>
+          </div>
+          <div class="stat-card">
+            <span>Booking ulang</span>
+            <strong>3 pelanggan</strong>
+            <small>Dari reminder</small>
+          </div>
+        </div>
+
+        <section class="wide-panel">
+          <div class="section-heading plain">
+            <div>
+              <h2>Butuh WhatsApp Reminder</h2>
+              <p>Status bisa ditandai sudah dihubungi.</p>
+            </div>
+          </div>
+          <div class="reminder-list">
+            <div class="reminder-row">
+              <strong>Siti Rahma</strong>
+              <span>Terakhir: Hair Colour · 20 Jun 2026</span>
+              <b>7 hari</b>
+              <button>WhatsApp</button>
+            </div>
+            <div class="reminder-row danger">
+              <strong>Nina Septiani</strong>
+              <span>Terakhir: Keratin · 18 Jun 2026</span>
+              <b>9 hari</b>
+              <button>Belum</button>
+            </div>
+            <div class="reminder-row">
+              <strong>Rika Amelia</strong>
+              <span>Terakhir: Smoothing · 17 Jun 2026</span>
+              <b>10 hari</b>
+              <button>WhatsApp</button>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="tablet-screen view" id="sales-view" aria-label="Daftar penjualan">
+        <header class="topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Daftar Penjualan</h1>
+          </div>
+        </header>
+
+        <div class="sales-layout">
+          <aside class="filter-panel">
+            <h2>Filter</h2>
+            <label>
+              Dari
+              <input value="27-06-2026" readonly />
+            </label>
+            <label>
+              Sampai
+              <input value="27-06-2026" readonly />
+            </label>
+            <label>
+              Dari Jam
+              <input value="09:00" readonly />
+            </label>
+            <label>
+              Sampai Jam
+              <input value="23:59" readonly />
+            </label>
+            <button class="primary-action small">Tampilkan</button>
+            <div class="filter-totals">
+              <div>
+                <span>Pending</span>
+                <strong>0</strong>
+              </div>
+              <div>
+                <span>Total</span>
+                <strong>Rp 4.275.000</strong>
+              </div>
+            </div>
+          </aside>
+
+          <section class="transaction-panel">
+            <div class="section-heading plain">
+              <div>
+                <h2>Transaksi Hari Ini</h2>
+                <p>Tap transaksi untuk membuka detail.</p>
+              </div>
+            </div>
+            <div class="transaction-row selected">
+              <strong>11:42 · Dewi Anggraini</strong>
+              <span>Wira · POS-088046</span>
+              <b>Rp 936.000</b>
+            </div>
+            <div class="transaction-row">
+              <strong>10:33 · Sapriti</strong>
+              <span>Kartini · POS-088045</span>
+              <b>Rp 450.000</b>
+            </div>
+            <div class="transaction-row">
+              <strong>10:28 · Priscila Tan</strong>
+              <span>Priscila · POS-088044</span>
+              <b>Rp 1.120.000</b>
+            </div>
+            <div class="selected-detail">
+              <strong>Detail transaksi terpilih</strong>
+              <span>Hair Cut, Creambath, Produk: Vitamin Rambut. Pembayaran: Tunai. Status selesai dan struk tersimpan.</span>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tablet-screen view" id="pending-view" aria-label="Daftar pending dan draft">
+        <header class="topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Daftar Pending / Draft</h1>
+          </div>
+        </header>
+        <div class="pending-layout" style="padding: 24px 48px 48px;">
+          <section class="wide-panel" style="height: auto; margin: 0;">
+            <div class="section-heading plain">
+              <div>
+                <h2>Transaksi Pending</h2>
+                <p>Daftar transaksi yang tersimpan sebagai draft.</p>
+              </div>
+            </div>
+            <div class="empty-cart" style="margin-top: 24px;">
+              <strong>Tidak ada transaksi pending</strong>
+              <span>Semua transaksi telah diselesaikan.</span>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <div class="modal-layer" id="confirm-modal" hidden>
+      <section class="modal-card" aria-label="Konfirmasi pembayaran">
+        <h2 id="modal-title">Konfirmasi Pembayaran</h2>
+        <p id="confirm-copy">Pastikan transaksi sudah sesuai sebelum disimpan.</p>
+        <div class="modal-summary" id="confirm-summary"></div>
+        <div class="modal-actions">
+          <button class="modal-secondary" id="cancel-payment" type="button">Batal</button>
+          <button class="modal-primary" id="confirm-payment" type="button">Simpan Transaksi</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-layer" id="add-customer-modal" hidden>
+      <section class="modal-card add-customer-card" aria-label="Tambah pelanggan">
+        <h2>Tambah Pelanggan</h2>
+        <p>Form contoh untuk visualisasi tablet kasir.</p>
+        <div class="add-form">
+          <label>
+            Nama Pelanggan
+            <input type="text" placeholder="Nama pelanggan" />
+          </label>
+          <label>
+            Nomor HP
+            <input type="tel" placeholder="08xx xxxx xxxx" />
+          </label>
+          <label>
+            Status
+            <select>
+              <option>Non Member</option>
+              <option>Member</option>
+              <option>Member Silver</option>
+              <option>Member Gold</option>
+              <option>Member Platinum</option>
+            </select>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-secondary" id="cancel-add-customer" type="button">Batal</button>
+          <button class="modal-primary" id="save-add-customer" type="button">Simpan Pelanggan</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" hidden>Transaksi tersimpan</div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
