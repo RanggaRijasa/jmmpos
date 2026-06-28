@@ -80,17 +80,14 @@
             <strong>Daftar Pending</strong>
             <small>Transaksi pending</small>
           </button>
-          <button class="menu-tile" data-target="customer-list-view">
+          <button class="menu-tile" data-target="membership-view">
             <span class="tile-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="8.5" cy="7" r="4"></circle>
-                <line x1="20" y1="8" x2="20" y2="14"></line>
-                <line x1="23" y1="11" x2="17" y2="11"></line>
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
               </svg>
             </span>
-            <strong>Registrasi Member</strong>
-            <small>Daftar member baru</small>
+            <strong>Membership</strong>
+            <small>Status & progres member</small>
           </button>
           <button class="menu-tile" data-target="reminder-view">
             <span class="tile-icon">
@@ -245,7 +242,6 @@
               <span>ID</span>
               <span>Pelanggan</span>
               <span>Status</span>
-              <span>Benefit Member</span>
               <span>Terakhir</span>
               <span>Action</span>
             </div>
@@ -272,7 +268,6 @@
               <strong id="detail-visits">18 kali</strong>
               <span>Total kunjungan</span>
             </div>
-            <div class="reward-box" id="detail-reward"></div>
             <div class="reminder-box">
               <strong>Reminder otomatis</strong>
               <span id="detail-reminder">Hubungi 7 hari setelah jasa terakhir: 04 Jul 2026.</span>
@@ -289,6 +284,47 @@
             </div>
             <div class="history-list" id="detail-history-list"></div>
           </section>
+        </div>
+      </section>
+
+      <section class="tablet-screen view" id="membership-view" aria-label="Membership pelanggan">
+        <header class="topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Membership</h1>
+          </div>
+        </header>
+
+        <div class="membership-layout">
+          <section class="membership-list-panel">
+            <div class="section-heading plain">
+              <div>
+                <h2>Daftar Pelanggan</h2>
+                <p>Pilih pelanggan untuk melihat progres membership.</p>
+              </div>
+            </div>
+            <div class="membership-list" id="membership-list"></div>
+          </section>
+
+          <aside class="membership-detail-panel" id="membership-detail-panel">
+            <div class="membership-empty" id="membership-empty">
+              <strong>Pilih Pelanggan</strong>
+              <span>Pilih pelanggan dari daftar untuk melihat detail membership dan progres benefit.</span>
+            </div>
+            <div class="membership-detail-content" id="membership-detail-content" hidden>
+              <div class="membership-profile">
+                <h2 id="mb-name">Dewi Anggraini</h2>
+                <div id="mb-badge"></div>
+                <p id="mb-phone">No HP: 0812 3456 7890</p>
+                <div class="visit-count">
+                  <strong id="mb-visits">18 kali</strong>
+                  <span>Total kunjungan</span>
+                </div>
+              </div>
+              <div class="membership-rewards" id="mb-rewards"></div>
+            </div>
+          </aside>
         </div>
       </section>
 
@@ -365,61 +401,124 @@
 
         <div class="sales-layout">
           <aside class="filter-panel">
-            <h2>Filter</h2>
-            <label>
-              Dari
-              <input value="27-06-2026" readonly />
-            </label>
-            <label>
-              Sampai
-              <input value="27-06-2026" readonly />
-            </label>
-            <label>
-              Dari Jam
-              <input value="09:00" readonly />
-            </label>
-            <label>
-              Sampai Jam
-              <input value="23:59" readonly />
-            </label>
-            <button class="primary-action small">Tampilkan</button>
-            <div class="filter-totals">
-              <div>
-                <span>Pending</span>
-                <strong>0</strong>
+            <div class="filter-header">
+              <h2>Filter</h2>
+              <span class="filter-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+              </span>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Periode Tanggal</label>
+              <div class="date-range">
+                <div class="date-input-wrap">
+                  <input id="filter-date-from" type="date" value="2026-06-26" />
+                </div>
+                <span class="range-sep">s/d</span>
+                <div class="date-input-wrap">
+                  <input id="filter-date-to" type="date" value="2026-06-27" />
+                </div>
               </div>
-              <div>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Periode Jam</label>
+              <div class="date-range">
+                <div class="date-input-wrap">
+                  <input id="filter-time-from" type="time" value="00:00" />
+                </div>
+                <span class="range-sep">s/d</span>
+                <div class="date-input-wrap">
+                  <input id="filter-time-to" type="time" value="23:59" />
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Metode Pembayaran</label>
+              <div class="select-wrap">
+                <select id="filter-payment">
+                  <option value="">Semua</option>
+                  <option value="Tunai">Tunai</option>
+                  <option value="QRIS">QRIS</option>
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Status</label>
+              <div class="select-wrap">
+                <select id="filter-status">
+                  <option value="">Semua</option>
+                  <option value="Selesai">Selesai</option>
+                  <option value="Pending">Pending</option>
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+            </div>
+
+            <button class="sales-filter-apply" id="sales-filter-apply" type="button">Terapkan Filter</button>
+            <button class="sales-filter-reset" id="sales-filter-reset" type="button">Reset</button>
+
+            <div class="filter-summary">
+              <h3>Ringkasan</h3>
+              <div class="summary-row">
                 <span>Total</span>
                 <strong>Rp 4.275.000</strong>
+              </div>
+              <div class="summary-row">
+                <span>Jumlah Transaksi</span>
+                <strong>26</strong>
+              </div>
+              <div class="summary-row">
+                <span>Rata-rata per Transaksi</span>
+                <strong>Rp 164.423</strong>
               </div>
             </div>
           </aside>
 
-          <section class="transaction-panel">
-            <div class="section-heading plain">
-              <div>
-                <h2>Transaksi Hari Ini</h2>
-                <p>Tap transaksi untuk membuka detail.</p>
+          <section class="sales-right">
+            <div class="sales-toolbar">
+              <label class="sales-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="search" placeholder="Cari nama pelanggan / no. nota / petugas..." autocomplete="off" />
+              </label>
+              <div class="sort-wrap">
+                <select>
+                  <option>Terbaru</option>
+                  <option>Terlama</option>
+                  <option>Total Tertinggi</option>
+                </select>
+                <span class="select-arrow">▾</span>
               </div>
             </div>
-            <div class="transaction-row selected">
-              <strong>11:42 · Dewi Anggraini</strong>
-              <span>Wira · POS-088046</span>
-              <b>Rp 936.000</b>
-            </div>
-            <div class="transaction-row">
-              <strong>10:33 · Sapriti</strong>
-              <span>Kartini · POS-088045</span>
-              <b>Rp 450.000</b>
-            </div>
-            <div class="transaction-row">
-              <strong>10:28 · Priscila Tan</strong>
-              <span>Priscila · POS-088044</span>
-              <b>Rp 1.120.000</b>
-            </div>
-            <div class="selected-detail">
-              <strong>Detail transaksi terpilih</strong>
-              <span>Hair Cut, Creambath, Produk: Vitamin Rambut. Pembayaran: Tunai. Status selesai dan struk tersimpan.</span>
+
+            <div class="sales-list" id="sales-list"></div>
+
+            <div class="sales-pagination" id="sales-pagination"></div>
+
+            <div class="sales-detail-panel" id="sales-detail-panel" hidden>
+              <button class="detail-back" id="detail-back" type="button">‹ Kembali ke daftar</button>
+              <div class="detail-card">
+                <div class="detail-header">
+                  <div>
+                    <strong id="detail-invoice">POS-088046</strong>
+                    <span id="detail-datetime">27 Jun 2026 · 11:42</span>
+                  </div>
+                  <span class="badge" id="detail-payment">Tunai</span>
+                </div>
+                <div class="detail-customer">
+                  <strong id="detail-customer-name">Dewi Anggraini</strong>
+                  <span id="detail-staff">Petugas: Wira</span>
+                </div>
+                <div class="detail-items" id="detail-items"></div>
+                <div class="detail-adjustments" id="detail-adjustments"></div>
+                <div class="detail-total-row">
+                  <span>Total</span>
+                  <strong id="detail-total">Rp 936.000</strong>
+                </div>
+              </div>
             </div>
           </section>
         </div>
@@ -433,19 +532,76 @@
             <h1>Daftar Pending / Draft</h1>
           </div>
         </header>
-        <div class="pending-layout" style="padding: 24px 48px 48px;">
-          <section class="wide-panel" style="height: auto; margin: 0;">
+
+        <div class="pending-layout">
+          <section class="pending-list-panel">
             <div class="section-heading plain">
               <div>
                 <h2>Transaksi Pending</h2>
-                <p>Daftar transaksi yang tersimpan sebagai draft.</p>
+                <p>Tap transaksi untuk melanjutkan pembayaran.</p>
               </div>
             </div>
-            <div class="empty-cart" style="margin-top: 24px;">
-              <strong>Tidak ada transaksi pending</strong>
-              <span>Semua transaksi telah diselesaikan.</span>
-            </div>
+            <div class="pending-list" id="pending-list"></div>
           </section>
+
+          <aside class="pending-cart-panel" id="pending-cart-panel" aria-label="Lanjutkan transaksi pending">
+            <div class="cart-head">
+              <div>
+                <h2>Lanjutkan Transaksi</h2>
+                <p id="pending-cart-subtitle">Pilih transaksi pending dari daftar.</p>
+              </div>
+              <span class="badge" id="pending-cart-badge">0 item</span>
+            </div>
+
+            <div class="cart-list" id="pending-cart-list">
+              <div class="empty-cart">
+                <strong>Belum ada transaksi dipilih</strong>
+                <span>Pilih draft dari daftar kiri untuk melanjutkan.</span>
+              </div>
+            </div>
+
+            <div class="payment-summary" id="pending-payment-summary" style="opacity:0.5; pointer-events:none;">
+              <h3>Ringkasan Pembayaran</h3>
+              <div class="summary-line adjustment" id="pending-reward-line" hidden>
+                <span id="pending-reward-label">Gratis Member</span>
+                <strong class="saving" id="pending-reward">- Rp 0</strong>
+              </div>
+              <div class="summary-line adjustment" id="pending-dp-line" hidden>
+                <span>DP</span>
+                <strong class="saving" id="pending-dp">- Rp 0</strong>
+              </div>
+              <div class="summary-line total">
+                <span>Total</span>
+                <strong id="pending-total">Rp 0</strong>
+              </div>
+            </div>
+
+            <div class="payment-methods" id="pending-payment-methods" style="opacity:0.5; pointer-events:none;">
+              <button type="button" data-pending-payment="Tunai">
+                <span class="method-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <rect x="3" y="6" width="18" height="12" rx="2"></rect>
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M6 9h2M16 15h2"></path>
+                  </svg>
+                </span>
+                Tunai
+              </button>
+              <button class="active" type="button" data-pending-payment="QRIS">
+                <span class="method-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24">
+                    <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"></path>
+                    <path d="M14 14h2v2h-2zM18 14h2v6h-2zM14 18h2v2h-2z"></path>
+                  </svg>
+                </span>
+                QRIS
+              </button>
+            </div>
+
+            <div class="cart-actions" id="pending-cart-actions" style="opacity:0.5; pointer-events:none;">
+              <button class="primary-action" id="pending-complete-button" type="button">Selesaikan Transaksi</button>
+            </div>
+          </aside>
         </div>
       </section>
     </main>

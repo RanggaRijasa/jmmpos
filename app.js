@@ -333,13 +333,17 @@ const customers = [
     code: "CUST.0001",
     name: "Dewi Anggraini",
     phone: "0812 3456 7890",
-    status: "Member Gold",
-    type: "gold",
+    status: "Member",
+    type: "member",
     totalVisits: 18,
     lastVisit: "27 Jun 2026",
     reminderDate: "04 Jul 2026",
     dp: 0,
-    reward: { serviceId: "cut", serviceName: "Gunting Rambut", progress: 9, target: 10, freeAvailable: 0 },
+    rewards: [
+      { serviceId: "cut", serviceName: "Gunting Rambut", progress: 5, target: 6, freeQty: 1, freeAvailable: 0 },
+      { serviceId: "colour", serviceName: "Hair Colour", progress: 7, target: 10, freeQty: 2, freeAvailable: 0 },
+      { serviceId: "cream", serviceName: "Creambath", progress: 4, target: 6, freeQty: 1, freeAvailable: 0 },
+    ],
   },
   {
     id: "siti",
@@ -352,7 +356,9 @@ const customers = [
     lastVisit: "20 Jun 2026",
     reminderDate: "27 Jun 2026",
     dp: 0,
-    reward: { serviceId: "cream", serviceName: "Creambath", progress: 6, target: 10, freeAvailable: 0 },
+    rewards: [
+      { serviceId: "cream", serviceName: "Creambath", progress: 6, target: 10, freeQty: 2, freeAvailable: 0 },
+    ],
   },
   {
     id: "priscila",
@@ -365,46 +371,54 @@ const customers = [
     lastVisit: "13 Jun 2026",
     reminderDate: "20 Jun 2026",
     dp: 0,
-    reward: null,
+    rewards: null,
   },
   {
     id: "nina",
     code: "CUST.0004",
     name: "Nina Septiani",
     phone: "0852 5555 4477",
-    status: "Member Platinum",
-    type: "platinum",
+    status: "Member",
+    type: "member",
     totalVisits: 24,
     lastVisit: "18 Jun 2026",
     reminderDate: "25 Jun 2026",
     dp: 150000,
-    reward: { serviceId: "cut", serviceName: "Gunting Rambut", progress: 10, target: 10, freeAvailable: 1 },
+    rewards: [
+      { serviceId: "cut", serviceName: "Gunting Rambut", progress: 6, target: 6, freeQty: 1, freeAvailable: 1 },
+      { serviceId: "keratin", serviceName: "Keratin Treatment", progress: 4, target: 10, freeQty: 2, freeAvailable: 0 },
+    ],
   },
   {
     id: "rika",
     code: "CUST.0005",
     name: "Rika Amelia",
     phone: "0819 7733 4466",
-    status: "Member Silver",
-    type: "silver",
+    status: "Member",
+    type: "member",
     totalVisits: 10,
     lastVisit: "17 Jun 2026",
     reminderDate: "24 Jun 2026",
     dp: 100000,
-    reward: { serviceId: "hairwash", serviceName: "Hair Wash", progress: 10, target: 10, freeAvailable: 1 },
+    rewards: [
+      { serviceId: "hairwash", serviceName: "Hair Wash", progress: 10, target: 10, freeQty: 2, freeAvailable: 2 },
+    ],
   },
   {
     id: "maya",
     code: "CUST.0006",
     name: "Maya Putri",
     phone: "0877 4040 7007",
-    status: "Member Gold",
-    type: "gold",
+    status: "Member",
+    type: "member",
     totalVisits: 16,
     lastVisit: "15 Jun 2026",
     reminderDate: "22 Jun 2026",
     dp: 50000,
-    reward: { serviceId: "keratin", serviceName: "Keratin Treatment", progress: 8, target: 10, freeAvailable: 0 },
+    rewards: [
+      { serviceId: "keratin", serviceName: "Keratin Treatment", progress: 8, target: 10, freeQty: 2, freeAvailable: 0 },
+      { serviceId: "cream", serviceName: "Creambath", progress: 5, target: 6, freeQty: 1, freeAvailable: 0 },
+    ],
   },
   {
     id: "lia",
@@ -417,33 +431,38 @@ const customers = [
     lastVisit: "09 Jun 2026",
     reminderDate: "16 Jun 2026",
     dp: 0,
-    reward: null,
+    rewards: null,
   },
   {
     id: "ayu",
     code: "CUST.0008",
     name: "Ayu Lestari",
     phone: "0812 7788 4411",
-    status: "Member Silver",
-    type: "silver",
+    status: "Member",
+    type: "member",
     totalVisits: 8,
     lastVisit: "08 Jun 2026",
     reminderDate: "15 Jun 2026",
     dp: 0,
-    reward: { serviceId: "cream", serviceName: "Creambath", progress: 8, target: 10, freeAvailable: 0 },
+    rewards: [
+      { serviceId: "cream", serviceName: "Creambath", progress: 8, target: 10, freeQty: 2, freeAvailable: 0 },
+    ],
   },
   {
     id: "intan",
     code: "CUST.0009",
     name: "Intan Permata",
     phone: "0822 6060 9911",
-    status: "Member Gold",
-    type: "gold",
+    status: "Member",
+    type: "member",
     totalVisits: 20,
     lastVisit: "07 Jun 2026",
     reminderDate: "14 Jun 2026",
     dp: 0,
-    reward: { serviceId: "colour", serviceName: "Hair Colour", progress: 10, target: 10, freeAvailable: 1 },
+    rewards: [
+      { serviceId: "colour", serviceName: "Hair Colour", progress: 10, target: 10, freeQty: 2, freeAvailable: 2 },
+      { serviceId: "cut", serviceName: "Gunting Rambut", progress: 3, target: 6, freeQty: 1, freeAvailable: 0 },
+    ],
   },
   {
     id: "melati",
@@ -463,13 +482,13 @@ const customers = [
     code: "CUST.0011",
     name: "Citra Wulandari",
     phone: "0813 9000 7711",
-    status: "Member Platinum",
-    type: "platinum",
+    status: "Member",
+    type: "member",
     totalVisits: 31,
     lastVisit: "02 Jun 2026",
     reminderDate: "09 Jun 2026",
     dp: 200000,
-    reward: { serviceId: "smoothing", serviceName: "Smoothing", progress: 7, target: 10, freeAvailable: 0 },
+    reward: { serviceId: "smoothing", serviceName: "Smoothing", progress: 7, target: 10, freeQty: 2, freeAvailable: 0 },
   },
   {
     id: "salsa",
@@ -482,7 +501,7 @@ const customers = [
     lastVisit: "01 Jun 2026",
     reminderDate: "08 Jun 2026",
     dp: 0,
-    reward: { serviceId: "hairspa", serviceName: "Hair Spa", progress: 5, target: 10, freeAvailable: 0 },
+    reward: { serviceId: "hairspa", serviceName: "Hair Spa", progress: 5, target: 6, freeQty: 1, freeAvailable: 0 },
   },
 ];
 
@@ -580,6 +599,13 @@ function formatMoney(value) {
   return formatter.format(value).replace(/\u00a0/g, " ");
 }
 
+function blurNativeDateTimePicker() {
+  const active = document.activeElement;
+  if (active?.matches?.('input[type="date"], input[type="time"]')) {
+    active.blur();
+  }
+}
+
 function getMaxQty(item) {
   return item.type === "service" ? 2 : 99;
 }
@@ -599,44 +625,50 @@ function getCustomerBadge(customer) {
   if (!customer) return `<span class="badge muted">Kosong</span>`;
   if (customer.type === "non-member") return `<span class="badge muted">Non Member</span>`;
   return `
-    <span class="badge member ${customer.type}">
+    <span class="badge member">
       <span class="member-mark" aria-hidden="true">M</span>
-      <span>${customer.status}</span>
+      <span>Member</span>
     </span>
   `;
 }
 
+function getFirstReward(customer) {
+  if (!customer?.rewards || !customer.rewards.length) return null;
+  return customer.rewards[0];
+}
+
 function getRewardText(customer) {
-  if (!customer?.reward) return "Benefit member belum aktif";
-  const reward = customer.reward;
-  if (reward.freeAvailable > 0) return `${reward.serviceName}: gratis 1 jasa siap dipakai`;
-  return `${reward.serviceName}: ${reward.progress}/${reward.target} menuju gratis 1 jasa`;
+  const reward = getFirstReward(customer);
+  if (!reward) return "Benefit member belum aktif";
+  if (reward.freeAvailable > 0) return `${reward.serviceName}: gratis ${reward.freeAvailable} jasa siap dipakai`;
+  return `${reward.serviceName}: ${reward.progress}/${reward.target} menuju gratis ${reward.freeQty} jasa`;
 }
 
 function renderRewardMeter(customer, mode = "normal") {
-  if (!customer?.reward) {
+  const reward = getFirstReward(customer);
+  if (!reward) {
     return `
       <div class="reward-meter ${mode} muted">
         <span>Benefit Member</span>
         <strong>Non-member</strong>
-        <small>Benefit buy 10 get 1 belum aktif.</small>
+        <small>Benefit member belum aktif.</small>
       </div>
     `;
   }
 
-  const reward = customer.reward;
   const active = Math.min(reward.progress, reward.target);
   const dots = Array.from({ length: reward.target }, (_, index) => {
     const done = index < active;
-    const free = reward.freeAvailable > 0 && index === reward.target - 1;
+    const free = reward.freeAvailable > 0 && index >= reward.target - reward.freeAvailable;
     return `<i class="${done ? "done" : ""} ${free ? "free" : ""}"></i>`;
   }).join("");
-  const headline = reward.freeAvailable > 0 ? "Gratis 1 jasa siap" : `${active}/${reward.target} kunjungan`;
+  const headline = reward.freeAvailable > 0 ? `Gratis ${reward.freeAvailable} jasa siap` : `${active}/${reward.target} kunjungan`;
+  const label = `Buy ${reward.target} jasa, gratis ${reward.freeQty} jasa`;
 
   return `
     <div class="reward-meter ${mode} ${reward.freeAvailable > 0 ? "ready" : ""}">
       <span>Benefit Member</span>
-      <strong>Buy 10 jasa, gratis 1 jasa</strong>
+      <strong>${label}</strong>
       <small>${reward.serviceName} · ${headline}</small>
       <div class="reward-dots" aria-label="${reward.serviceName} ${active} dari ${reward.target}">${dots}</div>
     </div>
@@ -644,16 +676,16 @@ function renderRewardMeter(customer, mode = "normal") {
 }
 
 function getAppliedReward(selected) {
-  const reward = selectedCustomer?.reward;
+  const reward = getFirstReward(selectedCustomer);
   if (!reward || reward.freeAvailable < 1) return null;
 
   const rewardItem = selected.find((item) => item.id === reward.serviceId && item.type === "service" && item.qty > 0);
   if (!rewardItem) return null;
 
   return {
-    label: `${reward.serviceName} gratis member`,
+    label: `${reward.serviceName} gratis member (${reward.freeAvailable}x)`,
     serviceName: reward.serviceName,
-    amount: rewardItem.price,
+    amount: rewardItem.price * Math.min(reward.freeAvailable, rewardItem.qty),
     itemId: rewardItem.id,
   };
 }
@@ -762,7 +794,6 @@ function renderCustomerList() {
             <small>${customer.phone}</small>
           </div>
           <div>${getCustomerBadge(customer)}</div>
-          <div>${renderRewardMeter(customer, "compact")}</div>
           <span class="last-visit">${customer.lastVisit}</span>
           <button class="table-action" type="button" data-detail-customer="${customer.id}">Lihat Detail</button>
         </article>
@@ -774,9 +805,8 @@ function renderCustomerList() {
 function renderCustomerDetail(customerId = activeDetailCustomerId) {
   const customer = customers.find((entry) => entry.id === customerId) || customers[0];
   activeDetailCustomerId = customer.id;
-  const fallbackService = customer.reward?.serviceName || "Hair Wash";
   const fallbackHistory = [
-    [customer.lastVisit, fallbackService, "Kartini", items.find((item) => item.id === customer.reward?.serviceId)?.price || 160000],
+    [customer.lastVisit, "Hair Wash", "Kartini", 60000],
     ["25 Mei 2026", "Creambath", "Wira", 230000],
     ["18 Mei 2026", "Gunting Rambut", "Siska", 160000],
     ["11 Mei 2026", "Hair Wash", "Nadya", 60000],
@@ -788,7 +818,6 @@ function renderCustomerDetail(customerId = activeDetailCustomerId) {
   document.querySelector("#detail-badge").innerHTML = getCustomerBadge(customer);
   document.querySelector("#detail-phone").textContent = `No HP: ${customer.phone}`;
   document.querySelector("#detail-visits").textContent = `${customer.totalVisits} kali`;
-  document.querySelector("#detail-reward").innerHTML = renderRewardMeter(customer, "detail");
   document.querySelector("#detail-reminder").textContent = `Hubungi 7 hari setelah jasa terakhir: ${customer.reminderDate}.`;
 
   const history = customerHistories[customer.id] || fallbackHistory;
@@ -981,6 +1010,10 @@ function setView(id) {
 }
 
 document.addEventListener("click", (event) => {
+  if (!event.target.closest('input[type="date"], input[type="time"]')) {
+    blurNativeDateTimePicker();
+  }
+
   const detailCustomer = event.target.closest("[data-detail-customer]");
   if (detailCustomer) {
     activeDetailCustomerId = detailCustomer.dataset.detailCustomer;
@@ -1090,6 +1123,7 @@ document.addEventListener("click", (event) => {
 
   const nav = event.target.closest("[data-target]");
   if (nav) {
+    blurNativeDateTimePicker();
     setView(nav.dataset.target);
     return;
   }
@@ -1139,16 +1173,672 @@ document.addEventListener("click", (event) => {
     renderCart();
   }
 
+  const salesRow = event.target.closest("[data-sales-id]");
+  if (salesRow) {
+    showSalesDetail(salesRow.dataset.salesId);
+    return;
+  }
+
+  const detailBack = event.target.closest("#detail-back");
+  if (detailBack) {
+    hideSalesDetail();
+    return;
+  }
+
+  if (event.target.closest("#sales-filter-apply")) {
+    blurNativeDateTimePicker();
+    salesPage = 1;
+    renderSalesList();
+    return;
+  }
+
+  if (event.target.closest("#sales-filter-reset")) {
+    blurNativeDateTimePicker();
+    document.querySelector("#filter-date-from").value = "2026-06-26";
+    document.querySelector("#filter-date-to").value = "2026-06-27";
+    document.querySelector("#filter-time-from").value = "00:00";
+    document.querySelector("#filter-time-to").value = "23:59";
+    document.querySelector("#filter-payment").value = "";
+    document.querySelector("#filter-status").value = "";
+    salesSearchTerm = "";
+    const searchInput = document.querySelector(".sales-search input");
+    if (searchInput) searchInput.value = "";
+    salesPage = 1;
+    renderSalesList();
+    return;
+  }
+
+  const membershipRow = event.target.closest("[data-membership-id]");
+  if (membershipRow) {
+    renderMembershipDetail(membershipRow.dataset.membershipId);
+    return;
+  }
+
+  const pageBtn = event.target.closest("[data-sales-page]");
+  if (pageBtn) {
+    const action = pageBtn.dataset.salesPage;
+    const filtered = filteredSales();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / salesPerPage));
+    if (action === "prev") {
+      salesPage = Math.max(1, salesPage - 1);
+    } else if (action === "next") {
+      salesPage = Math.min(totalPages, salesPage + 1);
+    } else {
+      salesPage = Number(action);
+    }
+    renderSalesList();
+    return;
+  }
+
+  const pendingRow = event.target.closest("[data-pending-id]");
+  if (pendingRow) {
+    selectPendingTransaction(pendingRow.dataset.pendingId);
+    return;
+  }
+
+  const pendingPaymentBtn = event.target.closest("[data-pending-payment]");
+  if (pendingPaymentBtn) {
+    selectedPendingPayment = pendingPaymentBtn.dataset.pendingPayment;
+    document.querySelectorAll("[data-pending-payment]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.pendingPayment === selectedPendingPayment);
+    });
+    return;
+  }
+
+  if (event.target.closest("#pending-complete-button")) {
+    completePendingTransaction();
+    return;
+  }
+
   if (!event.target.closest("#customer-picker")) {
     document.querySelector("#customer-picker").classList.remove("open");
   }
 });
 
+const salesTransactions = [
+  {
+    id: "POS-088046", time: "11:42", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Dewi Anggraini", staff: "Wira", amount: 936000, payment: "Tunai",
+    items: [
+      { name: "Hair Cut", qty: 1, price: 160000, staff: "Wira", type: "service" },
+      { name: "Creambath", qty: 1, price: 230000, staff: "Kartini", type: "service" },
+      { name: "Vitamin Rambut", qty: 1, price: 80000, type: "product" },
+      { name: "Hair Colour", qty: 1, price: 450000, staff: "Siska", type: "service" },
+    ],
+    status: "Selesai", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088045", time: "10:33", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Sapriti", staff: "Kartini", amount: 450000, payment: "QRIS",
+    items: [
+      { name: "Keratin Treatment", qty: 1, price: 450000, staff: "Kartini", type: "service" },
+    ],
+    status: "Selesai", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088044", time: "10:28", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Priscila Tan", staff: "Priscila", amount: 1120000, payment: "Tunai",
+    items: [
+      { name: "Digital Perm", qty: 1, price: 850000, staff: "Priscila", type: "service" },
+      { name: "Hair Spa", qty: 1, price: 280000, staff: "Nadya", type: "service" },
+    ],
+    status: "Selesai", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088043", time: "10:15", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Linda Permata", staff: "Wira", amount: 320000, payment: "QRIS",
+    items: [
+      { name: "Hair Wash", qty: 1, price: 60000, staff: "Wira", type: "service" },
+      { name: "Blow Dry", qty: 1, price: 120000, staff: "Kartini", type: "service" },
+      { name: "Manicure", qty: 1, price: 110000, staff: "Priscila", type: "service" },
+      { name: "Hair Tonic", qty: 1, price: 125000, type: "product" },
+    ],
+    status: "Selesai", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088042", time: "09:51", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Rika Amelia", staff: "Kartini", amount: 780000, payment: "Tunai",
+    items: [
+      { name: "Smoothing", qty: 1, price: 650000, staff: "Sapriti", type: "service" },
+      { name: "Hair Mask Aloe", qty: 1, price: 150000, type: "product" },
+    ],
+    status: "Selesai", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088041", time: "09:30", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Siti Rahma", staff: "Wira", amount: 669000, payment: "QRIS",
+    items: [
+      { name: "Creambath", qty: 1, price: 230000, staff: "Wira", type: "service" },
+      { name: "Hair Colour", qty: 1, price: 450000, staff: "Kartini", type: "service" },
+      { name: "Shampoo Keratin", qty: 1, price: 95000, type: "product" },
+    ],
+    status: "Selesai", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088040", time: "17:22", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Nina Septiani", staff: "Priscila", amount: 1250000, payment: "Tunai",
+    items: [
+      { name: "Hair Extension", qty: 1, price: 1200000, staff: "Priscila", type: "service" },
+      { name: "Hair Wash", qty: 1, price: 60000, staff: "Wira", type: "service" },
+    ],
+    status: "Selesai", dp: 150000, reward: 0,
+  },
+  {
+    id: "POS-088039", time: "16:45", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Maya Putri", staff: "Siska", amount: 540000, payment: "QRIS",
+    items: [
+      { name: "Keratin Treatment", qty: 1, price: 450000, staff: "Siska", type: "service" },
+      { name: "Hair Tonic", qty: 1, price: 125000, type: "product" },
+    ],
+    status: "Selesai", dp: 50000, reward: 0,
+  },
+  {
+    id: "POS-088038", time: "15:10", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Dewi Anggraini", staff: "Kartini", amount: 160000, payment: "Tunai",
+    items: [
+      { name: "Gunting Rambut", qty: 1, price: 160000, staff: "Kartini", type: "service" },
+    ],
+    status: "Selesai", dp: 0, reward: 160000,
+  },
+  {
+    id: "POS-088037", time: "14:55", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Lia Kartika", staff: "Wira", amount: 60000, payment: "QRIS",
+    items: [
+      { name: "Hair Wash", qty: 1, price: 60000, staff: "Wira", type: "service" },
+    ],
+    status: "Selesai", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088036", time: "13:20", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Sapriti", staff: "Priscila", amount: 670000, payment: "Tunai",
+    items: [
+      { name: "Highlight", qty: 1, price: 520000, staff: "Priscila", type: "service" },
+      { name: "Hair Wash", qty: 1, price: 60000, staff: "Wira", type: "service" },
+      { name: "Conditioner Silk", qty: 1, price: 90000, type: "product" },
+    ],
+    status: "Selesai", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088035", time: "12:05", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Rika Amelia", staff: "Kartini", amount: 295000, payment: "QRIS",
+    items: [
+      { name: "Blow Catok", qty: 1, price: 180000, staff: "Kartini", type: "service" },
+      { name: "Serum Anti Frizz", qty: 1, price: 175000, type: "product" },
+    ],
+    status: "Selesai", dp: 100000, reward: 0,
+  },
+  {
+    id: "POS-088034", time: "11:40", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Siti Rahma", staff: "Wira", amount: 880000, payment: "Tunai",
+    items: [
+      { name: "Hair Colour", qty: 1, price: 450000, staff: "Wira", type: "service" },
+      { name: "Creambath", qty: 1, price: 230000, staff: "Kartini", type: "service" },
+      { name: "Hair Spa", qty: 1, price: 280000, staff: "Nadya", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088033", time: "10:15", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Priscila Tan", staff: "Priscila", amount: 410000, payment: "QRIS",
+    items: [
+      { name: "Gunting Rambut", qty: 1, price: 160000, staff: "Priscila", type: "service" },
+      { name: "Keratin Treatment", qty: 1, price: 250000, staff: "Siska", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088032", time: "09:45", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Dewi Anggraini", staff: "Kartini", amount: 450000, payment: "Tunai",
+    items: [
+      { name: "Hair Colour", qty: 1, price: 450000, staff: "Kartini", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088031", time: "09:10", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Nina Septiani", staff: "Priscila", amount: 750000, payment: "QRIS",
+    items: [
+      { name: "Keratin Treatment", qty: 1, price: 750000, staff: "Priscila", type: "service" },
+    ],
+    status: "Pending", dp: 150000, reward: 0,
+  },
+  {
+    id: "POS-088030", time: "08:55", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Maya Putri", staff: "Siska", amount: 280000, payment: "Tunai",
+    items: [
+      { name: "Hair Spa", qty: 1, price: 280000, staff: "Siska", type: "service" },
+    ],
+    status: "Pending", dp: 50000, reward: 0,
+  },
+  {
+    id: "POS-088029", time: "16:30", date: "25 Jun 2026", dateRaw: "2026-06-25", customer: "Rika Amelia", staff: "Kartini", amount: 160000, payment: "QRIS",
+    items: [
+      { name: "Gunting Rambut", qty: 1, price: 160000, staff: "Kartini", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088028", time: "15:45", date: "25 Jun 2026", dateRaw: "2026-06-25", customer: "Lia Kartika", staff: "Wira", amount: 320000, payment: "Tunai",
+    items: [
+      { name: "Blow Dry", qty: 1, price: 120000, staff: "Wira", type: "service" },
+      { name: "Hair Wash", qty: 1, price: 60000, staff: "Wira", type: "service" },
+      { name: "Manicure", qty: 1, price: 110000, staff: "Priscila", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088027", time: "14:20", date: "25 Jun 2026", dateRaw: "2026-06-25", customer: "Sapriti", staff: "Priscila", amount: 980000, payment: "QRIS",
+    items: [
+      { name: "Digital Perm", qty: 1, price: 850000, staff: "Priscila", type: "service" },
+      { name: "Hair Tonic", qty: 1, price: 125000, type: "product" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088026", time: "13:00", date: "25 Jun 2026", dateRaw: "2026-06-25", customer: "Siti Rahma", staff: "Wira", amount: 540000, payment: "Tunai",
+    items: [
+      { name: "Keratin Treatment", qty: 1, price: 450000, staff: "Wira", type: "service" },
+      { name: "Shampoo Keratin", qty: 1, price: 95000, type: "product" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088025", time: "11:30", date: "25 Jun 2026", dateRaw: "2026-06-25", customer: "Dewi Anggraini", staff: "Kartini", amount: 110000, payment: "QRIS",
+    items: [
+      { name: "Manicure", qty: 1, price: 110000, staff: "Kartini", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088024", time: "10:45", date: "25 Jun 2026", dateRaw: "2026-06-25", customer: "Nina Septiani", staff: "Priscila", amount: 230000, payment: "Tunai",
+    items: [
+      { name: "Creambath", qty: 1, price: 230000, staff: "Priscila", type: "service" },
+    ],
+    status: "Pending", dp: 150000, reward: 0,
+  },
+  {
+    id: "POS-088023", time: "09:20", date: "25 Jun 2026", dateRaw: "2026-06-25", customer: "Priscila Tan", staff: "Priscila", amount: 650000, payment: "QRIS",
+    items: [
+      { name: "Smoothing", qty: 1, price: 650000, staff: "Priscila", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088022", time: "17:00", date: "24 Jun 2026", dateRaw: "2026-06-24", customer: "Rika Amelia", staff: "Kartini", amount: 450000, payment: "Tunai",
+    items: [
+      { name: "Hair Colour", qty: 1, price: 450000, staff: "Kartini", type: "service" },
+    ],
+    status: "Pending", dp: 100000, reward: 0,
+  },
+  {
+    id: "POS-088021", time: "15:30", date: "24 Jun 2026", dateRaw: "2026-06-24", customer: "Maya Putri", staff: "Siska", amount: 210000, payment: "QRIS",
+    items: [
+      { name: "Hair Mask", qty: 1, price: 210000, staff: "Siska", type: "service" },
+    ],
+    status: "Pending", dp: 50000, reward: 0,
+  },
+  {
+    id: "POS-088020", time: "14:15", date: "24 Jun 2026", dateRaw: "2026-06-24", customer: "Lia Kartika", staff: "Wira", amount: 180000, payment: "Tunai",
+    items: [
+      { name: "Blow Catok", qty: 1, price: 180000, staff: "Wira", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088019", time: "12:45", date: "24 Jun 2026", dateRaw: "2026-06-24", customer: "Sapriti", staff: "Priscila", amount: 360000, payment: "QRIS",
+    items: [
+      { name: "Gunting Rambut", qty: 1, price: 160000, staff: "Priscila", type: "service" },
+      { name: "Creambath", qty: 1, price: 230000, staff: "Wira", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088018", time: "11:00", date: "24 Jun 2026", dateRaw: "2026-06-24", customer: "Siti Rahma", staff: "Wira", amount: 850000, payment: "Tunai",
+    items: [
+      { name: "Digital Perm", qty: 1, price: 850000, staff: "Wira", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+  {
+    id: "POS-088017", time: "09:30", date: "24 Jun 2026", dateRaw: "2026-06-24", customer: "Dewi Anggraini", staff: "Kartini", amount: 750000, payment: "QRIS",
+    items: [
+      { name: "Keratin Treatment", qty: 1, price: 750000, staff: "Kartini", type: "service" },
+    ],
+    status: "Pending", dp: 0, reward: 0,
+  },
+];
+
+let salesPage = 1;
+const salesPerPage = 5;
+let salesSearchTerm = "";
+let selectedSalesId = null;
+
+function getPaymentIcon(payment) {
+  if (payment === "Tunai") {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="12" cy="12" r="3"></circle><path d="M6 9h2M16 15h2"></path></svg>`;
+  }
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"></path><path d="M14 14h2v2h-2zM18 14h2v6h-2zM14 18h2v2h-2z"></path></svg>`;
+}
+
+function getActiveFilters() {
+  const dateFrom = document.querySelector("#filter-date-from")?.value || "";
+  const dateTo = document.querySelector("#filter-date-to")?.value || "";
+  const timeFrom = document.querySelector("#filter-time-from")?.value || "";
+  const timeTo = document.querySelector("#filter-time-to")?.value || "";
+  const payment = document.querySelector("#filter-payment")?.value || "";
+  const status = document.querySelector("#filter-status")?.value || "";
+  return { dateFrom, dateTo, timeFrom, timeTo, payment, status };
+}
+
+function parseTimeToMin(timeStr) {
+  const [h, m] = timeStr.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function filteredSales() {
+  const filters = getActiveFilters();
+  let result = salesTransactions;
+
+  if (salesSearchTerm) {
+    result = result.filter((t) => {
+      const text = `${t.customer} ${t.id} ${t.staff}`.toLowerCase();
+      return text.includes(salesSearchTerm);
+    });
+  }
+
+  if (filters.dateFrom) {
+    result = result.filter((t) => t.dateRaw >= filters.dateFrom);
+  }
+  if (filters.dateTo) {
+    result = result.filter((t) => t.dateRaw <= filters.dateTo);
+  }
+  if (filters.timeFrom) {
+    const fromMin = parseTimeToMin(filters.timeFrom);
+    result = result.filter((t) => parseTimeToMin(t.time) >= fromMin);
+  }
+  if (filters.timeTo) {
+    const toMin = parseTimeToMin(filters.timeTo);
+    result = result.filter((t) => parseTimeToMin(t.time) <= toMin);
+  }
+  if (filters.payment) {
+    result = result.filter((t) => t.payment === filters.payment);
+  }
+  if (filters.status) {
+    result = result.filter((t) => t.status === filters.status);
+  }
+
+  return result;
+}
+
+function updateFilterSummary(filtered) {
+  const total = filtered.reduce((sum, t) => sum + t.amount, 0);
+  const count = filtered.length;
+  const avg = count > 0 ? Math.round(total / count) : 0;
+
+  const summary = document.querySelector(".filter-summary");
+  if (!summary) return;
+
+  summary.innerHTML = `
+    <h3>Ringkasan</h3>
+    <div class="summary-row"><span>Total</span><strong>${formatMoney(total)}</strong></div>
+    <div class="summary-row"><span>Jumlah Transaksi</span><strong>${count}</strong></div>
+    <div class="summary-row"><span>Rata-rata per Transaksi</span><strong>${formatMoney(avg)}</strong></div>
+  `;
+}
+
+function renderSalesList() {
+  const list = document.querySelector("#sales-list");
+  const pagination = document.querySelector("#sales-pagination");
+  if (!list) return;
+
+  const filtered = filteredSales();
+  updateFilterSummary(filtered);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / salesPerPage));
+  if (salesPage > totalPages) salesPage = totalPages;
+  if (salesPage < 1) salesPage = 1;
+
+  const start = (salesPage - 1) * salesPerPage;
+  const pageItems = filtered.slice(start, start + salesPerPage);
+
+  if (!pageItems.length) {
+    list.innerHTML = `
+      <div class="empty-cart" style="border:0; background:transparent;">
+        <strong>Tidak ada transaksi</strong>
+        <span>Coba ubah filter atau kata kunci pencarian.</span>
+      </div>`;
+    pagination.innerHTML = "";
+    return;
+  }
+
+  list.innerHTML = pageItems
+    .map((t) => {
+      const selectedClass = selectedSalesId === t.id ? " selected" : "";
+      return `
+        <article class="sales-row${selectedClass}" data-sales-id="${t.id}">
+          <div class="sales-row-time">
+            <strong>${t.time}</strong>
+            <span>${t.date}</span>
+          </div>
+          <div class="sales-row-info">
+            <strong>${t.customer}</strong>
+            <span>${t.staff} · ${t.id}</span>
+          </div>
+          <span class="payment-badge">${getPaymentIcon(t.payment)}${t.payment}</span>
+          <span class="sales-row-amount">${formatMoney(t.amount)}</span>
+          <span class="sales-row-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </span>
+        </article>
+      `;
+    })
+    .join("");
+
+  let pagesHtml = "";
+  if (totalPages > 1) {
+    pagesHtml += `<button type="button" data-sales-page="prev" ${salesPage === 1 ? "disabled" : ""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>`;
+    for (let i = 1; i <= totalPages; i++) {
+      const activeClass = i === salesPage ? " active" : "";
+      pagesHtml += `<button class="${activeClass}" type="button" data-sales-page="${i}">${i}</button>`;
+    }
+    pagesHtml += `<button type="button" data-sales-page="next" ${salesPage === totalPages ? "disabled" : ""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>`;
+  }
+  pagination.innerHTML = pagesHtml;
+}
+
+function showSalesDetail(id) {
+  const t = salesTransactions.find((x) => x.id === id);
+  if (!t) return;
+  selectedSalesId = id;
+  renderSalesList();
+
+  const panel = document.querySelector("#sales-detail-panel");
+  document.querySelector("#detail-invoice").textContent = t.id;
+  document.querySelector("#detail-datetime").textContent = `${t.date} · ${t.time}`;
+  document.querySelector("#detail-payment").textContent = t.payment;
+  document.querySelector("#detail-customer-name").textContent = t.customer;
+  document.querySelector("#detail-staff").textContent = `Petugas: ${t.staff}`;
+
+  const itemsHtml = t.items
+    .map((item) => {
+      const lineTotal = item.qty * item.price;
+      const staffLabel = item.staff ? ` · ${item.staff}` : "";
+      const typeLabel = item.type === "service" ? "Jasa" : "Produk";
+      return `
+        <div class="detail-item-row">
+          <span>${item.name} × ${item.qty} <small>(${typeLabel}${staffLabel})</small></span>
+          <strong>${formatMoney(lineTotal)}</strong>
+        </div>
+      `;
+    })
+    .join("");
+  document.querySelector("#detail-items").innerHTML = itemsHtml;
+
+  let adjustmentsHtml = "";
+  if (t.dp > 0) {
+    adjustmentsHtml += `
+      <div class="detail-adjustment-row">
+        <span>DP</span>
+        <strong class="saving">- ${formatMoney(t.dp)}</strong>
+      </div>
+    `;
+  }
+  if (t.reward > 0) {
+    adjustmentsHtml += `
+      <div class="detail-adjustment-row">
+        <span>Gratis Member</span>
+        <strong class="saving">- ${formatMoney(t.reward)}</strong>
+      </div>
+    `;
+  }
+  const adjEl = document.querySelector("#detail-adjustments");
+  if (adjEl) adjEl.innerHTML = adjustmentsHtml;
+
+  const finalTotal = t.amount;
+  document.querySelector("#detail-total").textContent = formatMoney(finalTotal);
+
+  panel.hidden = false;
+}
+
+function hideSalesDetail() {
+  document.querySelector("#sales-detail-panel").hidden = true;
+  selectedSalesId = null;
+  renderSalesList();
+}
+
+let selectedPendingId = null;
+let selectedPendingPayment = "QRIS";
+
+function getPendingTransactions() {
+  return salesTransactions.filter((t) => t.status === "Pending");
+}
+
+function renderPendingList() {
+  const list = document.querySelector("#pending-list");
+  if (!list) return;
+
+  const pending = getPendingTransactions();
+
+  if (!pending.length) {
+    list.innerHTML = `
+      <div class="empty-cart" style="border:0; background:transparent;">
+        <strong>Tidak ada transaksi pending</strong>
+        <span>Semua transaksi telah diselesaikan.</span>
+      </div>`;
+    clearPendingCart();
+    return;
+  }
+
+  list.innerHTML = pending
+    .map((t) => {
+      const selectedClass = selectedPendingId === t.id ? " selected" : "";
+      return `
+        <article class="pending-row${selectedClass}" data-pending-id="${t.id}">
+          <div class="pending-row-time">
+            <strong>${t.time}</strong>
+            <span>${t.date}</span>
+          </div>
+          <div class="pending-row-info">
+            <strong>${t.customer}</strong>
+            <span>${t.staff} · ${t.id}</span>
+          </div>
+          <span class="pending-row-status">Pending</span>
+          <span class="pending-row-amount">${formatMoney(t.amount)}</span>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function clearPendingCart() {
+  selectedPendingId = null;
+  document.querySelector("#pending-cart-subtitle").textContent = "Pilih transaksi pending dari daftar.";
+  document.querySelector("#pending-cart-badge").textContent = "0 item";
+  document.querySelector("#pending-cart-list").innerHTML = `
+    <div class="empty-cart">
+      <strong>Belum ada transaksi dipilih</strong>
+      <span>Pilih draft dari daftar kiri untuk melanjutkan.</span>
+    </div>
+  `;
+  document.querySelector("#pending-payment-summary").style.opacity = "0.5";
+  document.querySelector("#pending-payment-summary").style.pointerEvents = "none";
+  document.querySelector("#pending-payment-methods").style.opacity = "0.5";
+  document.querySelector("#pending-payment-methods").style.pointerEvents = "none";
+  document.querySelector("#pending-cart-actions").style.opacity = "0.5";
+  document.querySelector("#pending-cart-actions").style.pointerEvents = "none";
+
+  document.querySelector("#pending-reward-line").hidden = true;
+  document.querySelector("#pending-dp-line").hidden = true;
+  document.querySelector("#pending-total").textContent = "Rp 0";
+}
+
+function selectPendingTransaction(id) {
+  const t = salesTransactions.find((x) => x.id === id);
+  if (!t) return;
+  selectedPendingId = id;
+  selectedPendingPayment = t.payment || "QRIS";
+  renderPendingList();
+
+  document.querySelector("#pending-cart-subtitle").textContent = `${t.customer} · ${t.id}`;
+  document.querySelector("#pending-cart-badge").textContent = `${t.items.length} item`;
+
+  const itemsHtml = t.items
+    .map((item) => {
+      const lineTotal = item.qty * item.price;
+      const staffLabel = item.staff ? ` · ${item.staff}` : "";
+      const typeLabel = item.type === "service" ? "Jasa" : "Produk";
+      return `
+        <article class="cart-row">
+          <small>${typeLabel}${staffLabel}</small>
+          <div class="cart-row-top">
+            <strong>${item.name}</strong>
+            <b>${formatMoney(lineTotal)}</b>
+          </div>
+          <div class="cart-row-bottom">
+            <span class="cart-note">Qty: ${item.qty}</span>
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+  document.querySelector("#pending-cart-list").innerHTML = itemsHtml;
+
+  const rewardLine = document.querySelector("#pending-reward-line");
+  const dpLine = document.querySelector("#pending-dp-line");
+  rewardLine.hidden = t.reward === 0;
+  dpLine.hidden = t.dp === 0;
+  document.querySelector("#pending-reward").textContent = `- ${formatMoney(t.reward)}`;
+  document.querySelector("#pending-dp").textContent = `- ${formatMoney(t.dp)}`;
+  document.querySelector("#pending-total").textContent = formatMoney(t.amount);
+
+  document.querySelectorAll("[data-pending-payment]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.pendingPayment === selectedPendingPayment);
+  });
+
+  document.querySelector("#pending-payment-summary").style.opacity = "1";
+  document.querySelector("#pending-payment-summary").style.pointerEvents = "auto";
+  document.querySelector("#pending-payment-methods").style.opacity = "1";
+  document.querySelector("#pending-payment-methods").style.pointerEvents = "auto";
+  document.querySelector("#pending-cart-actions").style.opacity = "1";
+  document.querySelector("#pending-cart-actions").style.pointerEvents = "auto";
+}
+
+function completePendingTransaction() {
+  if (!selectedPendingId) return;
+  const t = salesTransactions.find((x) => x.id === selectedPendingId);
+  if (!t) return;
+
+  t.status = "Selesai";
+  t.payment = selectedPendingPayment;
+  showToast("Transaksi berhasil diselesaikan");
+  selectedPendingId = null;
+  renderPendingList();
+  clearPendingCart();
+}
+
 document.addEventListener("input", (event) => {
+  const nativeFilterInput = event.target.closest("#filter-date-from, #filter-date-to, #filter-time-from, #filter-time-to");
+  if (nativeFilterInput) {
+    salesPage = 1;
+    renderSalesList();
+    return;
+  }
+
   const customerSearch = event.target.closest("#customer-search");
   if (customerSearch) {
     customerSearchTerm = customerSearch.value.trim().toLowerCase();
     renderCustomerList();
+    return;
+  }
+
+  const salesSearch = event.target.closest(".sales-search input");
+  if (salesSearch) {
+    salesSearchTerm = salesSearch.value.trim().toLowerCase();
+    salesPage = 1;
+    renderSalesList();
     return;
   }
 
@@ -1163,6 +1853,92 @@ document.addEventListener("input", (event) => {
   renderItems();
 });
 
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    blurNativeDateTimePicker();
+  }
+});
+
+let selectedMembershipId = null;
+
+function renderMembershipList() {
+  const list = document.querySelector("#membership-list");
+  if (!list) return;
+
+  list.innerHTML = customers
+    .map((customer) => {
+      const selectedClass = selectedMembershipId === customer.id ? " selected" : "";
+      const badge = getCustomerBadge(customer);
+      return `
+        <article class="membership-row${selectedClass}" data-membership-id="${customer.id}">
+          <div class="membership-row-info">
+            <strong>${customer.name}</strong>
+            <span>${customer.phone}</span>
+          </div>
+          <div>${badge}</div>
+          <span class="pending-row-amount">${customer.totalVisits} kunjungan</span>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderMembershipDetail(customerId) {
+  const customer = customers.find((c) => c.id === customerId);
+  if (!customer) return;
+  selectedMembershipId = customerId;
+  renderMembershipList();
+
+  document.querySelector("#membership-empty").hidden = true;
+  document.querySelector("#membership-detail-content").hidden = false;
+
+  document.querySelector("#mb-name").textContent = customer.name;
+  document.querySelector("#mb-badge").innerHTML = getCustomerBadge(customer);
+  document.querySelector("#mb-phone").textContent = `No HP: ${customer.phone}`;
+  document.querySelector("#mb-visits").textContent = `${customer.totalVisits} kali`;
+
+  const rewardsEl = document.querySelector("#mb-rewards");
+  if (!customer.rewards || !customer.rewards.length) {
+    rewardsEl.innerHTML = `
+      <div class="membership-empty" style="border:0; height:auto; padding:24px;">
+        <strong>Belum ada membership</strong>
+        <span>Pelanggan ini belum terdaftar sebagai member.</span>
+      </div>
+    `;
+    return;
+  }
+
+  rewardsEl.innerHTML = customer.rewards
+    .map((reward) => {
+      const active = Math.min(reward.progress, reward.target);
+      const bars = Array.from({ length: reward.target }, (_, index) => {
+        const done = index < active;
+        const free = reward.freeAvailable > 0 && index >= reward.target - reward.freeAvailable;
+        return `<i class="${done ? "done" : ""} ${free ? "free" : ""}"></i>`;
+      }).join("");
+      const headline = reward.freeAvailable > 0 ? `Gratis ${reward.freeAvailable} jasa siap dipakai!` : `${active}/${reward.target} kunjungan`;
+      const readyClass = reward.freeAvailable > 0 ? " ready" : "";
+      const label = `Buy ${reward.target} Get ${reward.freeQty}`;
+
+      return `
+        <div class="membership-reward-card${readyClass}">
+          <span>${label}</span>
+          <strong>${reward.serviceName}</strong>
+          <small>${headline}</small>
+          <div class="reward-progress-bar">${bars}</div>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function clearMembershipDetail() {
+  selectedMembershipId = null;
+  renderMembershipList();
+  document.querySelector("#membership-empty").hidden = false;
+  document.querySelector("#membership-detail-content").hidden = true;
+}
+
 renderCustomer();
 renderCustomerDropdown();
 updateSearchPlaceholder();
@@ -1171,3 +1947,6 @@ renderCart();
 renderCustomerList();
 renderCustomerDetail(activeDetailCustomerId);
 setPayment(selectedPayment);
+renderSalesList();
+renderPendingList();
+renderMembershipList();
