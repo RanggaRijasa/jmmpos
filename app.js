@@ -624,12 +624,7 @@ function increaseItem(item) {
 function getCustomerBadge(customer) {
   if (!customer) return `<span class="badge muted">Kosong</span>`;
   if (customer.type === "non-member") return `<span class="badge muted">Non Member</span>`;
-  return `
-    <span class="badge member">
-      <span class="member-mark" aria-hidden="true">M</span>
-      <span>Member</span>
-    </span>
-  `;
+  return `<span class="badge member">Member</span>`;
 }
 
 function getFirstReward(customer) {
@@ -717,8 +712,12 @@ function updateSearchPlaceholder() {
 
 function renderCustomer() {
   const summary = document.querySelector("#customer-summary");
-  const status = document.querySelector("#customer-status");
   const toggle = document.querySelector("#customer-toggle");
+  const customerStrip = document.querySelector("#customer-picker");
+  const memberArea = document.querySelector("#customer-member-area");
+  const benefitToggle = document.querySelector("#member-benefit-toggle");
+  const benefitCount = document.querySelector("#member-benefit-count");
+  const benefits = document.querySelector("#member-benefits");
 
   if (!selectedCustomer) {
     summary.classList.add("empty");
@@ -727,20 +726,58 @@ function renderCustomer() {
       <strong>Belum dipilih</strong>
       <small>Pilih pelanggan untuk transaksi ini</small>
     `;
-    status.outerHTML = `<span class="badge muted" id="customer-status">Kosong</span>`;
-    toggle.textContent = "Pilih";
+    customerStrip?.classList.remove("benefits-open");
+    if (memberArea) memberArea.hidden = true;
+    if (benefits) benefits.hidden = true;
+    if (benefitToggle) benefitToggle.setAttribute("aria-expanded", "false");
+    const label = toggle.querySelector(".btn-label");
+    if (label) label.textContent = "Pilih";
     return;
   }
 
   summary.classList.remove("empty");
   summary.innerHTML = `
     <span>Pelanggan</span>
-    <strong>${selectedCustomer.name}</strong>
+    <div class="customer-title-row">
+      <strong>${selectedCustomer.name}</strong>
+      ${getCustomerBadge(selectedCustomer)}
+    </div>
     <small>${selectedCustomer.phone}</small>
-    ${renderRewardMeter(selectedCustomer, "strip")}
   `;
-  status.outerHTML = getCustomerBadge(selectedCustomer).replace("class=\"badge", "id=\"customer-status\" class=\"badge");
-  toggle.textContent = "Ganti";
+  const hasBenefits = Boolean(selectedCustomer.rewards?.length);
+  customerStrip?.classList.remove("benefits-open");
+  if (memberArea) memberArea.hidden = !hasBenefits;
+  if (benefits) {
+    benefits.innerHTML = renderMemberBenefitsDropdown(selectedCustomer);
+    benefits.hidden = true;
+  }
+  if (benefitToggle) {
+    benefitToggle.setAttribute("aria-expanded", "false");
+  }
+  if (benefitCount) {
+    benefitCount.textContent = selectedCustomer.rewards?.length || 0;
+  }
+  const label = toggle.querySelector(".btn-label");
+  if (label) label.textContent = "Ganti";
+}
+
+function renderMemberBenefitsDropdown(customer) {
+  if (!customer?.rewards || !customer.rewards.length) return "";
+  return customer.rewards
+    .map((reward) => {
+      const isReady = reward.freeAvailable > 0;
+      const label = isReady
+        ? `${reward.serviceName}: gratis ${reward.freeAvailable} jasa`
+        : `${reward.serviceName}: ${reward.progress}/${reward.target} kunjungan`;
+      return `<span class="member-benefit-chip${isReady ? " ready" : ""}"><i class="dot"></i>${label}</span>`;
+    })
+    .join("");
+}
+
+function closeCustomerPopovers() {
+  document.querySelector("#customer-picker")?.classList.remove("open", "benefits-open");
+  document.querySelector("#member-benefits")?.setAttribute("hidden", "");
+  document.querySelector("#member-benefit-toggle")?.setAttribute("aria-expanded", "false");
 }
 
 function renderCustomerDropdown() {
@@ -1013,6 +1050,9 @@ document.addEventListener("click", (event) => {
   if (!event.target.closest('input[type="date"], input[type="time"]')) {
     blurNativeDateTimePicker();
   }
+  if (!event.target.closest("#customer-picker")) {
+    closeCustomerPopovers();
+  }
 
   const detailCustomer = event.target.closest("[data-detail-customer]");
   if (detailCustomer) {
@@ -1043,10 +1083,30 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (event.target.closest("#customer-add-pos")) {
+    openAddCustomerModal();
+    return;
+  }
+
+  const benefitToggle = event.target.closest("#member-benefit-toggle");
+  if (benefitToggle) {
+    const picker = document.querySelector("#customer-picker");
+    const benefits = document.querySelector("#member-benefits");
+    const nextOpen = !picker.classList.contains("benefits-open");
+    picker.classList.toggle("benefits-open", nextOpen);
+    picker.classList.remove("open");
+    if (benefits) benefits.hidden = !nextOpen;
+    benefitToggle.setAttribute("aria-expanded", String(nextOpen));
+    return;
+  }
+
   const customerToggle = event.target.closest("#customer-toggle");
   if (customerToggle) {
     const picker = document.querySelector("#customer-picker");
     picker.classList.toggle("open");
+    picker.classList.remove("benefits-open");
+    document.querySelector("#member-benefits")?.setAttribute("hidden", "");
+    document.querySelector("#member-benefit-toggle")?.setAttribute("aria-expanded", "false");
     renderCustomerDropdown();
     return;
   }
@@ -1214,6 +1274,13 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const reminderAction = event.target.closest(".reminder-action");
+  if (reminderAction) {
+    const isDone = reminderAction.classList.toggle("done");
+    reminderAction.textContent = isDone ? "Sudah Kontak" : "Kontak";
+    return;
+  }
+
   const pageBtn = event.target.closest("[data-sales-page]");
   if (pageBtn) {
     const action = pageBtn.dataset.salesPage;
@@ -1250,9 +1317,6 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  if (!event.target.closest("#customer-picker")) {
-    document.querySelector("#customer-picker").classList.remove("open");
-  }
 });
 
 const salesTransactions = [

@@ -131,8 +131,19 @@
                 <strong>Belum dipilih</strong>
                 <small>Pilih pelanggan untuk transaksi ini</small>
               </div>
-              <span class="badge muted" id="customer-status">Kosong</span>
-              <button class="soft-action" id="customer-toggle" type="button">Pilih</button>
+              <div class="customer-member-area" id="customer-member-area" hidden>
+                <button class="benefit-toggle" id="member-benefit-toggle" type="button" aria-expanded="false">
+                  <span>Benefit</span>
+                  <b id="member-benefit-count">0</b>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+                <div class="member-benefits" id="member-benefits" hidden></div>
+              </div>
+              <button class="soft-action" id="customer-toggle" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span class="btn-label">Pilih</span>
+              </button>
+              <button class="soft-action" id="customer-add-pos" type="button">+ Pelanggan Baru</button>
               <div class="customer-dropdown" id="customer-dropdown" aria-label="Pilihan pelanggan"></div>
             </div>
 
@@ -348,16 +359,6 @@
             <strong>7 pelanggan</strong>
             <small>Follow-up selesai</small>
           </div>
-          <div class="stat-card">
-            <span>Belum kembali</span>
-            <strong>5 pelanggan</strong>
-            <small>Prioritas</small>
-          </div>
-          <div class="stat-card">
-            <span>Booking ulang</span>
-            <strong>3 pelanggan</strong>
-            <small>Dari reminder</small>
-          </div>
         </div>
 
         <section class="wide-panel">
@@ -367,24 +368,78 @@
               <p>Status bisa ditandai sudah dihubungi.</p>
             </div>
           </div>
-          <div class="reminder-list">
+          <div class="reminder-list" id="reminder-list">
             <div class="reminder-row">
-              <strong>Siti Rahma</strong>
+              <div class="reminder-info"><strong>Siti Rahma</strong><small>0813 2222 8899</small></div>
               <span>Terakhir: Hair Colour · 20 Jun 2026</span>
               <b>7 hari</b>
-              <button>WhatsApp</button>
-            </div>
-            <div class="reminder-row danger">
-              <strong>Nina Septiani</strong>
-              <span>Terakhir: Keratin · 18 Jun 2026</span>
-              <b>9 hari</b>
-              <button>Belum</button>
+              <button class="reminder-action" type="button">Kontak</button>
             </div>
             <div class="reminder-row">
-              <strong>Rika Amelia</strong>
+              <div class="reminder-info"><strong>Nina Septiani</strong><small>0852 5555 4477</small></div>
+              <span>Terakhir: Keratin · 18 Jun 2026</span>
+              <b>9 hari</b>
+              <button class="reminder-action done" type="button">Sudah Kontak</button>
+            </div>
+            <div class="reminder-row">
+              <div class="reminder-info"><strong>Rika Amelia</strong><small>0811 4444 2233</small></div>
               <span>Terakhir: Smoothing · 17 Jun 2026</span>
               <b>10 hari</b>
-              <button>WhatsApp</button>
+              <button class="reminder-action" type="button">Kontak</button>
+            </div>
+            <div class="reminder-row">
+              <div class="reminder-info"><strong>Dewi Anggraini</strong><small>0812 3456 7890</small></div>
+              <span>Terakhir: Gunting Rambut · 15 Jun 2026</span>
+              <b>12 hari</b>
+              <button class="reminder-action" type="button">Kontak</button>
+            </div>
+            <div class="reminder-row">
+              <div class="reminder-info"><strong>Priscila Tan</strong><small>0821 9900 1111</small></div>
+              <span>Terakhir: Creambath · 14 Jun 2026</span>
+              <b>13 hari</b>
+              <button class="reminder-action done" type="button">Sudah Kontak</button>
+            </div>
+            <div class="reminder-row">
+              <div class="reminder-info"><strong>Maya Lestari</strong><small>0819 7777 8888</small></div>
+              <span>Terakhir: Hair Spa · 13 Jun 2026</span>
+              <b>14 hari</b>
+              <button class="reminder-action" type="button">Kontak</button>
+            </div>
+            <div class="reminder-row">
+              <div class="reminder-info"><strong>Lina Susanti</strong><small>0822 3333 4444</small></div>
+              <span>Terakhir: Blow Dry · 12 Jun 2026</span>
+              <b>15 hari</b>
+              <button class="reminder-action" type="button">Kontak</button>
+            </div>
+            <div class="reminder-row">
+              <div class="reminder-info"><strong>Kartika Dewi</strong><small>0815 6666 7777</small></div>
+              <span>Terakhir: Manicure · 11 Jun 2026</span>
+              <b>16 hari</b>
+              <button class="reminder-action done" type="button">Sudah Kontak</button>
+            </div>
+            <div class="reminder-row">
+              <div class="reminder-info"><strong>Anita Wulandari</strong><small>0814 8888 9999</small></div>
+              <span>Terakhir: Pedicure · 10 Jun 2026</span>
+              <b>17 hari</b>
+              <button class="reminder-action" type="button">Kontak</button>
+            </div>
+            <div class="reminder-row">
+              <div class="reminder-info"><strong>Sari Indah</strong><small>0817 0000 1111</small></div>
+              <span>Terakhir: Make Up · 09 Jun 2026</span>
+              <b>18 hari</b>
+              <button class="reminder-action" type="button">Kontak</button>
+            </div>
+            <div class="reminder-row">
+              <div class="reminder-info"><strong>Rina Marlina</strong><small>0816 2222 3333</small></div>
+              <span>Terakhir: Hair Toning · 08 Jun 2026</span>
+              <b>19 hari</b>
+              <button class="reminder-action done" type="button">Sudah Kontak</button>
+            </div>
+            <div class="reminder-row">
+              <div class="reminder-info"><strong>Yuni Astuti</strong><small>0818 4444 5555</small></div>
+              <span>Terakhir: Digital Perm · 07 Jun 2026</span>
+              <b>20 hari</b>
+              <button class="reminder-action" type="button">Kontak</button>
             </div>
           </div>
         </section>
