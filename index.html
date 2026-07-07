@@ -157,6 +157,10 @@
                   <span class="tab-icon" aria-hidden="true">▯</span>
                   <strong>Produk</strong>
                 </button>
+                <button class="category" data-filter="member" type="button">
+                  <span class="tab-icon" aria-hidden="true">★</span>
+                  <strong>Member</strong>
+                </button>
               </div>
               <label class="search-box">
                 <input id="item-search" type="search" placeholder="Cari jasa..." autocomplete="off" />
@@ -165,7 +169,7 @@
             </div>
 
             <div class="section-heading">
-              <h2>Jasa & Produk Salon</h2>
+              <h2 id="catalog-heading">Jasa Salon</h2>
             </div>
 
             <div class="item-grid" id="item-grid"></div>
@@ -685,16 +689,6 @@
           <label>
             Nomor HP
             <input type="tel" placeholder="08xx xxxx xxxx" />
-          </label>
-          <label>
-            Status
-            <select>
-              <option>Non Member</option>
-              <option>Member</option>
-              <option>Member Silver</option>
-              <option>Member Gold</option>
-              <option>Member Platinum</option>
-            </select>
           </label>
         </div>
         <div class="modal-actions">

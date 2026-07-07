@@ -500,9 +500,9 @@ h1 {
   right: 14px;
   display: none;
   width: 380px;
-  max-height: 252px;
-  padding: 8px;
-  overflow: auto;
+  max-height: 320px;
+  padding: 0;
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--raised);
@@ -510,8 +510,44 @@ h1 {
 }
 
 .customer-strip.open .customer-dropdown {
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   display: grid;
   gap: 7px;
+  padding: 8px;
+  scrollbar-color: #d8b46c transparent;
+}
+
+.dropdown-search {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+.dropdown-search input {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.dropdown-search span {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
 }
 
 .customer-option {

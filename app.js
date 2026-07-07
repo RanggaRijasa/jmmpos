@@ -319,6 +319,166 @@ const items = [
     price: 55000,
     qty: 0,
   },
+  {
+    id: "member-basic",
+    type: "member",
+    label: "Member",
+    name: "Paket Member Basic",
+    price: 100000,
+    qty: 0,
+  },
+  {
+    id: "member-silver",
+    type: "member",
+    label: "Member",
+    name: "Paket Member Silver",
+    price: 250000,
+    qty: 0,
+  },
+  {
+    id: "member-gold",
+    type: "member",
+    label: "Member",
+    name: "Paket Member Gold",
+    price: 500000,
+    qty: 0,
+  },
+  {
+    id: "member-platinum",
+    type: "member",
+    label: "Member",
+    name: "Paket Member Platinum",
+    price: 1000000,
+    qty: 0,
+  },
+  {
+    id: "member-family",
+    type: "member",
+    label: "Member",
+    name: "Paket Family Member",
+    price: 750000,
+    qty: 0,
+  },
+  {
+    id: "member-birthday",
+    type: "member",
+    label: "Member",
+    name: "Paket Birthday Special",
+    price: 150000,
+    qty: 0,
+  },
+  {
+    id: "member-anniversary",
+    type: "member",
+    label: "Member",
+    name: "Paket Anniversary",
+    price: 200000,
+    qty: 0,
+  },
+  {
+    id: "member-reward-boost",
+    type: "member",
+    label: "Member",
+    name: "Member Reward Boost",
+    price: 50000,
+    qty: 0,
+  },
+  {
+    id: "member-priority",
+    type: "member",
+    label: "Member",
+    name: "Priority Booking Pass",
+    price: 75000,
+    qty: 0,
+  },
+  {
+    id: "member-discount-10",
+    type: "member",
+    label: "Member",
+    name: "Diskon 10% Lifetime",
+    price: 120000,
+    qty: 0,
+  },
+  {
+    id: "member-discount-20",
+    type: "member",
+    label: "Member",
+    name: "Diskon 20% Lifetime",
+    price: 220000,
+    qty: 0,
+  },
+  {
+    id: "member-spa",
+    type: "member",
+    label: "Member",
+    name: "Member Spa Package",
+    price: 350000,
+    qty: 0,
+  },
+  {
+    id: "member-hair-treatment",
+    type: "member",
+    label: "Member",
+    name: "Hair Treatment Package",
+    price: 450000,
+    qty: 0,
+  },
+  {
+    id: "member-kids",
+    type: "member",
+    label: "Member",
+    name: "Kids Member Package",
+    price: 180000,
+    qty: 0,
+  },
+  {
+    id: "member-couple",
+    type: "member",
+    label: "Member",
+    name: "Couple Member Package",
+    price: 400000,
+    qty: 0,
+  },
+  {
+    id: "member-gift",
+    type: "member",
+    label: "Member",
+    name: "Member Gift Card",
+    price: 300000,
+    qty: 0,
+  },
+  {
+    id: "member-loyalty",
+    type: "member",
+    label: "Member",
+    name: "Loyalty Upgrade",
+    price: 100000,
+    qty: 0,
+  },
+  {
+    id: "member-exclusive",
+    type: "member",
+    label: "Member",
+    name: "Exclusive Access Pass",
+    price: 500000,
+    qty: 0,
+  },
+  {
+    id: "member-vip",
+    type: "member",
+    label: "Member",
+    name: "VIP Member Annual",
+    price: 1500000,
+    qty: 0,
+  },
+  {
+    id: "member-weekend",
+    type: "member",
+    label: "Member",
+    name: "Weekend Special Member",
+    price: 85000,
+    qty: 0,
+  },
 ];
 
 const formatter = new Intl.NumberFormat("id-ID", {
@@ -592,8 +752,11 @@ let selectedPayment = "QRIS";
 let activeStaffMenu = null;
 let searchTerm = "";
 let customerSearchTerm = "";
+let dropdownSearchTerm = "";
 let activeDetailCustomerId = "dewi";
 let activeConfirmMode = "payment";
+let serviceLineCounter = 0;
+const serviceCartLines = [];
 
 function formatMoney(value) {
   return formatter.format(value).replace(/\u00a0/g, " ");
@@ -607,18 +770,53 @@ function blurNativeDateTimePicker() {
 }
 
 function getMaxQty(item) {
-  return item.type === "service" ? 2 : 99;
+  if (item.type === "service") return 2;
+  if (item.type === "member") return 1;
+  return 99;
+}
+
+function getServiceLineCount(itemId) {
+  return serviceCartLines.filter((line) => line.itemId === itemId).length;
+}
+
+function addServiceLine(item) {
+  if (getServiceLineCount(item.id) >= getMaxQty(item)) {
+    showToast("Maksimal 2 untuk tiap jasa");
+    return false;
+  }
+
+  serviceLineCounter += 1;
+  serviceCartLines.push({
+    ...item,
+    id: `${item.id}-${serviceLineCounter}`,
+    itemId: item.id,
+    qty: 1,
+    staff: "",
+  });
+  return true;
 }
 
 function increaseItem(item) {
   const maxQty = getMaxQty(item);
   if (item.qty >= maxQty) {
-    showToast(item.type === "service" ? "Maksimal 2 untuk tiap jasa" : "Qty sudah maksimal");
+    let msg = "Qty sudah maksimal";
+    if (item.type === "service") msg = "Maksimal 2 untuk tiap jasa";
+    else if (item.type === "member") msg = "Maksimal 1 paket member";
+    showToast(msg);
     return false;
   }
 
   item.qty += 1;
   return true;
+}
+
+function addItemToCart(item) {
+  if (item.type === "service") return addServiceLine(item);
+  return increaseItem(item);
+}
+
+function getCartItems() {
+  return [...serviceCartLines, ...items.filter((item) => item.type !== "service" && item.qty > 0)];
 }
 
 function getCustomerBadge(customer) {
@@ -674,19 +872,20 @@ function getAppliedReward(selected) {
   const reward = getFirstReward(selectedCustomer);
   if (!reward || reward.freeAvailable < 1) return null;
 
-  const rewardItem = selected.find((item) => item.id === reward.serviceId && item.type === "service" && item.qty > 0);
-  if (!rewardItem) return null;
+  const rewardItems = selected.filter((item) => item.itemId === reward.serviceId && item.type === "service");
+  if (!rewardItems.length) return null;
+  const freeItems = rewardItems.slice(0, reward.freeAvailable);
 
   return {
     label: `${reward.serviceName} gratis member (${reward.freeAvailable}x)`,
     serviceName: reward.serviceName,
-    amount: rewardItem.price * Math.min(reward.freeAvailable, rewardItem.qty),
-    itemId: rewardItem.id,
+    amount: freeItems.reduce((sum, item) => sum + item.price, 0),
+    itemIds: freeItems.map((item) => item.id),
   };
 }
 
 function calculateTotals() {
-  const selected = items.filter((item) => item.qty > 0);
+  const selected = getCartItems();
   const subtotal = selected.reduce((sum, item) => sum + item.price * item.qty, 0);
   const reward = getAppliedReward(selected);
   const rewardAmount = reward?.amount || 0;
@@ -697,8 +896,14 @@ function calculateTotals() {
 }
 
 function visibleItems() {
-  const filtered =
-    activeFilter === "service" ? items.filter((item) => item.type === "service") : items.filter((item) => item.type === activeFilter);
+  let filtered;
+  if (activeFilter === "service") {
+    filtered = items.filter((item) => item.type === "service");
+  } else if (activeFilter === "member") {
+    filtered = items.filter((item) => item.type === "member");
+  } else {
+    filtered = items.filter((item) => item.type === activeFilter);
+  }
 
   if (!searchTerm) return filtered;
 
@@ -707,7 +912,17 @@ function visibleItems() {
 
 function updateSearchPlaceholder() {
   const input = document.querySelector("#item-search");
-  input.placeholder = activeFilter === "service" ? "Cari jasa..." : "Cari produk...";
+  if (activeFilter === "service") input.placeholder = "Cari jasa...";
+  else if (activeFilter === "member") input.placeholder = "Cari paket member...";
+  else input.placeholder = "Cari produk...";
+}
+
+function updateCatalogHeading() {
+  const heading = document.querySelector("#catalog-heading");
+  if (!heading) return;
+  if (activeFilter === "service") heading.textContent = "Jasa Salon";
+  else if (activeFilter === "product") heading.textContent = "Produk Salon";
+  else if (activeFilter === "member") heading.textContent = "Membership";
 }
 
 function renderCustomer() {
@@ -738,10 +953,7 @@ function renderCustomer() {
   summary.classList.remove("empty");
   summary.innerHTML = `
     <span>Pelanggan</span>
-    <div class="customer-title-row">
-      <strong>${selectedCustomer.name}</strong>
-      ${getCustomerBadge(selectedCustomer)}
-    </div>
+    <strong>${selectedCustomer.name}</strong>
     <small>${selectedCustomer.phone}</small>
   `;
   const hasBenefits = Boolean(selectedCustomer.rewards?.length);
@@ -778,14 +990,46 @@ function closeCustomerPopovers() {
   document.querySelector("#customer-picker")?.classList.remove("open", "benefits-open");
   document.querySelector("#member-benefits")?.setAttribute("hidden", "");
   document.querySelector("#member-benefit-toggle")?.setAttribute("aria-expanded", "false");
+  dropdownSearchTerm = "";
 }
 
 function renderCustomerDropdown() {
   const dropdown = document.querySelector("#customer-dropdown");
-  dropdown.innerHTML = customers
-    .map((customer) => {
-      const activeClass = selectedCustomer?.id === customer.id ? " active" : "";
-      return `
+
+  const filtered = customers.filter((customer) => {
+    if (!dropdownSearchTerm) return true;
+    const keyword = `${customer.name} ${customer.phone}`.toLowerCase();
+    return keyword.includes(dropdownSearchTerm);
+  });
+
+  const searchHtml = `
+    <label class="dropdown-search">
+      <input type="search" placeholder="Cari nama atau nomor HP..." autocomplete="off" value="${dropdownSearchTerm}" />
+      <span aria-hidden="true">⌕</span>
+    </label>
+  `;
+
+  if (!filtered.length) {
+    dropdown.innerHTML =
+      searchHtml +
+      `
+      <div class="dropdown-list">
+        <div class="customer-empty" style="min-height:120px; border:0; background:transparent;">
+          <strong>Tidak ada pelanggan</strong>
+          <span>Coba kata kunci lain.</span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  dropdown.innerHTML =
+    searchHtml +
+    `<div class="dropdown-list">` +
+    filtered
+      .map((customer) => {
+        const activeClass = selectedCustomer?.id === customer.id ? " active" : "";
+        return `
         <button class="customer-option${activeClass}" type="button" data-customer="${customer.id}">
           <span>
             <strong>${customer.name}</strong>
@@ -798,8 +1042,9 @@ function renderCustomerDropdown() {
           }
         </button>
       `;
-    })
-    .join("");
+      })
+      .join("") +
+    `</div>`;
 }
 
 function renderCustomerList() {
@@ -908,7 +1153,7 @@ function renderCart() {
     list.innerHTML = `
       <div class="empty-cart">
         <strong>Keranjang kosong</strong>
-        <span>Tap jasa atau produk untuk mulai transaksi.</span>
+        <span>Tap jasa, produk, atau paket member untuk mulai transaksi.</span>
       </div>
     `;
   } else {
@@ -930,16 +1175,20 @@ function renderCart() {
               </div>
             `
             : "";
-        const detail =
-          item.label === "Jasa"
-            ? `
-              <button class="staff-select" type="button" data-staff-for="${item.id}">
-                ${item.staff || "Pilih petugas"}
-              </button>
-              ${reward?.itemId === item.id ? `<span class="reward-note">Gratis member aktif</span>` : ""}
-              ${staffMenu}
-            `
-            : `<span class="cart-note">Quantity produk</span>`;
+        let detail;
+        if (item.label === "Jasa") {
+          detail = `
+            <button class="staff-select" type="button" data-staff-for="${item.id}">
+              ${item.staff || "Pilih petugas"}
+            </button>
+            ${reward?.itemIds?.includes(item.id) ? `<span class="reward-note">Gratis member aktif</span>` : ""}
+            ${staffMenu}
+          `;
+        } else if (item.label === "Member") {
+          detail = `<span class="cart-note">Paket membership</span>`;
+        } else {
+          detail = `<span class="cart-note">Quantity produk</span>`;
+        }
         return `
           <article class="cart-row">
             <small>${item.label}</small>
@@ -952,7 +1201,7 @@ function renderCart() {
               <div class="cart-qty" data-id="${item.id}">
                 <button type="button" data-delta="-1">−</button>
                 <strong>${item.qty}</strong>
-                <button type="button" data-delta="1" ${item.qty >= getMaxQty(item) ? "disabled" : ""}>+</button>
+                ${item.type === "service" ? "" : `<button type="button" data-delta="1" ${item.qty >= getMaxQty(item) ? "disabled" : ""}>+</button>`}
               </div>
             </div>
           </article>
@@ -1115,6 +1364,7 @@ document.addEventListener("click", (event) => {
   if (customerOption) {
     selectedCustomer = customers.find((customer) => customer.id === customerOption.dataset.customer);
     document.querySelector("#customer-picker").classList.remove("open");
+    dropdownSearchTerm = "";
     renderCustomer();
     renderCustomerDropdown();
     renderCart();
@@ -1130,7 +1380,7 @@ document.addEventListener("click", (event) => {
 
   const staffChoice = event.target.closest("[data-staff]");
   if (staffChoice) {
-    const item = items.find((entry) => entry.id === staffChoice.dataset.id);
+    const item = serviceCartLines.find((entry) => entry.id === staffChoice.dataset.id) || items.find((entry) => entry.id === staffChoice.dataset.id);
     item.staff = staffChoice.dataset.staff;
     activeStaffMenu = null;
     renderCart();
@@ -1145,7 +1395,7 @@ document.addEventListener("click", (event) => {
 
   const payButton = event.target.closest("#pay-button");
   if (payButton) {
-    const hasItems = items.some((item) => item.qty > 0);
+    const hasItems = getCartItems().length > 0;
     if (!hasItems) {
       showToast("Keranjang masih kosong");
       return;
@@ -1156,7 +1406,7 @@ document.addEventListener("click", (event) => {
 
   const draftButton = event.target.closest("#draft-button");
   if (draftButton) {
-    const hasItems = items.some((item) => item.qty > 0);
+    const hasItems = getCartItems().length > 0;
     if (!hasItems) {
       showToast("Keranjang masih kosong");
       return;
@@ -1198,6 +1448,7 @@ document.addEventListener("click", (event) => {
       button.classList.toggle("active", button.dataset.filter === activeFilter);
     });
     updateSearchPlaceholder();
+    updateCatalogHeading();
     renderItems();
     return;
   }
@@ -1205,7 +1456,8 @@ document.addEventListener("click", (event) => {
   const itemCard = event.target.closest(".item-card");
   if (itemCard) {
     const item = items.find((entry) => entry.id === itemCard.dataset.id);
-    const changed = increaseItem(item);
+    if (!item) return;
+    const changed = addItemToCart(item);
     activeStaffMenu = null;
     renderItems();
     renderCart();
@@ -1216,9 +1468,18 @@ document.addEventListener("click", (event) => {
   const quantityButton = event.target.closest(".cart-qty button");
   if (quantityButton) {
     const quantity = quantityButton.closest(".cart-qty");
-    const item = items.find((entry) => entry.id === quantity.dataset.id);
+    const item = serviceCartLines.find((entry) => entry.id === quantity.dataset.id) || items.find((entry) => entry.id === quantity.dataset.id);
+    if (!item) return;
     const delta = Number(quantityButton.dataset.delta);
-    if (delta > 0) {
+    if (item.type === "service") {
+      if (delta > 0) {
+        const source = items.find((entry) => entry.id === item.itemId);
+        addServiceLine(source);
+      } else {
+        const index = serviceCartLines.findIndex((entry) => entry.id === item.id);
+        if (index >= 0) serviceCartLines.splice(index, 1);
+      }
+    } else if (delta > 0) {
       increaseItem(item);
     } else {
       item.qty = Math.max(0, item.qty + delta);
@@ -1906,6 +2167,19 @@ document.addEventListener("input", (event) => {
     return;
   }
 
+  const dropdownSearchInput = event.target.closest(".dropdown-search input");
+  if (dropdownSearchInput) {
+    dropdownSearchTerm = dropdownSearchInput.value.trim().toLowerCase();
+    renderCustomerDropdown();
+    const newInput = document.querySelector(".dropdown-search input");
+    if (newInput) {
+      newInput.focus();
+      const len = newInput.value.length;
+      newInput.setSelectionRange(len, len);
+    }
+    return;
+  }
+
   const searchInput = event.target.closest("#item-search");
   if (!searchInput) return;
 
@@ -2006,6 +2280,7 @@ function clearMembershipDetail() {
 renderCustomer();
 renderCustomerDropdown();
 updateSearchPlaceholder();
+updateCatalogHeading();
 renderItems();
 renderCart();
 renderCustomerList();
