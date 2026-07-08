@@ -44,9 +44,7 @@ const items = [
     type: "service",
     label: "Jasa",
     name: "Smoothing",
-    originalPrice: 650000,
-    price: 585000,
-    promoLabel: "Diskon 10%",
+    price: 650000,
     qty: 0,
   },
   {
@@ -54,9 +52,7 @@ const items = [
     type: "service",
     label: "Jasa",
     name: "Hair Spa",
-    originalPrice: 280000,
-    price: 245000,
-    promoLabel: "Promo",
+    price: 280000,
     qty: 0,
   },
   {
@@ -120,9 +116,7 @@ const items = [
     type: "service",
     label: "Jasa",
     name: "Highlight",
-    originalPrice: 520000,
-    price: 468000,
-    promoLabel: "Diskon 10%",
+    price: 520000,
     qty: 0,
   },
   {
@@ -686,6 +680,29 @@ const staffOptions = [
   "Mira",
 ];
 
+const serviceActionMap = {
+  cut: ["Cuci", "Potong", "Styling"],
+  colour: ["Cuci", "Aplikasi warna", "Blow"],
+  cream: ["Cuci", "Massage", "Steam"],
+  keratin: ["Cuci", "Aplikasi keratin", "Catok"],
+  blow: ["Cuci", "Blow", "Styling"],
+  smoothing: ["Cuci", "Obat smoothing", "Catok"],
+  hairspa: ["Cuci", "Massage", "Masker"],
+  toning: ["Cuci", "Toning", "Blow"],
+  perm: ["Cuci", "Obat perm", "Styling"],
+  manicure: ["Prep", "Treatment", "Finishing"],
+  pedicure: ["Prep", "Treatment", "Finishing"],
+  makeup: ["Base", "Make up", "Finishing"],
+  hairwash: ["Cuci", "Massage", "Blow"],
+  blowcatok: ["Cuci", "Catok", "Styling"],
+  highlight: ["Cuci", "Highlight", "Blow"],
+  rebonding: ["Cuci", "Rebonding", "Catok"],
+  "hairmask-service": ["Cuci", "Masker", "Blow"],
+  totok: ["Cleansing", "Totok", "Finishing"],
+  "kids-cut": ["Cuci", "Potong", "Styling"],
+  "hair-extension": ["Prep", "Pasang extension", "Styling"],
+};
+
 const customerHistories = {
   dewi: [
     ["27 Jun 2026", "Hair Colour + Blow", "Kartini", 450000],
@@ -756,6 +773,8 @@ let activeFilter = "service";
 let selectedCustomer = null;
 let selectedPayment = "QRIS";
 let activeStaffMenu = null;
+let activeStaffAction = null;
+let activeDiscountMenu = null;
 let searchTerm = "";
 let customerSearchTerm = "";
 let dropdownSearchTerm = "";
@@ -778,12 +797,65 @@ function blurNativeDateTimePicker() {
 
 function getMaxQty(item) {
   if (item.type === "service") return 2;
-  if (item.type === "member") return 1;
   return 99;
 }
 
 function getServiceLineCount(itemId) {
   return serviceCartLines.filter((line) => line.itemId === itemId).length;
+}
+
+function getServiceActions(item) {
+  const id = item.itemId || item.id;
+  return serviceActionMap[id] || ["Konsultasi", "Treatment", "Finishing"];
+}
+
+function createActionStaffs(item, staff = "") {
+  return Object.fromEntries(getServiceActions(item).map((action) => [action, staff ? [staff] : []]));
+}
+
+function normalizeStaffValue(value, fallback = "") {
+  if (Array.isArray(value)) return [...new Set(value.filter(Boolean))];
+  if (typeof value === "string" && value) return [value];
+  if (staffOptions.includes(fallback)) return [fallback];
+  return [];
+}
+
+function normalizeActionStaffs(item) {
+  const existing = item.actionStaffs || {};
+  const fallback = item.staff || "";
+  return Object.fromEntries(getServiceActions(item).map((action) => [action, normalizeStaffValue(existing[action], fallback)]));
+}
+
+function getActionStaffList(item, action) {
+  return normalizeStaffValue(item.actionStaffs?.[action]);
+}
+
+function getActionStaffText(staffList) {
+  if (!staffList.length) return "Belum dipilih";
+  return staffList.join(", ");
+}
+
+function getServiceStaffSummary(item) {
+  const actions = getServiceActions(item);
+  const assignedByAction = actions.map((action) => getActionStaffList(item, action));
+  const filled = assignedByAction.filter((staffList) => staffList.length > 0);
+  if (!filled.length) return "";
+
+  const unique = [...new Set(filled.flat())];
+  if (filled.length === actions.length) {
+    const first = [...filled[0]].sort().join("|");
+    const allSame = filled.every((staffList) => [...staffList].sort().join("|") === first);
+    if (allSame) return filled[0].length === 1 ? `${filled[0][0]} semua` : `${filled[0].length} petugas semua`;
+    return `${unique.length} petugas`;
+  }
+
+  return `${filled.length}/${actions.length} langkah`;
+}
+
+function syncServiceStaffSummary(item) {
+  if (item.type !== "service") return;
+  item.actionStaffs = normalizeActionStaffs(item);
+  item.staff = getServiceStaffSummary(item);
 }
 
 function addServiceLine(item, options = {}) {
@@ -793,14 +865,19 @@ function addServiceLine(item, options = {}) {
   }
 
   serviceLineCounter += 1;
-  serviceCartLines.push({
+  const line = {
     ...item,
     id: `${item.id}-${serviceLineCounter}`,
     itemId: item.id,
     qty: 1,
     staff: "",
+    discount5: false,
+    discount10: false,
     ...options,
-  });
+  };
+  line.actionStaffs = options.actionStaffs || createActionStaffs(line, line.staff);
+  syncServiceStaffSummary(line);
+  serviceCartLines.push(line);
   return true;
 }
 
@@ -841,10 +918,12 @@ function resetCart() {
   serviceCartLines.splice(0, serviceCartLines.length);
   items.forEach((item) => {
     item.qty = 0;
-    if (item.type === "service") item.staff = "";
+    if (item.type === "service" || item.type === "member") item.staff = "";
   });
   clearMemberUsage();
   activeStaffMenu = null;
+  activeStaffAction = null;
+  activeDiscountMenu = null;
 }
 
 function findCatalogItem(line) {
@@ -901,6 +980,8 @@ function increaseMemberUsage(serviceId) {
   if (serviceLine) {
     serviceLine.memberFree = true;
     serviceLine.memberUsageServiceId = serviceId;
+    serviceLine.discount5 = false;
+    serviceLine.discount10 = false;
   } else {
     const service = items.find((item) => item.id === serviceId && item.type === "service");
     if (!service) return false;
@@ -913,6 +994,8 @@ function increaseMemberUsage(serviceId) {
     const added = addServiceLine(service, {
       memberFree: true,
       memberUsageServiceId: serviceId,
+      discount5: false,
+      discount10: false,
     });
     if (!added) return false;
   }
@@ -986,20 +1069,38 @@ function getAppliedReward(selected) {
   return {
     label: "Pemakaian Member",
     serviceName,
-    amount: freeItems.reduce((sum, item) => sum + item.price, 0),
+    amount: freeItems.reduce((sum, item) => sum + getLinePayable(item), 0),
     itemIds: freeItems.map((item) => item.id),
   };
 }
 
+function getLineDiscountRate(item) {
+  if (item.type !== "service" || item.memberFree) return 0;
+  return (item.discount10 ? 10 : 0) + (item.discount5 ? 5 : 0);
+}
+
+function getLineBaseTotal(item) {
+  return item.price * item.qty;
+}
+
+function getLineDiscountAmount(item) {
+  return Math.round((getLineBaseTotal(item) * getLineDiscountRate(item)) / 100);
+}
+
+function getLinePayable(item) {
+  return Math.max(0, getLineBaseTotal(item) - getLineDiscountAmount(item));
+}
+
 function calculateTotals() {
   const selected = getCartItems();
-  const subtotal = selected.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const subtotal = selected.reduce((sum, item) => sum + getLineBaseTotal(item), 0);
+  const discountAmount = selected.reduce((sum, item) => sum + getLineDiscountAmount(item), 0);
   const reward = getAppliedReward(selected);
   const rewardAmount = reward?.amount || 0;
   const dp = selectedCustomer?.dp || 0;
-  const payable = Math.max(0, subtotal - rewardAmount - dp);
+  const payable = Math.max(0, subtotal - discountAmount - rewardAmount - dp);
 
-  return { selected, subtotal, reward, rewardAmount, dp, payable };
+  return { selected, subtotal, discountAmount, reward, rewardAmount, dp, payable };
 }
 
 function visibleItems() {
@@ -1333,28 +1434,99 @@ function renderItems() {
   }
 
   grid.innerHTML = entries
-    .map((item) => {
-      const hasPromo = item.originalPrice && item.originalPrice > item.price;
-      return `
-        <article class="item-card${hasPromo ? " has-promo" : ""}" data-id="${item.id}">
+    .map(
+      (item) => `
+        <article class="item-card" data-id="${item.id}">
           <div class="item-card-head">
             <h3>${item.name}</h3>
-            ${hasPromo ? `<span class="promo-badge">${item.promoLabel || "Promo"}</span>` : ""}
           </div>
           <div class="item-bottom">
             <span class="price-stack">
-              ${hasPromo ? `<s>${formatMoney(item.originalPrice)}</s>` : ""}
               <span class="price">${formatMoney(item.price)}</span>
             </span>
           </div>
         </article>
-      `;
-    })
+      `,
+    )
     .join("");
 }
 
+function renderSimpleStaffMenu(item) {
+  return `
+    <div class="staff-menu">
+      ${staffOptions
+        .map(
+          (staff) =>
+            `<button type="button" data-staff="${staff}" data-id="${item.id}">
+              <span>${staff}</span>
+              ${item.staff === staff ? `<b>Dipilih</b>` : ""}
+            </button>`,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderServiceStaffMenu(item) {
+  const actions = getServiceActions(item);
+  item.actionStaffs = normalizeActionStaffs(item);
+  const assignedCount = actions.filter((action) => getActionStaffList(item, action).length > 0).length;
+  return `
+    <div class="staff-menu staff-action-menu">
+      <div class="staff-menu-head">
+        <div>
+          <strong>Atur petugas</strong>
+          <small>${assignedCount}/${actions.length} langkah terisi</small>
+        </div>
+        <span>${item.name}</span>
+      </div>
+      <div class="staff-action-list">
+        ${actions
+          .map((action) => {
+            const selected = getActionStaffList(item, action);
+            const selectedText = getActionStaffText(selected);
+            const buttonText = selected.length === 0 ? "Pilih" : selected.length === 1 ? selected[0] : `${selected.length} petugas`;
+            const actionKey = `${item.id}:${action}`;
+            const isOpen = activeStaffAction === actionKey;
+            return `
+              <div class="staff-action-row">
+                <div class="staff-action-title">
+                  <div>
+                    <strong>${action}</strong>
+                    <small>${selectedText}</small>
+                  </div>
+                  <button type="button" class="staff-action-toggle${selected.length ? " selected" : ""}" data-staff-action-toggle="${action}" data-id="${item.id}">
+                    ${buttonText}
+                  </button>
+                </div>
+                ${
+                  isOpen
+                    ? `<div class="staff-option-list">
+                      ${staffOptions
+                        .map(
+                          (staff) => {
+                            const isSelected = selected.includes(staff);
+                            return `<button type="button" class="${isSelected ? "active" : ""}" data-staff-action="${action}" data-action-staff="${staff}" data-id="${item.id}">
+                              <span>${staff}</span>
+                              ${isSelected ? `<b>Dipilih</b>` : ""}
+                            </button>`;
+                          },
+                        )
+                        .join("")}
+                    </div>`
+                    : ""
+                }
+              </div>
+            `;
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderCart() {
-  const { selected, reward, rewardAmount, dp, payable } = calculateTotals();
+  const { selected, discountAmount, reward, rewardAmount, dp, payable } = calculateTotals();
   const list = document.querySelector("#cart-list");
 
   if (!selected.length) {
@@ -1367,46 +1539,70 @@ function renderCart() {
   } else {
     list.innerHTML = selected
       .map((item) => {
-        const hasPromo = item.originalPrice && item.originalPrice > item.price;
-        const staffMenu =
-          activeStaffMenu === item.id
+        const canDiscount = item.type === "service" && !item.memberFree;
+        const discountRate = getLineDiscountRate(item);
+        const lineBaseTotal = getLineBaseTotal(item);
+        const lineTotal = getLinePayable(item);
+        const discountMenu =
+          canDiscount && activeDiscountMenu === item.id
             ? `
-              <div class="staff-menu">
-                ${staffOptions
-                  .map(
-                    (staff) =>
-                      `<button type="button" data-staff="${staff}" data-id="${item.id}">
-                        <span>${staff}</span>
-                        ${item.staff === staff ? `<b>Dipilih</b>` : ""}
-                      </button>`,
-                  )
-                  .join("")}
+              <div class="discount-menu">
+                <button type="button" class="${item.discount10 ? "active" : ""}" data-discount-option="10" data-id="${item.id}">
+                  <span>Diskon 10%</span>
+                  ${item.discount10 ? `<b>Aktif</b>` : ""}
+                </button>
+                <button type="button" class="${item.discount5 ? "active" : ""}" data-discount-option="5" data-id="${item.id}">
+                  <span>Diskon 5%</span>
+                  ${item.discount5 ? `<b>Aktif</b>` : ""}
+                </button>
               </div>
             `
             : "";
+        const staffMenu = activeStaffMenu === item.id ? (item.type === "service" ? renderServiceStaffMenu(item) : renderSimpleStaffMenu(item)) : "";
         let detail;
         if (item.label === "Jasa") {
           detail = `
-            <button class="staff-select" type="button" data-staff-for="${item.id}">
-              ${item.staff || "Pilih petugas"}
-            </button>
-            ${reward?.itemIds?.includes(item.id) ? `<span class="reward-note">Kuota member dipakai</span>` : ""}
-            ${staffMenu}
+            <div class="cart-controls">
+              <button class="staff-select" type="button" data-staff-for="${item.id}">
+                ${item.staff || "Pilih petugas"}
+              </button>
+              ${
+                !canDiscount
+                  ? ""
+                  : `<button class="discount-select${discountRate ? " active" : ""}" type="button" data-discount-for="${item.id}">
+                    <span aria-hidden="true">${discountRate ? "✓" : "+"}</span>
+                    ${discountRate ? `Diskon ${discountRate}%` : "Diskon"}
+                  </button>`
+              }
+              ${reward?.itemIds?.includes(item.id) ? `<span class="reward-note">Kuota member dipakai</span>` : ""}
+              ${discountMenu}
+              ${staffMenu}
+            </div>
           `;
         } else if (item.label === "Member") {
-          detail = `<span class="cart-note">Paket membership</span>`;
+          detail = `
+            <div class="cart-controls">
+              <button class="staff-select" type="button" data-staff-for="${item.id}">
+                ${item.staff || "Pilih petugas"}
+              </button>
+              ${staffMenu}
+            </div>
+          `;
         } else {
           detail = `<span class="cart-note">Quantity produk</span>`;
         }
         return `
-          <article class="cart-row${hasPromo ? " has-promo" : ""}">
+          <article class="cart-row">
             <div class="cart-label-row">
               <small>${item.label}</small>
-              ${hasPromo ? `<span class="cart-promo-badge">${item.promoLabel || "Promo"}</span>` : ""}
+              ${discountRate ? `<span class="cart-discount-badge">Diskon ${discountRate}%</span>` : ""}
             </div>
             <div class="cart-row-top">
               <strong>${item.name}</strong>
-              <b>${formatMoney(item.price * item.qty)}</b>
+              <b class="cart-row-price">
+                ${discountRate ? `<s>${formatMoney(lineBaseTotal)}</s>` : ""}
+                <span>${formatMoney(lineTotal)}</span>
+              </b>
             </div>
             <div class="cart-row-bottom">
               ${detail}
@@ -1422,10 +1618,13 @@ function renderCart() {
       .join("");
   }
 
+  const discountLine = document.querySelector("#discount-line");
   const rewardLine = document.querySelector("#reward-line");
   const dpLine = document.querySelector("#dp-line");
+  discountLine.hidden = discountAmount === 0;
   rewardLine.hidden = rewardAmount === 0;
   dpLine.hidden = dp === 0;
+  document.querySelector("#discount").textContent = `- ${formatMoney(discountAmount)}`;
   document.querySelector("#reward").textContent = `- ${formatMoney(rewardAmount)}`;
   document.querySelector("#reward-label").textContent = reward ? reward.label : "Pemakaian Member";
   document.querySelector("#dp").textContent = `- ${formatMoney(dp)}`;
@@ -1442,7 +1641,7 @@ function setPayment(method) {
 
 function openConfirmation(mode) {
   activeConfirmMode = mode;
-  const { selected, reward, rewardAmount, dp, payable } = calculateTotals();
+  const { selected, discountAmount, reward, rewardAmount, dp, payable } = calculateTotals();
   const modal = document.querySelector("#confirm-modal");
   const title = document.querySelector("#modal-title");
   const copy = document.querySelector("#confirm-copy");
@@ -1463,6 +1662,7 @@ function openConfirmation(mode) {
     <div><span>Pelanggan</span><strong>${customerLabel}</strong></div>
     <div><span>Item</span><strong>${selected.length} item</strong></div>
     ${mode === "draft" ? "" : `<div><span>Pembayaran</span><strong>${selectedPayment}</strong></div>`}
+    ${discountAmount ? `<div><span>Diskon Item</span><strong>- ${formatMoney(discountAmount)}</strong></div>` : ""}
     ${rewardAmount ? `<div><span>Pemakaian Member</span><strong>${reward.serviceName} · - ${formatMoney(rewardAmount)}</strong></div>` : ""}
     ${dp ? `<div><span>DP</span><strong>- ${formatMoney(dp)}</strong></div>` : ""}
     <div><span>Total</span><strong>${formatMoney(payable)}</strong></div>
@@ -1568,6 +1768,7 @@ document.addEventListener("click", (event) => {
     const delta = Number(memberUsageButton.dataset.memberDelta);
     const changed = delta > 0 ? increaseMemberUsage(serviceId) : decreaseMemberUsage(serviceId);
     if (changed) {
+      activeDiscountMenu = null;
       refreshMemberBenefits();
       renderCart();
     }
@@ -1599,7 +1800,34 @@ document.addEventListener("click", (event) => {
 
   const staffButton = event.target.closest("[data-staff-for]");
   if (staffButton) {
-    activeStaffMenu = activeStaffMenu === staffButton.dataset.staffFor ? null : staffButton.dataset.staffFor;
+    activeDiscountMenu = null;
+    const nextStaffMenu = activeStaffMenu === staffButton.dataset.staffFor ? null : staffButton.dataset.staffFor;
+    activeStaffMenu = nextStaffMenu;
+    activeStaffAction = null;
+    renderCart();
+    return;
+  }
+
+  const staffActionToggle = event.target.closest("[data-staff-action-toggle]");
+  if (staffActionToggle) {
+    const actionKey = `${staffActionToggle.dataset.id}:${staffActionToggle.dataset.staffActionToggle}`;
+    activeStaffAction = activeStaffAction === actionKey ? null : actionKey;
+    renderCart();
+    return;
+  }
+
+  const staffActionChoice = event.target.closest("[data-staff-action]");
+  if (staffActionChoice) {
+    const item = serviceCartLines.find((entry) => entry.id === staffActionChoice.dataset.id);
+    if (!item) return;
+    const action = staffActionChoice.dataset.staffAction;
+    const staff = staffActionChoice.dataset.actionStaff;
+    item.actionStaffs = normalizeActionStaffs(item);
+    const currentStaff = item.actionStaffs[action] || [];
+    item.actionStaffs[action] = currentStaff.includes(staff)
+      ? currentStaff.filter((staffName) => staffName !== staff)
+      : [...currentStaff, staff];
+    syncServiceStaffSummary(item);
     renderCart();
     return;
   }
@@ -1609,6 +1837,26 @@ document.addEventListener("click", (event) => {
     const item = serviceCartLines.find((entry) => entry.id === staffChoice.dataset.id) || items.find((entry) => entry.id === staffChoice.dataset.id);
     item.staff = staffChoice.dataset.staff;
     activeStaffMenu = null;
+    activeStaffAction = null;
+    renderCart();
+    return;
+  }
+
+  const discountButton = event.target.closest("[data-discount-for]");
+  if (discountButton) {
+    activeStaffMenu = null;
+    activeStaffAction = null;
+    activeDiscountMenu = activeDiscountMenu === discountButton.dataset.discountFor ? null : discountButton.dataset.discountFor;
+    renderCart();
+    return;
+  }
+
+  const discountChoice = event.target.closest("[data-discount-option]");
+  if (discountChoice) {
+    const item = serviceCartLines.find((entry) => entry.id === discountChoice.dataset.id);
+    if (!item || item.memberFree) return;
+    if (discountChoice.dataset.discountOption === "10") item.discount10 = !item.discount10;
+    if (discountChoice.dataset.discountOption === "5") item.discount5 = !item.discount5;
     renderCart();
     return;
   }
@@ -1660,6 +1908,9 @@ document.addEventListener("click", (event) => {
   const nav = event.target.closest("[data-target]");
   if (nav) {
     blurNativeDateTimePicker();
+    activeStaffMenu = null;
+    activeStaffAction = null;
+    activeDiscountMenu = null;
     setView(nav.dataset.target);
     return;
   }
@@ -1669,6 +1920,8 @@ document.addEventListener("click", (event) => {
     activeFilter = filterButton.dataset.filter;
     searchTerm = "";
     activeStaffMenu = null;
+    activeStaffAction = null;
+    activeDiscountMenu = null;
     document.querySelector("#item-search").value = "";
     document.querySelectorAll("[data-filter]").forEach((button) => {
       button.classList.toggle("active", button.dataset.filter === activeFilter);
@@ -1685,6 +1938,8 @@ document.addEventListener("click", (event) => {
     if (!item) return;
     const changed = addItemToCart(item);
     activeStaffMenu = null;
+    activeStaffAction = null;
+    activeDiscountMenu = null;
     renderItems();
     renderCart();
     refreshMemberBenefits();
@@ -1719,6 +1974,8 @@ document.addEventListener("click", (event) => {
       item.qty = Math.max(0, item.qty + delta);
     }
     activeStaffMenu = null;
+    activeStaffAction = null;
+    activeDiscountMenu = null;
     renderCart();
     refreshMemberBenefits();
     return;
@@ -1726,6 +1983,12 @@ document.addEventListener("click", (event) => {
 
   if (activeStaffMenu && !event.target.closest(".staff-menu") && !event.target.closest("[data-staff-for]")) {
     activeStaffMenu = null;
+    activeStaffAction = null;
+    renderCart();
+  }
+
+  if (activeDiscountMenu && !event.target.closest(".discount-menu") && !event.target.closest("[data-discount-for]")) {
+    activeDiscountMenu = null;
     renderCart();
   }
 
@@ -2198,7 +2461,7 @@ function renderTransactionDetailContent(t, ids) {
     .map((item) => {
       const lineTotal = item.qty * item.price;
       const staffLabel = item.staff ? ` · ${item.staff}` : "";
-      const typeLabel = item.type === "service" ? "Jasa" : "Produk";
+      const typeLabel = item.type === "service" ? "Jasa" : item.type === "member" ? "Member" : "Produk";
       return `
         <div class="detail-item-row">
           <span>${item.name} × ${item.qty} <small>(${typeLabel}${staffLabel})</small></span>
@@ -2341,10 +2604,17 @@ function loadPendingTransaction(id) {
       const lineCount = Math.min(line.qty || 1, getMaxQty(catalogItem));
       for (let index = 0; index < lineCount; index += 1) {
         const added = addServiceLine({ ...catalogItem, price: line.price || catalogItem.price });
-        if (added) serviceCartLines[serviceCartLines.length - 1].staff = line.staff || t.staff || "";
+        if (added) {
+          const serviceLine = serviceCartLines[serviceCartLines.length - 1];
+          serviceLine.actionStaffs = createActionStaffs(serviceLine, line.staff || t.staff || "");
+          syncServiceStaffSummary(serviceLine);
+        }
       }
     } else {
       catalogItem.qty = Math.min(line.qty || 1, getMaxQty(catalogItem));
+      if (catalogItem.type === "member") {
+        catalogItem.staff = line.staff || t.staff || "";
+      }
     }
   });
 
@@ -2409,6 +2679,11 @@ document.addEventListener("input", (event) => {
   searchTerm = searchInput.value.trim().toLowerCase();
   if (activeStaffMenu) {
     activeStaffMenu = null;
+    activeStaffAction = null;
+    renderCart();
+  }
+  if (activeDiscountMenu) {
+    activeDiscountMenu = null;
     renderCart();
   }
   renderItems();
