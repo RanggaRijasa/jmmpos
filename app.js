@@ -487,6 +487,10 @@ const formatter = new Intl.NumberFormat("id-ID", {
   maximumFractionDigits: 0,
 });
 
+const receiptFormatter = new Intl.NumberFormat("id-ID", {
+  maximumFractionDigits: 0,
+});
+
 const customers = [
   {
     id: "dewi",
@@ -772,6 +776,7 @@ const customerHistories = {
 let activeFilter = "service";
 let selectedCustomer = null;
 let selectedPayment = "QRIS";
+let customDp = 0;
 let activeStaffMenu = null;
 let activeStaffAction = null;
 let activeDiscountMenu = null;
@@ -780,6 +785,8 @@ let customerSearchTerm = "";
 let dropdownSearchTerm = "";
 let activeDetailCustomerId = "dewi";
 let activeConfirmMode = "payment";
+let lastReceipt = null;
+let receiptReturnView = "pos-view";
 let serviceLineCounter = 0;
 const serviceCartLines = [];
 const memberUsage = {};
@@ -871,8 +878,7 @@ function addServiceLine(item, options = {}) {
     itemId: item.id,
     qty: 1,
     staff: "",
-    discount5: false,
-    discount10: false,
+    discounts: [],
     ...options,
   };
   line.actionStaffs = options.actionStaffs || createActionStaffs(line, line.staff);
@@ -924,6 +930,7 @@ function resetCart() {
   activeStaffMenu = null;
   activeStaffAction = null;
   activeDiscountMenu = null;
+  customDp = 0;
 }
 
 function findCatalogItem(line) {
@@ -980,8 +987,7 @@ function increaseMemberUsage(serviceId) {
   if (serviceLine) {
     serviceLine.memberFree = true;
     serviceLine.memberUsageServiceId = serviceId;
-    serviceLine.discount5 = false;
-    serviceLine.discount10 = false;
+    serviceLine.discounts = [];
   } else {
     const service = items.find((item) => item.id === serviceId && item.type === "service");
     if (!service) return false;
@@ -994,8 +1000,7 @@ function increaseMemberUsage(serviceId) {
     const added = addServiceLine(service, {
       memberFree: true,
       memberUsageServiceId: serviceId,
-      discount5: false,
-      discount10: false,
+      discounts: [],
     });
     if (!added) return false;
   }
@@ -1074,9 +1079,13 @@ function getAppliedReward(selected) {
   };
 }
 
+function getLineDiscounts(item) {
+  if (item.type !== "service" || item.memberFree) return [];
+  return Array.isArray(item.discounts) ? item.discounts : [];
+}
+
 function getLineDiscountRate(item) {
-  if (item.type !== "service" || item.memberFree) return 0;
-  return (item.discount10 ? 10 : 0) + (item.discount5 ? 5 : 0);
+  return Math.min(100, getLineDiscounts(item).reduce((sum, rate) => sum + rate, 0));
 }
 
 function getLineBaseTotal(item) {
@@ -1097,10 +1106,261 @@ function calculateTotals() {
   const discountAmount = selected.reduce((sum, item) => sum + getLineDiscountAmount(item), 0);
   const reward = getAppliedReward(selected);
   const rewardAmount = reward?.amount || 0;
-  const dp = selectedCustomer?.dp || 0;
+  const dp = (selectedCustomer?.dp || 0) + customDp;
   const payable = Math.max(0, subtotal - discountAmount - rewardAmount - dp);
 
   return { selected, subtotal, discountAmount, reward, rewardAmount, dp, payable };
+}
+
+function formatReceiptAmount(value) {
+  return receiptFormatter.format(value);
+}
+
+function getReceiptDateParts(date = new Date()) {
+  const pad = (value) => String(value).padStart(2, "0");
+  const day = pad(date.getDate());
+  const month = pad(date.getMonth() + 1);
+  const year = date.getFullYear();
+  const hour = pad(date.getHours());
+  const minute = pad(date.getMinutes());
+  const second = pad(date.getSeconds());
+  return {
+    doc: `KARTINI.${String(year).slice(-2)}${month}${day}001`,
+    date: `${day}-${month}-${year}`,
+    time: `${hour}:${minute}:${second}`,
+  };
+}
+
+function getReceiptActionLabel(action, item) {
+  if ((item.itemId || item.id) === "cut" && action === "Potong") return "Hair cutting";
+  return action;
+}
+
+function cloneReceiptItem(item) {
+  const actionStaffs = item.type === "service" ? normalizeActionStaffs(item) : {};
+  return {
+    id: item.id,
+    itemId: item.itemId || item.id,
+    type: item.type,
+    label: item.label,
+    name: item.name,
+    qty: item.qty,
+    price: item.price,
+    baseTotal: getLineBaseTotal(item),
+    payable: getLinePayable(item),
+    discountRate: getLineDiscountRate(item),
+    discountAmount: getLineDiscountAmount(item),
+    memberFree: Boolean(item.memberFree),
+    actionStaffs,
+    staff: item.staff,
+  };
+}
+
+function createReceiptSnapshot() {
+  const totals = calculateTotals();
+  const dateParts = getReceiptDateParts();
+  return {
+    ...dateParts,
+    status: "Selesai",
+    customer: selectedCustomer?.name || "UMUM",
+    payment: selectedPayment,
+    items: totals.selected.map(cloneReceiptItem),
+    subtotal: totals.subtotal,
+    discountAmount: totals.discountAmount,
+    reward: totals.reward,
+    rewardAmount: totals.rewardAmount,
+    dp: totals.dp,
+    total: totals.payable,
+  };
+}
+
+function setReceiptReturn(viewId) {
+  receiptReturnView = viewId;
+  const backButton = document.querySelector("#receipt-back-cashier");
+  if (!backButton) return;
+  backButton.textContent = viewId === "sales-view" ? "‹ Kembali ke Detail" : "‹ Kembali ke Kasir";
+}
+
+function formatReceiptDateFromText(dateText) {
+  const months = {
+    Jan: "01",
+    Feb: "02",
+    Mar: "03",
+    Apr: "04",
+    Mei: "05",
+    Jun: "06",
+    Jul: "07",
+    Agu: "08",
+    Sep: "09",
+    Okt: "10",
+    Nov: "11",
+    Des: "12",
+  };
+  const [day, month, year] = dateText.split(" ");
+  return `${String(day).padStart(2, "0")}-${months[month] || "01"}-${year}`;
+}
+
+function transactionLineToReceiptItem(line, index) {
+  const catalogItem = findCatalogItem(line);
+  const itemId = catalogItem?.id || `receipt-line-${index}`;
+  const qty = line.qty || 1;
+  const price = line.price || 0;
+  const receiptItem = {
+    id: `${itemId}-${index}`,
+    itemId,
+    type: line.type,
+    label: line.type === "service" ? "Jasa" : line.type === "member" ? "Member" : "Produk",
+    name: line.name,
+    qty,
+    price,
+    baseTotal: qty * price,
+    payable: qty * price,
+    discountRate: line.discountRate || 0,
+    discountAmount: 0,
+    memberFree: Boolean(line.memberFree),
+    staff: line.staff || "",
+    actionStaffs: {},
+  };
+
+  if (line.type === "service") {
+    receiptItem.actionStaffs = createActionStaffs({ itemId }, line.staff || "");
+  }
+
+  return receiptItem;
+}
+
+function createReceiptFromTransaction(transaction) {
+  const itemsForReceipt = transaction.items.map(transactionLineToReceiptItem);
+  const subtotal = itemsForReceipt.reduce((sum, item) => sum + item.baseTotal, 0);
+  const rewardAmount = transaction.reward || 0;
+  const dp = transaction.dp || 0;
+  const discountAmount = Math.max(0, subtotal - rewardAmount - dp - transaction.amount);
+
+  return {
+    doc: transaction.id,
+    date: formatReceiptDateFromText(transaction.date),
+    time: `${transaction.time}:00`,
+    status: transaction.status,
+    customer: transaction.customer,
+    payment: transaction.payment,
+    items: itemsForReceipt,
+    subtotal,
+    discountAmount,
+    reward: rewardAmount ? { serviceName: "Pemakaian Member" } : null,
+    rewardAmount,
+    dp,
+    total: transaction.amount,
+  };
+}
+
+function openReceiptFromSalesDetail() {
+  const transaction = salesTransactions.find((entry) => entry.id === selectedSalesId);
+  if (!transaction) return;
+
+  lastReceipt = createReceiptFromTransaction(transaction);
+  setReceiptReturn("sales-view");
+  renderReceipt(lastReceipt);
+  setView("receipt-view");
+}
+
+function renderReceiptItem(item) {
+  const actionLines =
+    item.type === "service"
+      ? getServiceActions(item)
+          .map((action) => {
+            const staff = getActionStaffText(item.actionStaffs?.[action] || []);
+            return `<div class="receipt-subline">${getReceiptActionLabel(action, item)} By : ${staff}</div>`;
+          })
+          .join("")
+      : item.type === "member" && item.staff
+        ? `<div class="receipt-subline">Petugas By : ${item.staff}</div>`
+        : "";
+  const discountLine = item.discountRate ? `<div class="receipt-subline">Diskon : ${item.discountRate}%</div>` : "";
+  const memberLine = item.memberFree ? `<div class="receipt-subline">Pemakaian Member</div>` : "";
+
+  return `
+    <div class="receipt-item">
+      <div class="receipt-item-main">
+        <span>${item.qty}x ${item.name}</span>
+        <strong>${formatReceiptAmount(item.baseTotal)}</strong>
+      </div>
+      ${actionLines}
+      ${discountLine}
+      ${memberLine}
+    </div>
+  `;
+}
+
+function renderReceipt(receipt = lastReceipt) {
+  const target = document.querySelector("#receipt-content");
+  if (!target || !receipt) return;
+  const discountRow = receipt.discountAmount
+    ? `<div><span>Diskon</span><strong>- ${formatReceiptAmount(receipt.discountAmount)}</strong></div>`
+    : "";
+  const rewardRow = receipt.rewardAmount
+    ? `<div><span>Member</span><strong>- ${formatReceiptAmount(receipt.rewardAmount)}</strong></div>`
+    : "";
+  const dpRow = receipt.dp ? `<div><span>DP</span><strong>- ${formatReceiptAmount(receipt.dp)}</strong></div>` : "";
+
+  target.innerHTML = `
+    <div class="receipt-shop">
+      <h2>JMM Salon</h2>
+      <p>Jl. Kartini No.100 Surabaya</p>
+      <p>Telpon / Whatsapp: 0851 3788 0880</p>
+      <p>Instagram: @jmmsalon_kartinisby</p>
+    </div>
+    <div class="receipt-separator"></div>
+    <div class="receipt-meta">
+      <div><span>#Dokumen</span><strong>${receipt.doc}</strong></div>
+      <div><span>Pelanggan</span><strong>${receipt.customer}</strong></div>
+      <div><span>Tanggal</span><strong>${receipt.date}</strong></div>
+      <div><span>Jam</span><strong>${receipt.time}</strong></div>
+      <div><span>Pembayaran</span><strong>${receipt.payment}</strong></div>
+      <div><span>Deskripsi</span><strong>-</strong></div>
+    </div>
+    <div class="receipt-separator"></div>
+    <div class="receipt-items">
+      ${receipt.items.map(renderReceiptItem).join("")}
+    </div>
+    <div class="receipt-separator"></div>
+    <div class="receipt-total-block">
+      <div><span>Subtotal</span><strong>${formatReceiptAmount(receipt.subtotal)}</strong></div>
+      ${discountRow}
+      ${rewardRow}
+      ${dpRow}
+      <div><span>Total</span><strong>${formatReceiptAmount(receipt.total)}</strong></div>
+      <div><span>Grd Total</span><strong>${formatReceiptAmount(receipt.total)}</strong></div>
+      <div><span>${receipt.payment}</span><strong>${formatReceiptAmount(receipt.total)}</strong></div>
+      <div><span>Kembali</span><strong>0</strong></div>
+    </div>
+    <div class="receipt-separator"></div>
+    <div class="receipt-footer">
+      <p>Thankyou for your Visit!</p>
+      <p>Don't forget to tag us on Instagram &</p>
+      <p>Rate us on Google Review!</p>
+    </div>
+  `;
+}
+
+function prepareNextTransaction() {
+  resetCart();
+  selectedCustomer = null;
+  selectedPayment = "QRIS";
+  activeFilter = "service";
+  searchTerm = "";
+  dropdownSearchTerm = "";
+  const itemSearch = document.querySelector("#item-search");
+  if (itemSearch) itemSearch.value = "";
+  document.querySelectorAll("[data-filter]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.filter === activeFilter);
+  });
+  renderCustomer();
+  renderCustomerDropdown();
+  updateSearchPlaceholder();
+  updateCatalogHeading();
+  renderItems();
+  setPayment(selectedPayment);
+  renderCart();
 }
 
 function visibleItems() {
@@ -1454,15 +1714,35 @@ function renderItems() {
 function renderSimpleStaffMenu(item) {
   return `
     <div class="staff-menu">
-      ${staffOptions
-        .map(
-          (staff) =>
-            `<button type="button" data-staff="${staff}" data-id="${item.id}">
-              <span>${staff}</span>
-              ${item.staff === staff ? `<b>Dipilih</b>` : ""}
-            </button>`,
-        )
-        .join("")}
+      <label class="staff-menu-search">
+        <input type="search" placeholder="Cari petugas..." autocomplete="off" />
+      </label>
+      <div class="staff-menu-items">
+        ${staffOptions
+          .map(
+            (staff) =>
+              `<button type="button" data-staff="${staff}" data-id="${item.id}">
+                <span>${staff}</span>
+                ${item.staff === staff ? `<b>Dipilih</b>` : ""}
+              </button>`,
+          )
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderDiscountMenu(item) {
+  return `
+    <div class="discount-menu discount-input-menu">
+      <label class="discount-number">
+        <input type="number" inputmode="numeric" min="1" max="100" placeholder="Diskon %" data-discount-input="${item.id}" />
+        <span>%</span>
+      </label>
+      <div class="discount-actions">
+        <button type="button" class="discount-cancel" data-discount-cancel>Batal</button>
+        <button type="button" class="discount-save" data-discount-save="${item.id}">Simpan</button>
+      </div>
     </div>
   `;
 }
@@ -1501,19 +1781,22 @@ function renderServiceStaffMenu(item) {
                 </div>
                 ${
                   isOpen
-                    ? `<div class="staff-option-list">
-                      ${staffOptions
-                        .map(
-                          (staff) => {
-                            const isSelected = selected.includes(staff);
-                            return `<button type="button" class="${isSelected ? "active" : ""}" data-staff-action="${action}" data-action-staff="${staff}" data-id="${item.id}">
-                              <span>${staff}</span>
-                              ${isSelected ? `<b>Dipilih</b>` : ""}
-                            </button>`;
-                          },
-                        )
-                        .join("")}
-                    </div>`
+                    ? `<label class="staff-option-search">
+                        <input type="search" placeholder="Cari petugas..." autocomplete="off" data-staff-search="${action}" data-id="${item.id}" />
+                      </label>
+                      <div class="staff-option-list">
+                        ${staffOptions
+                          .map(
+                            (staff) => {
+                              const isSelected = selected.includes(staff);
+                              return `<button type="button" class="${isSelected ? "active" : ""}" data-staff-action="${action}" data-action-staff="${staff}" data-id="${item.id}">
+                                <span>${staff}</span>
+                                ${isSelected ? `<b>Dipilih</b>` : ""}
+                              </button>`;
+                            },
+                          )
+                          .join("")}
+                      </div>`
                     : ""
                 }
               </div>
@@ -1540,24 +1823,10 @@ function renderCart() {
     list.innerHTML = selected
       .map((item) => {
         const canDiscount = item.type === "service" && !item.memberFree;
-        const discountRate = getLineDiscountRate(item);
+        const discounts = getLineDiscounts(item);
         const lineBaseTotal = getLineBaseTotal(item);
         const lineTotal = getLinePayable(item);
-        const discountMenu =
-          canDiscount && activeDiscountMenu === item.id
-            ? `
-              <div class="discount-menu">
-                <button type="button" class="${item.discount10 ? "active" : ""}" data-discount-option="10" data-id="${item.id}">
-                  <span>Diskon 10%</span>
-                  ${item.discount10 ? `<b>Aktif</b>` : ""}
-                </button>
-                <button type="button" class="${item.discount5 ? "active" : ""}" data-discount-option="5" data-id="${item.id}">
-                  <span>Diskon 5%</span>
-                  ${item.discount5 ? `<b>Aktif</b>` : ""}
-                </button>
-              </div>
-            `
-            : "";
+        const discountMenu = canDiscount && activeDiscountMenu === item.id ? renderDiscountMenu(item) : "";
         const staffMenu = activeStaffMenu === item.id ? (item.type === "service" ? renderServiceStaffMenu(item) : renderSimpleStaffMenu(item)) : "";
         let detail;
         if (item.label === "Jasa") {
@@ -1569,9 +1838,9 @@ function renderCart() {
               ${
                 !canDiscount
                   ? ""
-                  : `<button class="discount-select${discountRate ? " active" : ""}" type="button" data-discount-for="${item.id}">
-                    <span aria-hidden="true">${discountRate ? "✓" : "+"}</span>
-                    ${discountRate ? `Diskon ${discountRate}%` : "Diskon"}
+                  : `<button class="discount-select${discounts.length ? " active" : ""}" type="button" data-discount-for="${item.id}">
+                    <span aria-hidden="true">+</span>
+                    Diskon
                   </button>`
               }
               ${reward?.itemIds?.includes(item.id) ? `<span class="reward-note">Kuota member dipakai</span>` : ""}
@@ -1595,12 +1864,12 @@ function renderCart() {
           <article class="cart-row">
             <div class="cart-label-row">
               <small>${item.label}</small>
-              ${discountRate ? `<span class="cart-discount-badge">Diskon ${discountRate}%</span>` : ""}
+              ${discounts.length ? `<span class="cart-discount-badge" data-clear-discounts="${item.id}">Diskon ${getLineDiscountRate(item)}%</span>` : ""}
             </div>
             <div class="cart-row-top">
               <strong>${item.name}</strong>
               <b class="cart-row-price">
-                ${discountRate ? `<s>${formatMoney(lineBaseTotal)}</s>` : ""}
+                ${discounts.length ? `<s>${formatMoney(lineBaseTotal)}</s>` : ""}
                 <span>${formatMoney(lineTotal)}</span>
               </b>
             </div>
@@ -1639,17 +1908,37 @@ function setPayment(method) {
   });
 }
 
-function openConfirmation(mode) {
-  activeConfirmMode = mode;
-  const { selected, discountAmount, reward, rewardAmount, dp, payable } = calculateTotals();
-  const modal = document.querySelector("#confirm-modal");
-  const title = document.querySelector("#modal-title");
-  const copy = document.querySelector("#confirm-copy");
+function renderConfirmationSummary(mode) {
   const summary = document.querySelector("#confirm-summary");
-  const confirmButton = document.querySelector("#confirm-payment");
+  const { selected, discountAmount, reward, rewardAmount, dp, payable } = calculateTotals();
+  const customerDp = selectedCustomer?.dp || 0;
   const customerLabel = selectedCustomer
     ? `${selectedCustomer.name} · ${selectedCustomer.status}`
     : "Pelanggan belum dipilih";
+
+  summary.innerHTML = `
+    <div><span>Pelanggan</span><strong>${customerLabel}</strong></div>
+    <div><span>Item</span><strong>${selected.length} item</strong></div>
+    ${mode === "draft" ? "" : `<div><span>Pembayaran</span><strong>${selectedPayment}</strong></div>`}
+    ${discountAmount ? `<div><span>Diskon Item</span><strong>- ${formatMoney(discountAmount)}</strong></div>` : ""}
+    ${rewardAmount ? `<div><span>Pemakaian Member</span><strong>${reward.serviceName} · - ${formatMoney(rewardAmount)}</strong></div>` : ""}
+    ${customerDp ? `<div><span>DP Pelanggan</span><strong>- ${formatMoney(customerDp)}</strong></div>` : ""}
+    <div class="modal-dp-row">
+      <span>DP</span>
+      <label class="modal-dp-input">
+        <input type="number" id="modal-dp" inputmode="numeric" min="0" placeholder="0" value="${customDp}" />
+      </label>
+    </div>
+    <div><span>Total</span><strong id="modal-total">${formatMoney(payable)}</strong></div>
+  `;
+}
+
+function openConfirmation(mode) {
+  activeConfirmMode = mode;
+  const modal = document.querySelector("#confirm-modal");
+  const title = document.querySelector("#modal-title");
+  const copy = document.querySelector("#confirm-copy");
+  const confirmButton = document.querySelector("#confirm-payment");
 
   title.textContent = mode === "draft" ? "Simpan Draft Transaksi" : "Konfirmasi Pembayaran";
   copy.textContent =
@@ -1658,20 +1947,13 @@ function openConfirmation(mode) {
       : "Pastikan metode pembayaran dan total sudah sesuai.";
   confirmButton.textContent = mode === "draft" ? "Simpan Draft" : "Bayar Sekarang";
 
-  summary.innerHTML = `
-    <div><span>Pelanggan</span><strong>${customerLabel}</strong></div>
-    <div><span>Item</span><strong>${selected.length} item</strong></div>
-    ${mode === "draft" ? "" : `<div><span>Pembayaran</span><strong>${selectedPayment}</strong></div>`}
-    ${discountAmount ? `<div><span>Diskon Item</span><strong>- ${formatMoney(discountAmount)}</strong></div>` : ""}
-    ${rewardAmount ? `<div><span>Pemakaian Member</span><strong>${reward.serviceName} · - ${formatMoney(rewardAmount)}</strong></div>` : ""}
-    ${dp ? `<div><span>DP</span><strong>- ${formatMoney(dp)}</strong></div>` : ""}
-    <div><span>Total</span><strong>${formatMoney(payable)}</strong></div>
-  `;
+  renderConfirmationSummary(mode);
   modal.hidden = false;
 }
 
 function closeConfirmation() {
   document.querySelector("#confirm-modal").hidden = true;
+  customDp = 0;
 }
 
 function openAddCustomerModal() {
@@ -1705,6 +1987,12 @@ function setView(id) {
     if (customerList) customerList.scrollTop = 0;
   }
   if (id === "customer-view") renderCustomerDetail(activeDetailCustomerId);
+  if (id === "membership-view") {
+    renderMembershipList();
+    const membershipList = document.querySelector("#membership-list");
+    if (membershipList) membershipList.scrollTop = 0;
+  }
+  if (id === "membership-detail-view" && selectedMembershipId) renderMembershipDetail(selectedMembershipId);
 }
 
 document.addEventListener("click", (event) => {
@@ -1844,20 +2132,59 @@ document.addEventListener("click", (event) => {
 
   const discountButton = event.target.closest("[data-discount-for]");
   if (discountButton) {
+    const item = serviceCartLines.find((entry) => entry.id === discountButton.dataset.discountFor);
+    if (!item || item.memberFree) return;
     activeStaffMenu = null;
     activeStaffAction = null;
     activeDiscountMenu = activeDiscountMenu === discountButton.dataset.discountFor ? null : discountButton.dataset.discountFor;
     renderCart();
+    if (activeDiscountMenu) {
+      window.setTimeout(() => {
+        const input = document.querySelector(`[data-discount-input="${activeDiscountMenu}"]`);
+        if (input) input.focus();
+      }, 0);
+    }
     return;
   }
 
-  const discountChoice = event.target.closest("[data-discount-option]");
-  if (discountChoice) {
-    const item = serviceCartLines.find((entry) => entry.id === discountChoice.dataset.id);
-    if (!item || item.memberFree) return;
-    if (discountChoice.dataset.discountOption === "10") item.discount10 = !item.discount10;
-    if (discountChoice.dataset.discountOption === "5") item.discount5 = !item.discount5;
+  const discountCancel = event.target.closest("[data-discount-cancel]");
+  if (discountCancel) {
+    activeDiscountMenu = null;
     renderCart();
+    return;
+  }
+
+  const discountSave = event.target.closest("[data-discount-save]");
+  if (discountSave) {
+    const item = serviceCartLines.find((entry) => entry.id === discountSave.dataset.discountSave);
+    const input = document.querySelector(`[data-discount-input="${discountSave.dataset.discountSave}"]`);
+    if (!item || !input) return;
+    const raw = input.value.trim().replace(",", ".");
+    const value = Number(raw);
+    if (Number.isNaN(value) || value <= 0 || value > 100) {
+      showToast("Masukkan angka diskon 1-100");
+      return;
+    }
+    const currentTotal = getLineDiscountRate(item);
+    if (currentTotal + value > 100) {
+      showToast("Total diskon tidak boleh lebih dari 100%");
+      return;
+    }
+    item.discounts = [...(item.discounts || []), value];
+    activeDiscountMenu = null;
+    activeStaffMenu = null;
+    activeStaffAction = null;
+    renderCart();
+    return;
+  }
+
+  const clearDiscountsBadge = event.target.closest("[data-clear-discounts]");
+  if (clearDiscountsBadge) {
+    const item = serviceCartLines.find((entry) => entry.id === clearDiscountsBadge.dataset.clearDiscounts);
+    if (item) {
+      item.discounts = [];
+      renderCart();
+    }
     return;
   }
 
@@ -1895,13 +2222,34 @@ document.addEventListener("click", (event) => {
   }
 
   if (event.target.closest("#confirm-payment")) {
+    if (activeConfirmMode === "payment") {
+      lastReceipt = createReceiptSnapshot();
+      closeConfirmation();
+      setReceiptReturn("pos-view");
+      renderReceipt(lastReceipt);
+      prepareNextTransaction();
+      setView("receipt-view");
+      showToast("Pembayaran tersimpan");
+      return;
+    }
+
     closeConfirmation();
-    showToast(activeConfirmMode === "draft" ? "Transaksi masuk draft" : "Pembayaran tersimpan");
+    showToast("Transaksi masuk draft");
     return;
   }
 
   if (event.target.id === "confirm-modal") {
     closeConfirmation();
+    return;
+  }
+
+  if (event.target.closest("#receipt-print")) {
+    window.print();
+    return;
+  }
+
+  if (event.target.closest("#receipt-back-cashier")) {
+    setView(receiptReturnView);
     return;
   }
 
@@ -2016,6 +2364,11 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (event.target.closest("#detail-print-receipt")) {
+    openReceiptFromSalesDetail();
+    return;
+  }
+
   if (event.target.closest("#sales-filter-apply")) {
     blurNativeDateTimePicker();
     salesPage = 1;
@@ -2042,6 +2395,7 @@ document.addEventListener("click", (event) => {
   const membershipRow = event.target.closest("[data-membership-id]");
   if (membershipRow) {
     renderMembershipDetail(membershipRow.dataset.membershipId);
+    setView("membership-detail-view");
     return;
   }
 
@@ -2450,26 +2804,42 @@ function renderSalesList() {
   pagination.innerHTML = pagesHtml;
 }
 
+function renderTransactionDetailItem(line, index) {
+  const receiptItem = transactionLineToReceiptItem(line, index);
+  const actionLines =
+    receiptItem.type === "service"
+      ? getServiceActions(receiptItem)
+          .map((action) => {
+            const staff = getActionStaffText(receiptItem.actionStaffs?.[action] || []);
+            return `<span>${getReceiptActionLabel(action, receiptItem)} By : ${staff}</span>`;
+          })
+          .join("")
+      : receiptItem.type === "member" && receiptItem.staff
+        ? `<span>Petugas By : ${receiptItem.staff}</span>`
+        : receiptItem.type === "product"
+          ? `<span>Produk langsung</span>`
+          : "";
+
+  return `
+    <div class="detail-item-row">
+      <div class="detail-item-main">
+        <span>${receiptItem.qty}x ${receiptItem.name}</span>
+        <strong>${formatReceiptAmount(receiptItem.baseTotal)}</strong>
+      </div>
+      ${actionLines ? `<div class="detail-item-sublines">${actionLines}</div>` : ""}
+    </div>
+  `;
+}
+
 function renderTransactionDetailContent(t, ids) {
   document.querySelector(ids.invoice).textContent = t.id;
   document.querySelector(ids.datetime).textContent = `${t.date} · ${t.time}`;
   document.querySelector(ids.payment).textContent = t.payment;
   document.querySelector(ids.customerName).textContent = t.customer;
-  document.querySelector(ids.staff).textContent = `Petugas: ${t.staff}`;
+  const customer = customers.find((c) => c.name === t.customer);
+  document.querySelector(ids.staff).textContent = customer?.phone || "-";
 
-  const itemsHtml = t.items
-    .map((item) => {
-      const lineTotal = item.qty * item.price;
-      const staffLabel = item.staff ? ` · ${item.staff}` : "";
-      const typeLabel = item.type === "service" ? "Jasa" : item.type === "member" ? "Member" : "Produk";
-      return `
-        <div class="detail-item-row">
-          <span>${item.name} × ${item.qty} <small>(${typeLabel}${staffLabel})</small></span>
-          <strong>${formatMoney(lineTotal)}</strong>
-        </div>
-      `;
-    })
-    .join("");
+  const itemsHtml = t.items.map(renderTransactionDetailItem).join("");
   document.querySelector(ids.items).innerHTML = itemsHtml;
 
   let adjustmentsHtml = "";
@@ -2638,6 +3008,24 @@ function loadPendingTransaction(id) {
 }
 
 document.addEventListener("input", (event) => {
+  const staffSearchInput = event.target.closest(".staff-menu-search input, .staff-option-search input");
+  if (staffSearchInput) {
+    const term = staffSearchInput.value.trim().toLowerCase();
+    let list;
+    if (staffSearchInput.closest(".staff-option-search")) {
+      list = staffSearchInput.closest(".staff-action-row")?.querySelector(".staff-option-list");
+    } else {
+      list = staffSearchInput.closest(".staff-menu");
+    }
+    if (list) {
+      list.querySelectorAll("[data-staff], [data-action-staff]").forEach((button) => {
+        const name = (button.dataset.staff || button.dataset.actionStaff || "").toLowerCase();
+        button.style.display = name.includes(term) ? "" : "none";
+      });
+    }
+    return;
+  }
+
   const nativeFilterInput = event.target.closest("#filter-date-from, #filter-date-to, #filter-time-from, #filter-time-to");
   if (nativeFilterInput) {
     salesPage = 1;
@@ -2673,6 +3061,16 @@ document.addEventListener("input", (event) => {
     return;
   }
 
+  const modalDpInput = event.target.closest("#modal-dp");
+  if (modalDpInput) {
+    const value = Number(modalDpInput.value);
+    customDp = Number.isNaN(value) || value < 0 ? 0 : Math.round(value);
+    const { payable } = calculateTotals();
+    const totalEl = document.querySelector("#modal-total");
+    if (totalEl) totalEl.textContent = formatMoney(payable);
+    return;
+  }
+
   const searchInput = event.target.closest("#item-search");
   if (!searchInput) return;
 
@@ -2692,10 +3090,74 @@ document.addEventListener("input", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     blurNativeDateTimePicker();
+    if (activeDiscountMenu) {
+      activeDiscountMenu = null;
+      renderCart();
+    }
+  }
+
+  const discountInput = event.target.closest("[data-discount-input]");
+  if (discountInput && event.key === "Enter") {
+    const saveButton = document.querySelector(`[data-discount-save="${discountInput.dataset.discountInput}"]`);
+    if (saveButton) saveButton.click();
   }
 });
 
 let selectedMembershipId = null;
+
+const membershipHistoryTimes = ["14:16:09", "17:26:01", "17:54:44", "19:00:25", "12:28:11", "10:45:37"];
+
+function formatMembershipHistoryDate(dateText, index) {
+  const months = {
+    Jan: "01",
+    Feb: "02",
+    Mar: "03",
+    Apr: "04",
+    Mei: "05",
+    Jun: "06",
+    Jul: "07",
+    Agu: "08",
+    Sep: "09",
+    Okt: "10",
+    Nov: "11",
+    Des: "12",
+  };
+  const [day, month, year] = dateText.split(" ");
+  return `${year}-${months[month] || "01"}-${String(day).padStart(2, "0")} ${membershipHistoryTimes[index % membershipHistoryTimes.length]}`;
+}
+
+function membershipServiceMatches(reward, serviceName) {
+  const aliases = {
+    cut: ["Gunting Rambut", "Hair Cut", "Kids Hair Cut"],
+    colour: ["Hair Colour", "Hair Colour + Blow"],
+    cream: ["Creambath"],
+    keratin: ["Keratin Treatment"],
+    hairwash: ["Hair Wash"],
+    smoothing: ["Smoothing"],
+    hairspa: ["Hair Spa"],
+  };
+  const service = serviceName.toLowerCase();
+  const candidates = [reward.serviceName, ...(aliases[reward.serviceId] || [])].map((name) => name.toLowerCase());
+  return candidates.some((candidate) => service.includes(candidate) || candidate.includes(service));
+}
+
+function getMembershipUsageHistory(customer) {
+  const rewards = getCustomerRewards(customer);
+  if (!rewards.length) return [];
+
+  const history = customerHistories[customer.id] || [];
+  return history
+    .flatMap(([date, serviceName], index) =>
+      rewards
+        .filter((reward) => membershipServiceMatches(reward, serviceName))
+        .map((reward) => ({
+          serviceName: reward.serviceName,
+          dateTime: formatMembershipHistoryDate(date, index),
+          qty: 1,
+        })),
+    )
+    .slice(0, 12);
+}
 
 function renderMembershipList() {
   const list = document.querySelector("#membership-list");
@@ -2713,6 +3175,7 @@ function renderMembershipList() {
           </div>
           <div>${badge}</div>
           <span class="pending-row-amount">${customer.totalVisits} kunjungan</span>
+          <span class="membership-row-action">Lihat Detail ›</span>
         </article>
       `;
     })
@@ -2724,9 +3187,6 @@ function renderMembershipDetail(customerId) {
   if (!customer) return;
   selectedMembershipId = customerId;
   renderMembershipList();
-
-  document.querySelector("#membership-empty").hidden = true;
-  document.querySelector("#membership-detail-content").hidden = false;
 
   document.querySelector("#mb-name").textContent = customer.name;
   document.querySelector("#mb-badge").innerHTML = getCustomerBadge(customer);
@@ -2742,6 +3202,7 @@ function renderMembershipDetail(customerId) {
         <span>Pelanggan ini belum terdaftar sebagai member.</span>
       </div>
     `;
+    renderMembershipUsageHistory(customer);
     return;
   }
 
@@ -2765,13 +3226,43 @@ function renderMembershipDetail(customerId) {
       `;
     })
     .join("");
+
+  renderMembershipUsageHistory(customer);
+}
+
+function renderMembershipUsageHistory(customer) {
+  const historyEl = document.querySelector("#mb-usage-history");
+  if (!historyEl) return;
+
+  const history = getMembershipUsageHistory(customer);
+  if (!history.length) {
+    historyEl.innerHTML = `
+      <div class="membership-empty compact">
+        <strong>Belum ada pemakaian</strong>
+        <span>Riwayat pemakaian membership belum tersedia.</span>
+      </div>
+    `;
+    return;
+  }
+
+  historyEl.innerHTML = history
+    .map(
+      (item) => `
+        <article class="membership-usage-row">
+          <div>
+            <strong>${item.serviceName}</strong>
+            <span>${item.dateTime}</span>
+          </div>
+          <b>(${item.qty})</b>
+        </article>
+      `,
+    )
+    .join("");
 }
 
 function clearMembershipDetail() {
   selectedMembershipId = null;
   renderMembershipList();
-  document.querySelector("#membership-empty").hidden = false;
-  document.querySelector("#membership-detail-content").hidden = true;
 }
 
 renderCustomer();

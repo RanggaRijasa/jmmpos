@@ -334,7 +334,7 @@
           </div>
         </header>
 
-        <div class="membership-layout">
+        <div class="membership-layout membership-list-layout">
           <section class="membership-list-panel">
             <div class="section-heading plain">
               <div>
@@ -344,25 +344,41 @@
             </div>
             <div class="membership-list" id="membership-list"></div>
           </section>
+        </div>
+      </section>
 
-          <aside class="membership-detail-panel" id="membership-detail-panel">
-            <div class="membership-empty" id="membership-empty">
-              <strong>Pilih Pelanggan</strong>
-              <span>Pilih pelanggan dari daftar untuk melihat detail membership dan progres benefit.</span>
-            </div>
-            <div class="membership-detail-content" id="membership-detail-content" hidden>
-              <div class="membership-profile">
-                <h2 id="mb-name">Dewi Anggraini</h2>
-                <div id="mb-badge"></div>
-                <p id="mb-phone">No HP: 0812 3456 7890</p>
-                <div class="visit-count">
-                  <strong id="mb-visits">18 kali</strong>
-                  <span>Total kunjungan</span>
-                </div>
+      <section class="tablet-screen view" id="membership-detail-view" aria-label="Detail membership pelanggan">
+        <header class="topbar">
+          <button class="back-button" data-target="membership-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Detail Membership</h1>
+          </div>
+        </header>
+
+        <div class="membership-detail-layout">
+          <aside class="membership-detail-card">
+            <div class="membership-profile">
+              <h2 id="mb-name">Dewi Anggraini</h2>
+              <div id="mb-badge"></div>
+              <p id="mb-phone">No HP: 0812 3456 7890</p>
+              <div class="visit-count">
+                <strong id="mb-visits">18 kali</strong>
+                <span>Total kunjungan</span>
               </div>
-              <div class="membership-rewards" id="mb-rewards"></div>
             </div>
+            <div class="membership-rewards" id="mb-rewards"></div>
           </aside>
+
+          <section class="membership-history-panel">
+            <div class="section-heading plain">
+              <div>
+                <h2>History Pemakaian Membership</h2>
+                <p>Riwayat kuota member yang pernah dipakai pelanggan.</p>
+              </div>
+            </div>
+            <div class="membership-usage-list" id="mb-usage-history"></div>
+          </section>
         </div>
       </section>
 
@@ -581,7 +597,10 @@
             <div class="sales-pagination" id="sales-pagination"></div>
 
             <div class="sales-detail-panel" id="sales-detail-panel" hidden>
-              <button class="detail-back" id="detail-back" type="button">‹ Kembali ke daftar</button>
+              <div class="detail-panel-actions">
+                <button class="detail-back" id="detail-back" type="button">‹ Kembali ke daftar</button>
+                <button class="detail-print" id="detail-print-receipt" type="button">Cetak Nota</button>
+              </div>
               <div class="detail-card">
                 <div class="detail-header">
                   <div>
@@ -625,6 +644,23 @@
             </div>
             <div class="pending-list" id="pending-list"></div>
           </section>
+        </div>
+      </section>
+
+      <section class="tablet-screen view" id="receipt-view" aria-label="Struk pembayaran">
+        <header class="receipt-page-topbar">
+          <button class="back-button" id="receipt-back-cashier" type="button">‹ Kembali ke Kasir</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Struk Pembayaran</h1>
+          </div>
+          <button class="receipt-print-button" id="receipt-print" type="button">Print Struk</button>
+        </header>
+
+        <div class="receipt-page">
+          <article class="receipt-paper" id="receipt-paper">
+            <div id="receipt-content"></div>
+          </article>
         </div>
       </section>
     </main>
