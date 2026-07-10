@@ -815,30 +815,6 @@ function addMemberLine(item) {
   return true;
 }
 
-function applyPurchasedMemberships() {
-  if (!selectedCustomer || !memberCartLines.length) return;
-  const rewards = [...getCustomerRewards(selectedCustomer)];
-
-  memberCartLines.forEach((line) => {
-    const plan = getMembershipPlan(line.itemId);
-    if (!plan) return;
-    const nextReward = {
-      membershipId: plan.id,
-      progress: plan.target,
-      target: plan.target,
-    };
-    const existingIndex = rewards.findIndex((reward) => getRewardId(reward) === plan.id);
-    const upgradeIndex = line.isUpgrade ? rewards.findIndex((reward) => getRewardId(reward) === line.upgradeFrom) : -1;
-
-    if (upgradeIndex >= 0) rewards.splice(upgradeIndex, 1, nextReward);
-    else if (existingIndex >= 0) rewards[existingIndex] = nextReward;
-    else rewards.push(nextReward);
-  });
-
-  selectedCustomer.rewards = rewards;
-  delete selectedCustomer.reward;
-}
-
 function increaseItem(item) {
   const maxQty = getMaxQty(item);
   if (item.qty >= maxQty) {
@@ -2124,6 +2100,7 @@ document.addEventListener("click", (event) => {
     dropdownSearchTerm = "";
     renderCustomer();
     renderCustomerDropdown();
+    renderItems();
     renderCart();
     return;
   }
@@ -2274,7 +2251,6 @@ document.addEventListener("click", (event) => {
       closeConfirmation();
       setReceiptReturn("pos-view");
       renderReceipt(lastReceipt);
-      applyPurchasedMemberships();
       prepareNextTransaction();
       setView("receipt-view");
       showToast("Pembayaran tersimpan");
