@@ -1164,6 +1164,15 @@ h1 {
   line-height: 1.25;
 }
 
+.service-level-note {
+  display: block;
+  margin-top: 5px;
+  color: var(--gold-dark);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
 .price-stack small {
   display: block;
   margin-bottom: 2px;
@@ -1354,6 +1363,100 @@ h1 {
   min-width: 0;
   align-items: center;
   gap: 6px;
+}
+
+.service-level-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 26px;
+  min-width: 78px;
+  padding: 0 10px;
+  border: 1px solid #e4c48d;
+  border-radius: 8px;
+  background: #fff1cf;
+  color: var(--gold-dark);
+  font-size: 10px;
+  font-weight: 900;
+  box-shadow: 0 5px 12px rgba(143, 93, 15, 0.08);
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease, box-shadow 0.14s ease;
+}
+
+.service-level-select:hover {
+  transform: translateY(-1px);
+  border-color: var(--gold);
+  background: #ffe7aa;
+  box-shadow: 0 8px 18px rgba(143, 93, 15, 0.14);
+}
+
+.service-level-select.active {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #fff;
+}
+
+.service-level-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  z-index: 12;
+  display: grid;
+  gap: 6px;
+  width: 246px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--raised);
+  box-shadow: 0 16px 32px rgba(118, 83, 28, 0.16);
+}
+
+.service-level-menu-head {
+  display: grid;
+  gap: 3px;
+  padding: 2px 4px 6px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.service-level-menu-head strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.service-level-menu-head small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.service-level-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: var(--gold-lift);
+  color: var(--gold-dark);
+  text-align: left;
+}
+
+.service-level-option span {
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.service-level-option small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.service-level-option:hover,
+.service-level-option.active {
+  border-color: var(--gold);
+  background: #ffe7aa;
 }
 
 .staff-select {

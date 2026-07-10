@@ -689,6 +689,7 @@ let cashReceived = 0;
 let activeStaffMenu = null;
 let activeStaffAction = null;
 let activeDiscountMenu = null;
+let activeServiceLevelMenu = null;
 let searchTerm = "";
 let customerSearchTerm = "";
 let dropdownSearchTerm = "";
@@ -777,9 +778,7 @@ function syncServiceStaffSummary(item) {
 }
 
 function addServiceLine(item, options = {}) {
-  const serviceId = item.serviceId || item.id;
-  const sourceItem = items.find((entry) => entry.id === serviceId && entry.type === "service") || item;
-  if (getServiceLineCount(serviceId) >= getMaxQty(item)) {
+  if (getServiceLineCount(item.id) >= getMaxQty(item)) {
     showToast("Maksimal 2 untuk tiap jasa");
     return false;
   }
@@ -787,16 +786,16 @@ function addServiceLine(item, options = {}) {
   serviceLineCounter += 1;
   const line = {
     ...item,
-    id: `${serviceId}-${serviceLineCounter}`,
-    itemId: serviceId,
+    id: `${item.id}-${serviceLineCounter}`,
+    itemId: item.id,
     qty: 1,
     staff: "",
     discounts: [],
-    baseServicePrice: sourceItem.price,
-    serviceLevel: item.serviceLevel || getServiceLevels(sourceItem)[0],
+    baseServicePrice: item.price,
+    serviceLevel: getServiceLevels(item)[0],
     ...options,
   };
-  line.price = item.price;
+  line.price = line.serviceLevel?.price || item.price;
   line.actionStaffs = options.actionStaffs || createActionStaffs(line, line.staff);
   syncServiceStaffSummary(line);
   serviceCartLines.push(line);
@@ -819,13 +818,60 @@ function getMemberUnitPrice(reward) {
   return Math.round(plan.price / plan.target);
 }
 
+function getServiceUpgradeOptions(item, customer = selectedCustomer) {
+  const reward = getMemberRewardForService(item?.itemId || item?.id, customer);
+  if (!reward || getMemberRemaining(reward) <= 0) return [];
+  const memberValue = getMemberUnitPrice(reward);
+  return getServiceLevels(item)
+    .filter((level) => level.id !== "normal")
+    .map((level) => ({
+      ...level,
+      memberValue,
+      topUp: Math.max(0, level.price - memberValue),
+    }));
+}
+
 function releaseMemberUsage(line) {
   const rewardId = line.memberUsageRewardId;
   if (!rewardId) return;
   memberUsage[rewardId] = Math.max(0, getMemberUsed(rewardId) - 1);
   delete line.memberUsageRewardId;
   delete line.memberUseAmount;
+  delete line.memberUpgrade;
   delete line.memberFree;
+}
+
+function applyServiceLevel(line, levelId) {
+  const level = getServiceLevels(line).find((entry) => entry.id === levelId);
+  if (!level) return false;
+
+  if (level.id === "normal") {
+    releaseMemberUsage(line);
+    line.serviceLevel = level;
+    line.price = level.price;
+    return true;
+  }
+
+  const reward = getMemberRewardForService(line.itemId);
+  const rewardId = getRewardId(reward);
+  if (!reward || (!line.memberUsageRewardId && getMemberRemaining(reward) <= 0)) {
+    showToast("Saldo member untuk jasa ini habis");
+    return false;
+  }
+
+  if (line.memberUsageRewardId && line.memberUsageRewardId !== rewardId) releaseMemberUsage(line);
+  if (!line.memberUsageRewardId) {
+    memberUsage[rewardId] = getMemberUsed(rewardId) + 1;
+    line.memberUsageRewardId = rewardId;
+  }
+
+  line.memberFree = false;
+  line.memberUpgrade = true;
+  line.memberUseAmount = getMemberUnitPrice(reward);
+  line.serviceLevel = level;
+  line.price = level.price;
+  line.discounts = [];
+  return true;
 }
 
 function addMemberLine(item) {
@@ -876,6 +922,9 @@ function clearMemberUsage() {
     delete line.memberFree;
     delete line.memberUsageRewardId;
     delete line.memberUseAmount;
+    delete line.memberUpgrade;
+    line.serviceLevel = getServiceLevels(line)[0];
+    line.price = line.baseServicePrice || line.price;
   });
   Object.keys(memberUsage).forEach((key) => {
     delete memberUsage[key];
@@ -893,6 +942,7 @@ function resetCart() {
   activeStaffMenu = null;
   activeStaffAction = null;
   activeDiscountMenu = null;
+  activeServiceLevelMenu = null;
   customDp = 0;
 }
 
@@ -975,10 +1025,11 @@ function increaseMemberUsage(rewardId) {
     return false;
   }
 
-  const serviceLine = serviceCartLines.find((line) => line.itemId === serviceId && !line.memberUsageRewardId);
+  const serviceLine = serviceCartLines.find((line) => line.itemId === serviceId && !line.memberFree && !line.memberUpgrade);
   if (serviceLine) {
     serviceLine.memberFree = true;
-    serviceLine.memberUseAmount = getMemberUnitPrice(reward);
+    serviceLine.memberUpgrade = false;
+    serviceLine.memberUseAmount = serviceLine.price;
     serviceLine.memberUsageRewardId = rewardId;
     serviceLine.discounts = [];
   } else {
@@ -993,7 +1044,7 @@ function increaseMemberUsage(rewardId) {
     const added = addServiceLine(service, {
       memberFree: true,
       memberUsageRewardId: rewardId,
-      memberUseAmount: getMemberUnitPrice(reward),
+      memberUseAmount: service.price,
       discounts: [],
     });
     if (!added) return false;
@@ -1020,6 +1071,9 @@ function decreaseMemberUsage(rewardId) {
   delete serviceCartLines[lineIndex].memberFree;
   delete serviceCartLines[lineIndex].memberUsageRewardId;
   delete serviceCartLines[lineIndex].memberUseAmount;
+  delete serviceCartLines[lineIndex].memberUpgrade;
+  serviceCartLines[lineIndex].serviceLevel = getServiceLevels(serviceCartLines[lineIndex])[0];
+  serviceCartLines[lineIndex].price = serviceCartLines[lineIndex].baseServicePrice || serviceCartLines[lineIndex].price;
   memberUsage[rewardId] = Math.max(0, used - 1);
   return true;
 }
@@ -1063,17 +1117,13 @@ function getAppliedReward(selected) {
   const memberItems = selected.filter((item) => item.memberUsageRewardId && item.type === "service");
   if (!memberItems.length) return null;
 
-  const serviceNames = [
-    ...new Set(
-      memberItems.map((item) => items.find((entry) => entry.id === item.itemId)?.name || item.name),
-    ),
-  ];
+  const serviceNames = [...new Set(memberItems.map((item) => item.name))];
   const serviceName = serviceNames.length === 1 ? serviceNames[0] : `${memberItems.length} jasa`;
 
   return {
     label: "Pemakaian Member",
     serviceName,
-    amount: memberItems.reduce((sum, item) => sum + (item.memberUseAmount ?? getLinePayable(item)), 0),
+    amount: memberItems.reduce((sum, item) => sum + (item.memberUpgrade ? item.memberUseAmount || 0 : getLinePayable(item)), 0),
     itemIds: memberItems.map((item) => item.id),
   };
 }
@@ -1150,6 +1200,7 @@ function cloneReceiptItem(item) {
     discountRate: getLineDiscountRate(item),
     discountAmount: getLineDiscountAmount(item),
     memberFree: Boolean(item.memberFree),
+    memberUpgrade: Boolean(item.memberUpgrade),
     serviceLevel: item.serviceLevel?.name || "Normal",
     memberUseAmount: item.memberUseAmount || 0,
     actionStaffs,
@@ -1282,13 +1333,15 @@ function renderReceiptItem(item) {
         ? `<div class="receipt-subline">Petugas By : ${item.staff}</div>`
         : "";
   const discountLine = item.discountRate ? `<div class="receipt-subline">Diskon : ${item.discountRate}%</div>` : "";
-  const memberLine = item.memberFree
+  const memberLine = item.memberUpgrade
     ? `<div class="receipt-subline">Pemakaian Member · ${formatReceiptAmount(item.memberUseAmount || 0)}</div>`
-    : "";
+    : item.memberFree
+      ? `<div class="receipt-subline">Pemakaian Member</div>`
+      : "";
   return `
     <div class="receipt-item">
       <div class="receipt-item-main">
-        <span>${item.qty}x ${item.name}</span>
+        <span>${item.qty}x ${item.name}${item.serviceLevel && item.serviceLevel !== "Normal" ? ` · ${item.serviceLevel}` : ""}</span>
         <strong>${formatReceiptAmount(item.baseTotal)}</strong>
       </div>
       ${actionLines}
@@ -1370,24 +1423,6 @@ function prepareNextTransaction() {
   renderCart();
 }
 
-function getCatalogEntries(item) {
-  if (item.type !== "service" || getServiceLevels(item).length <= 1) return [item];
-
-  return getServiceLevels(item).map((level) => ({
-    ...item,
-    id: `${item.id}-${level.id}`,
-    serviceId: item.id,
-    name: level.id === "normal" ? item.name : `${item.name} ${level.name}`,
-    price: level.price,
-    serviceLevel: level,
-    levels: [level],
-  }));
-}
-
-function findCatalogEntry(id) {
-  return items.flatMap(getCatalogEntries).find((item) => item.id === id) || null;
-}
-
 function visibleItems() {
   let filtered;
   if (activeFilter === "service") {
@@ -1397,8 +1432,6 @@ function visibleItems() {
   } else {
     filtered = items.filter((item) => item.type === activeFilter);
   }
-
-  filtered = filtered.flatMap(getCatalogEntries);
 
   if (!searchTerm) return filtered;
 
@@ -1727,11 +1760,13 @@ function renderItems() {
       (item) => {
         const itemClass = "";
         const memberNote = item.type === "member" ? `<span class="member-package-note">${item.target} kali</span>` : "";
+        const serviceLevelNote = item.type === "service" && getServiceLevels(item).length > 1 ? `<span class="service-level-note">Normal · Premium</span>` : "";
         return `
         <article class="item-card${itemClass}" data-id="${item.id}">
           <div class="item-card-head">
             <h3>${item.name}</h3>
             ${memberNote}
+            ${serviceLevelNote}
           </div>
           <div class="item-bottom">
             <span class="price-stack">
@@ -1841,6 +1876,34 @@ function renderServiceStaffMenu(item) {
   `;
 }
 
+function renderServiceLevelMenu(item) {
+  const options = getServiceUpgradeOptions(item);
+  if (!options.length) return "";
+  const currentLevel = item.serviceLevel?.id || "normal";
+  return `
+    <div class="service-level-menu">
+      <div class="service-level-menu-head">
+        <strong>Upgrade treatment</strong>
+        <small>Pakai 1 kuota member untuk jasa ini</small>
+      </div>
+      <button type="button" class="service-level-option${currentLevel === "normal" ? " active" : ""}" data-service-level="normal" data-id="${item.id}">
+        <span>Normal</span>
+        <small>${formatMoney(item.baseServicePrice || item.price)}</small>
+      </button>
+      ${options
+        .map(
+          (level) => `
+            <button type="button" class="service-level-option${currentLevel === level.id ? " active" : ""}" data-service-level="${level.id}" data-id="${item.id}">
+              <span>${level.name}</span>
+              <small>${formatMoney(level.price)} · bayar ${formatMoney(level.topUp)}</small>
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
 function renderCart() {
   const { selected, discountAmount, reward, rewardAmount, dp, payable } = calculateTotals();
   const list = document.querySelector("#cart-list");
@@ -1856,10 +1919,12 @@ function renderCart() {
     list.innerHTML = selected
       .map((item) => {
         const canDiscount = item.type === "service" && !item.memberFree;
+        const canUpgrade = item.type === "service" && getServiceUpgradeOptions(item).length > 0;
         const discounts = getLineDiscounts(item);
         const lineBaseTotal = getLineBaseTotal(item);
         const lineTotal = getLinePayable(item);
         const discountMenu = canDiscount && activeDiscountMenu === item.id ? renderDiscountMenu(item) : "";
+        const serviceLevelMenu = canUpgrade && activeServiceLevelMenu === item.id ? renderServiceLevelMenu(item) : "";
         const staffMenu = activeStaffMenu === item.id ? (item.type === "service" ? renderServiceStaffMenu(item) : renderSimpleStaffMenu(item)) : "";
         let detail;
         if (item.label === "Jasa") {
@@ -1876,8 +1941,10 @@ function renderCart() {
                     Diskon
                   </button>`
               }
-              ${reward?.itemIds?.includes(item.id) ? `<span class="reward-note">1 kuota member dipakai</span>` : ""}
+              ${canUpgrade ? `<button class="service-level-select${item.memberUpgrade ? " active" : ""}" type="button" data-service-level-for="${item.id}">${item.memberUpgrade ? item.serviceLevel.name : "Upgrade"}</button>` : ""}
+              ${item.memberUpgrade ? `<span class="reward-note">1 kuota member · bayar selisih</span>` : reward?.itemIds?.includes(item.id) ? `<span class="reward-note">Kuota member dipakai</span>` : ""}
               ${discountMenu}
+              ${serviceLevelMenu}
               ${staffMenu}
             </div>
           `;
@@ -2107,7 +2174,8 @@ document.addEventListener("click", (event) => {
     const delta = Number(memberUsageButton.dataset.memberDelta);
     const changed = delta > 0 ? increaseMemberUsage(serviceId) : decreaseMemberUsage(serviceId);
     if (changed) {
-      activeDiscountMenu = null;
+  activeDiscountMenu = null;
+  activeServiceLevelMenu = null;
       refreshMemberBenefits();
       renderCart();
     }
@@ -2129,6 +2197,7 @@ document.addEventListener("click", (event) => {
   if (customerOption) {
     const nextCustomer = customers.find((customer) => customer.id === customerOption.dataset.customer);
     clearMemberUsage();
+    activeServiceLevelMenu = null;
     selectedCustomer = nextCustomer;
     document.querySelector("#customer-picker").classList.remove("open");
     dropdownSearchTerm = "";
@@ -2146,6 +2215,31 @@ document.addEventListener("click", (event) => {
     activeStaffMenu = nextStaffMenu;
     activeStaffAction = null;
     renderCart();
+    return;
+  }
+
+  const serviceLevelButton = event.target.closest("[data-service-level-for]");
+  if (serviceLevelButton) {
+    activeStaffMenu = null;
+    activeStaffAction = null;
+    activeDiscountMenu = null;
+    activeServiceLevelMenu = null;
+    activeServiceLevelMenu = activeServiceLevelMenu === serviceLevelButton.dataset.serviceLevelFor ? null : serviceLevelButton.dataset.serviceLevelFor;
+    renderCart();
+    return;
+  }
+
+  const serviceLevelChoice = event.target.closest("[data-service-level]");
+  if (serviceLevelChoice) {
+    const item = serviceCartLines.find((entry) => entry.id === serviceLevelChoice.dataset.id);
+    if (!item) return;
+    if (applyServiceLevel(item, serviceLevelChoice.dataset.serviceLevel)) {
+      activeServiceLevelMenu = null;
+      activeStaffMenu = null;
+      activeStaffAction = null;
+      renderCart();
+      refreshMemberBenefits();
+    }
     return;
   }
 
@@ -2317,6 +2411,7 @@ document.addEventListener("click", (event) => {
     activeStaffMenu = null;
     activeStaffAction = null;
     activeDiscountMenu = null;
+    activeServiceLevelMenu = null;
     setView(nav.dataset.target);
     return;
   }
@@ -2328,6 +2423,7 @@ document.addEventListener("click", (event) => {
     activeStaffMenu = null;
     activeStaffAction = null;
     activeDiscountMenu = null;
+    activeServiceLevelMenu = null;
     document.querySelector("#item-search").value = "";
     document.querySelectorAll("[data-filter]").forEach((button) => {
       button.classList.toggle("active", button.dataset.filter === activeFilter);
@@ -2340,7 +2436,7 @@ document.addEventListener("click", (event) => {
 
   const itemCard = event.target.closest(".item-card");
   if (itemCard) {
-    const item = findCatalogEntry(itemCard.dataset.id);
+    const item = items.find((entry) => entry.id === itemCard.dataset.id);
     if (!item) return;
     const changed = addItemToCart(item);
     activeStaffMenu = null;
@@ -2386,6 +2482,7 @@ document.addEventListener("click", (event) => {
     activeStaffMenu = null;
     activeStaffAction = null;
     activeDiscountMenu = null;
+    activeServiceLevelMenu = null;
     renderCart();
     refreshMemberBenefits();
     return;
@@ -2399,6 +2496,11 @@ document.addEventListener("click", (event) => {
 
   if (activeDiscountMenu && !event.target.closest(".discount-menu") && !event.target.closest("[data-discount-for]")) {
     activeDiscountMenu = null;
+    renderCart();
+  }
+
+  if (activeServiceLevelMenu && !event.target.closest(".service-level-menu") && !event.target.closest("[data-service-level-for]")) {
+    activeServiceLevelMenu = null;
     renderCart();
   }
 
