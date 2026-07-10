@@ -792,10 +792,12 @@ function addServiceLine(item, options = {}) {
     staff: "",
     discounts: [],
     baseServicePrice: item.price,
+    baseServiceName: item.name,
     serviceLevel: getServiceLevels(item)[0],
     ...options,
   };
   line.price = line.serviceLevel?.price || item.price;
+  if (line.baseServiceName) line.name = line.baseServiceName;
   line.actionStaffs = options.actionStaffs || createActionStaffs(line, line.staff);
   syncServiceStaffSummary(line);
   serviceCartLines.push(line);
@@ -818,16 +820,14 @@ function getMemberUnitPrice(reward) {
   return Math.round(plan.price / plan.target);
 }
 
-function getServiceUpgradeOptions(item, customer = selectedCustomer) {
-  const reward = getMemberRewardForService(item?.itemId || item?.id, customer);
-  if (!reward || getMemberRemaining(reward) <= 0) return [];
-  const memberValue = getMemberUnitPrice(reward);
+function getServiceUpgradeOptions(item) {
+  if (item.type !== "service" || !item.memberUsageRewardId) return [];
+  const basePrice = item.baseServicePrice || getServiceLevels(item).find((level) => level.id === "normal")?.price || item.price;
   return getServiceLevels(item)
     .filter((level) => level.id !== "normal")
     .map((level) => ({
       ...level,
-      memberValue,
-      topUp: Math.max(0, level.price - memberValue),
+      topUp: Math.max(0, level.price - basePrice),
     }));
 }
 
@@ -844,32 +844,25 @@ function releaseMemberUsage(line) {
 function applyServiceLevel(line, levelId) {
   const level = getServiceLevels(line).find((entry) => entry.id === levelId);
   if (!level) return false;
+  const basePrice = line.baseServicePrice || getServiceLevels(line).find((entry) => entry.id === "normal")?.price || line.price;
+  const baseName = line.baseServiceName || line.name;
 
   if (level.id === "normal") {
-    releaseMemberUsage(line);
+    line.memberUpgrade = false;
+    line.memberFree = true;
     line.serviceLevel = level;
-    line.price = level.price;
+    line.price = basePrice;
+    line.name = baseName;
+    line.discounts = [];
     return true;
   }
 
-  const reward = getMemberRewardForService(line.itemId);
-  const rewardId = getRewardId(reward);
-  if (!reward || (!line.memberUsageRewardId && getMemberRemaining(reward) <= 0)) {
-    showToast("Saldo member untuk jasa ini habis");
-    return false;
-  }
-
-  if (line.memberUsageRewardId && line.memberUsageRewardId !== rewardId) releaseMemberUsage(line);
-  if (!line.memberUsageRewardId) {
-    memberUsage[rewardId] = getMemberUsed(rewardId) + 1;
-    line.memberUsageRewardId = rewardId;
-  }
-
-  line.memberFree = false;
   line.memberUpgrade = true;
-  line.memberUseAmount = getMemberUnitPrice(reward);
+  line.memberFree = false;
+  line.memberUseAmount = basePrice;
   line.serviceLevel = level;
   line.price = level.price;
+  line.name = level.id === "premium" ? `${baseName} Premium` : `${baseName} ${level.name}`;
   line.discounts = [];
   return true;
 }
@@ -1074,6 +1067,7 @@ function decreaseMemberUsage(rewardId) {
   delete serviceCartLines[lineIndex].memberUpgrade;
   serviceCartLines[lineIndex].serviceLevel = getServiceLevels(serviceCartLines[lineIndex])[0];
   serviceCartLines[lineIndex].price = serviceCartLines[lineIndex].baseServicePrice || serviceCartLines[lineIndex].price;
+  serviceCartLines[lineIndex].name = serviceCartLines[lineIndex].baseServiceName || serviceCartLines[lineIndex].name;
   memberUsage[rewardId] = Math.max(0, used - 1);
   return true;
 }
@@ -1129,7 +1123,7 @@ function getAppliedReward(selected) {
 }
 
 function getLineDiscounts(item) {
-  if (item.type !== "service" || item.memberFree) return [];
+  if (item.type !== "service" || item.memberFree || item.memberUpgrade) return [];
   return Array.isArray(item.discounts) ? item.discounts : [];
 }
 
