@@ -1,3 +1,31 @@
+const membershipPlans = [
+  {
+    id: "member-detok-rontok",
+    name: "Member Detok Rontok",
+    serviceId: "detok-rontok",
+    serviceName: "Detok Rontok",
+    price: 900000,
+    target: 6,
+    upgradeTo: "member-detok-kombinasi",
+  },
+  {
+    id: "member-detok-kombinasi",
+    name: "Member Detok Kombinasi",
+    serviceId: "detok-kombinasi",
+    serviceName: "Detok Kombinasi",
+    price: 1400000,
+    target: 10,
+    upgradeFrom: "member-detok-rontok",
+  },
+  { id: "member-gunting-rambut", name: "Member Gunting Rambut", serviceId: "cut", serviceName: "Gunting Rambut", price: 800000, target: 6 },
+  { id: "member-hair-colour", name: "Member Hair Colour", serviceId: "colour", serviceName: "Hair Colour", price: 4050000, target: 10 },
+  { id: "member-creambath", name: "Member Creambath", serviceId: "cream", serviceName: "Creambath", price: 1265000, target: 6 },
+  { id: "member-keratin", name: "Member Keratin Treatment", serviceId: "keratin", serviceName: "Keratin Treatment", price: 6750000, target: 10 },
+  { id: "member-hair-wash", name: "Member Hair Wash", serviceId: "hairwash", serviceName: "Hair Wash", price: 540000, target: 10 },
+  { id: "member-smoothing", name: "Member Smoothing", serviceId: "smoothing", serviceName: "Smoothing", price: 5850000, target: 10 },
+  { id: "member-hair-spa", name: "Member Hair Spa", serviceId: "hairspa", serviceName: "Hair Spa", price: 1470000, target: 6 },
+];
+
 const items = [
   {
     id: "cut",
@@ -160,6 +188,22 @@ const items = [
     qty: 0,
   },
   {
+    id: "detok-rontok",
+    type: "service",
+    label: "Jasa",
+    name: "Detok Rontok",
+    price: 180000,
+    qty: 0,
+  },
+  {
+    id: "detok-kombinasi",
+    type: "service",
+    label: "Jasa",
+    name: "Detok Kombinasi",
+    price: 240000,
+    qty: 0,
+  },
+  {
     id: "shampoo",
     type: "product",
     label: "Produk",
@@ -319,166 +363,7 @@ const items = [
     price: 55000,
     qty: 0,
   },
-  {
-    id: "member-basic",
-    type: "member",
-    label: "Member",
-    name: "Paket Member Basic",
-    price: 100000,
-    qty: 0,
-  },
-  {
-    id: "member-silver",
-    type: "member",
-    label: "Member",
-    name: "Paket Member Silver",
-    price: 250000,
-    qty: 0,
-  },
-  {
-    id: "member-gold",
-    type: "member",
-    label: "Member",
-    name: "Paket Member Gold",
-    price: 500000,
-    qty: 0,
-  },
-  {
-    id: "member-platinum",
-    type: "member",
-    label: "Member",
-    name: "Paket Member Platinum",
-    price: 1000000,
-    qty: 0,
-  },
-  {
-    id: "member-family",
-    type: "member",
-    label: "Member",
-    name: "Paket Family Member",
-    price: 750000,
-    qty: 0,
-  },
-  {
-    id: "member-birthday",
-    type: "member",
-    label: "Member",
-    name: "Paket Birthday Special",
-    price: 150000,
-    qty: 0,
-  },
-  {
-    id: "member-anniversary",
-    type: "member",
-    label: "Member",
-    name: "Paket Anniversary",
-    price: 200000,
-    qty: 0,
-  },
-  {
-    id: "member-reward-boost",
-    type: "member",
-    label: "Member",
-    name: "Member Reward Boost",
-    price: 50000,
-    qty: 0,
-  },
-  {
-    id: "member-priority",
-    type: "member",
-    label: "Member",
-    name: "Priority Booking Pass",
-    price: 75000,
-    qty: 0,
-  },
-  {
-    id: "member-discount-10",
-    type: "member",
-    label: "Member",
-    name: "Diskon 10% Lifetime",
-    price: 120000,
-    qty: 0,
-  },
-  {
-    id: "member-discount-20",
-    type: "member",
-    label: "Member",
-    name: "Diskon 20% Lifetime",
-    price: 220000,
-    qty: 0,
-  },
-  {
-    id: "member-spa",
-    type: "member",
-    label: "Member",
-    name: "Member Spa Package",
-    price: 350000,
-    qty: 0,
-  },
-  {
-    id: "member-hair-treatment",
-    type: "member",
-    label: "Member",
-    name: "Hair Treatment Package",
-    price: 450000,
-    qty: 0,
-  },
-  {
-    id: "member-kids",
-    type: "member",
-    label: "Member",
-    name: "Kids Member Package",
-    price: 180000,
-    qty: 0,
-  },
-  {
-    id: "member-couple",
-    type: "member",
-    label: "Member",
-    name: "Couple Member Package",
-    price: 400000,
-    qty: 0,
-  },
-  {
-    id: "member-gift",
-    type: "member",
-    label: "Member",
-    name: "Member Gift Card",
-    price: 300000,
-    qty: 0,
-  },
-  {
-    id: "member-loyalty",
-    type: "member",
-    label: "Member",
-    name: "Loyalty Upgrade",
-    price: 100000,
-    qty: 0,
-  },
-  {
-    id: "member-exclusive",
-    type: "member",
-    label: "Member",
-    name: "Exclusive Access Pass",
-    price: 500000,
-    qty: 0,
-  },
-  {
-    id: "member-vip",
-    type: "member",
-    label: "Member",
-    name: "VIP Member Annual",
-    price: 1500000,
-    qty: 0,
-  },
-  {
-    id: "member-weekend",
-    type: "member",
-    label: "Member",
-    name: "Weekend Special Member",
-    price: 85000,
-    qty: 0,
-  },
+  ...membershipPlans.map((plan) => ({ ...plan, type: "member", label: "Member", qty: 0 })),
 ];
 
 const formatter = new Intl.NumberFormat("id-ID", {
@@ -504,6 +389,7 @@ const customers = [
     reminderDate: "04 Jul 2026",
     dp: 0,
     rewards: [
+      { membershipId: "member-detok-rontok", progress: 4, target: 6 },
       { serviceId: "cut", serviceName: "Gunting Rambut", progress: 5, target: 6 },
       { serviceId: "colour", serviceName: "Hair Colour", progress: 7, target: 10 },
       { serviceId: "cream", serviceName: "Creambath", progress: 4, target: 6 },
@@ -777,6 +663,7 @@ let activeFilter = "service";
 let selectedCustomer = null;
 let selectedPayment = "QRIS";
 let customDp = 0;
+let cashReceived = 0;
 let activeStaffMenu = null;
 let activeStaffAction = null;
 let activeDiscountMenu = null;
@@ -788,7 +675,9 @@ let activeConfirmMode = "payment";
 let lastReceipt = null;
 let receiptReturnView = "pos-view";
 let serviceLineCounter = 0;
+let memberLineCounter = 0;
 const serviceCartLines = [];
+const memberCartLines = [];
 const memberUsage = {};
 
 function formatMoney(value) {
@@ -887,6 +776,69 @@ function addServiceLine(item, options = {}) {
   return true;
 }
 
+function getMemberUpgradeOffer(item, customer = selectedCustomer) {
+  if (!item?.upgradeFrom || !customer) return null;
+  const sourceReward = getCustomerRewards(customer).find((reward) => getRewardId(reward) === item.upgradeFrom);
+  if (!sourceReward) return null;
+
+  const sourcePlan = getMembershipPlan(item.upgradeFrom);
+  if (!sourcePlan) return null;
+
+  return {
+    fromPlan: sourcePlan,
+    sourceReward,
+    topUpPrice: Math.max(0, item.price - sourcePlan.price),
+  };
+}
+
+function addMemberLine(item) {
+  if (memberCartLines.some((line) => line.itemId === item.id)) {
+    showToast("Paket member ini sudah ada di keranjang");
+    return false;
+  }
+
+  const upgrade = getMemberUpgradeOffer(item);
+  memberLineCounter += 1;
+  memberCartLines.push({
+    ...item,
+    id: `${item.id}-member-${memberLineCounter}`,
+    itemId: item.id,
+    qty: 1,
+    staff: "",
+    isUpgrade: Boolean(upgrade),
+    upgradeFrom: upgrade?.fromPlan.id || "",
+    upgradeFromName: upgrade?.fromPlan.name || "",
+    price: item.price,
+    fullPrice: item.price,
+    upgradeCredit: upgrade?.fromPlan.price || 0,
+  });
+  return true;
+}
+
+function applyPurchasedMemberships() {
+  if (!selectedCustomer || !memberCartLines.length) return;
+  const rewards = [...getCustomerRewards(selectedCustomer)];
+
+  memberCartLines.forEach((line) => {
+    const plan = getMembershipPlan(line.itemId);
+    if (!plan) return;
+    const nextReward = {
+      membershipId: plan.id,
+      progress: plan.target,
+      target: plan.target,
+    };
+    const existingIndex = rewards.findIndex((reward) => getRewardId(reward) === plan.id);
+    const upgradeIndex = line.isUpgrade ? rewards.findIndex((reward) => getRewardId(reward) === line.upgradeFrom) : -1;
+
+    if (upgradeIndex >= 0) rewards.splice(upgradeIndex, 1, nextReward);
+    else if (existingIndex >= 0) rewards[existingIndex] = nextReward;
+    else rewards.push(nextReward);
+  });
+
+  selectedCustomer.rewards = rewards;
+  delete selectedCustomer.reward;
+}
+
 function increaseItem(item) {
   const maxQty = getMaxQty(item);
   if (item.qty >= maxQty) {
@@ -903,17 +855,18 @@ function increaseItem(item) {
 
 function addItemToCart(item) {
   if (item.type === "service") return addServiceLine(item);
+  if (item.type === "member") return addMemberLine(item);
   return increaseItem(item);
 }
 
 function getCartItems() {
-  return [...serviceCartLines, ...items.filter((item) => item.type !== "service" && item.qty > 0)];
+  return [...serviceCartLines, ...memberCartLines, ...items.filter((item) => item.type === "product" && item.qty > 0)];
 }
 
 function clearMemberUsage() {
   serviceCartLines.forEach((line) => {
     delete line.memberFree;
-    delete line.memberUsageServiceId;
+    delete line.memberUsageRewardId;
   });
   Object.keys(memberUsage).forEach((key) => {
     delete memberUsage[key];
@@ -922,6 +875,7 @@ function clearMemberUsage() {
 
 function resetCart() {
   serviceCartLines.splice(0, serviceCartLines.length);
+  memberCartLines.splice(0, memberCartLines.length);
   items.forEach((item) => {
     item.qty = 0;
     if (item.type === "service" || item.type === "member") item.staff = "";
@@ -954,12 +908,40 @@ function getCustomerRewards(customer) {
   return [];
 }
 
-function getMemberUsed(serviceId) {
-  return memberUsage[serviceId] || 0;
+function getMembershipPlan(planId) {
+  return membershipPlans.find((plan) => plan.id === planId) || null;
+}
+
+function getRewardPlan(reward) {
+  if (!reward) return null;
+  return (
+    getMembershipPlan(reward.membershipId) ||
+    membershipPlans.find((plan) => plan.serviceId === reward.serviceId) ||
+    null
+  );
+}
+
+function getRewardId(reward) {
+  return reward?.membershipId || getRewardPlan(reward)?.id || reward?.serviceId || "";
+}
+
+function getRewardServiceId(reward) {
+  return getRewardPlan(reward)?.serviceId || reward?.serviceId || "";
+}
+
+function getRewardName(reward, { withMember = false } = {}) {
+  const plan = getRewardPlan(reward);
+  if (plan) return withMember ? plan.name : plan.serviceName;
+  return reward?.serviceName || "Member";
+}
+
+function getMemberUsed(rewardOrId) {
+  const id = typeof rewardOrId === "string" ? rewardOrId : getRewardId(rewardOrId);
+  return memberUsage[id] || 0;
 }
 
 function getMemberRemaining(reward) {
-  return Math.max(0, reward.progress - getMemberUsed(reward.serviceId));
+  return Math.max(0, reward.progress - getMemberUsed(reward));
 }
 
 function getFirstReward(customer) {
@@ -974,9 +956,10 @@ function refreshMemberBenefits() {
   benefits.hidden = !wasOpen;
 }
 
-function increaseMemberUsage(serviceId) {
-  const reward = getCustomerRewards(selectedCustomer).find((entry) => entry.serviceId === serviceId);
+function increaseMemberUsage(rewardId) {
+  const reward = getCustomerRewards(selectedCustomer).find((entry) => getRewardId(entry) === rewardId);
   if (!reward) return false;
+  const serviceId = getRewardServiceId(reward);
 
   if (getMemberRemaining(reward) <= 0) {
     showToast("Saldo member untuk jasa ini habis");
@@ -986,7 +969,7 @@ function increaseMemberUsage(serviceId) {
   const serviceLine = serviceCartLines.find((line) => line.itemId === serviceId && !line.memberFree);
   if (serviceLine) {
     serviceLine.memberFree = true;
-    serviceLine.memberUsageServiceId = serviceId;
+    serviceLine.memberUsageRewardId = rewardId;
     serviceLine.discounts = [];
   } else {
     const service = items.find((item) => item.id === serviceId && item.type === "service");
@@ -999,24 +982,24 @@ function increaseMemberUsage(serviceId) {
 
     const added = addServiceLine(service, {
       memberFree: true,
-      memberUsageServiceId: serviceId,
+      memberUsageRewardId: rewardId,
       discounts: [],
     });
     if (!added) return false;
   }
 
-  memberUsage[serviceId] = getMemberUsed(serviceId) + 1;
+  memberUsage[rewardId] = getMemberUsed(rewardId) + 1;
   return true;
 }
 
-function decreaseMemberUsage(serviceId) {
-  const used = getMemberUsed(serviceId);
+function decreaseMemberUsage(rewardId) {
+  const used = getMemberUsed(rewardId);
   if (used <= 0) return false;
 
   let lineIndex = -1;
   for (let index = serviceCartLines.length - 1; index >= 0; index -= 1) {
     const line = serviceCartLines[index];
-    if (line.memberFree && line.memberUsageServiceId === serviceId) {
+    if (line.memberFree && line.memberUsageRewardId === rewardId) {
       lineIndex = index;
       break;
     }
@@ -1024,15 +1007,15 @@ function decreaseMemberUsage(serviceId) {
   if (lineIndex < 0) return false;
 
   delete serviceCartLines[lineIndex].memberFree;
-  delete serviceCartLines[lineIndex].memberUsageServiceId;
-  memberUsage[serviceId] = Math.max(0, used - 1);
+  delete serviceCartLines[lineIndex].memberUsageRewardId;
+  memberUsage[rewardId] = Math.max(0, used - 1);
   return true;
 }
 
 function getRewardText(customer) {
   const reward = getFirstReward(customer);
   if (!reward) return "Benefit member belum aktif";
-  return `${reward.serviceName}: ${reward.progress}/${reward.target} tersisa`;
+  return `${getRewardName(reward)}: ${reward.progress}/${reward.target} tersisa`;
 }
 
 function renderRewardMeter(customer, mode = "normal") {
@@ -1057,9 +1040,9 @@ function renderRewardMeter(customer, mode = "normal") {
   return `
     <div class="reward-meter ${mode} ${active > 0 ? "ready" : ""}">
       <span>Saldo Member</span>
-      <strong>${reward.serviceName}</strong>
-      <small>${reward.serviceName} · ${headline}</small>
-      <div class="reward-dots" aria-label="${reward.serviceName} ${active} dari ${reward.target}">${dots}</div>
+      <strong>${getRewardName(reward)}</strong>
+      <small>${getRewardName(reward)} · ${headline}</small>
+      <div class="reward-dots" aria-label="${getRewardName(reward)} ${active} dari ${reward.target}">${dots}</div>
     </div>
   `;
 }
@@ -1104,12 +1087,13 @@ function calculateTotals() {
   const selected = getCartItems();
   const subtotal = selected.reduce((sum, item) => sum + getLineBaseTotal(item), 0);
   const discountAmount = selected.reduce((sum, item) => sum + getLineDiscountAmount(item), 0);
+  const upgradeAmount = selected.reduce((sum, item) => sum + (item.isUpgrade ? item.upgradeCredit || 0 : 0), 0);
   const reward = getAppliedReward(selected);
   const rewardAmount = reward?.amount || 0;
   const dp = (selectedCustomer?.dp || 0) + customDp;
-  const payable = Math.max(0, subtotal - discountAmount - rewardAmount - dp);
+  const payable = Math.max(0, subtotal - discountAmount - upgradeAmount - rewardAmount - dp);
 
-  return { selected, subtotal, discountAmount, reward, rewardAmount, dp, payable };
+  return { selected, subtotal, discountAmount, upgradeAmount, reward, rewardAmount, dp, payable };
 }
 
 function formatReceiptAmount(value) {
@@ -1151,6 +1135,9 @@ function cloneReceiptItem(item) {
     discountRate: getLineDiscountRate(item),
     discountAmount: getLineDiscountAmount(item),
     memberFree: Boolean(item.memberFree),
+    isUpgrade: Boolean(item.isUpgrade),
+    upgradeFromName: item.upgradeFromName || "",
+    upgradeCredit: item.upgradeCredit || 0,
     actionStaffs,
     staff: item.staff,
   };
@@ -1159,6 +1146,7 @@ function cloneReceiptItem(item) {
 function createReceiptSnapshot() {
   const totals = calculateTotals();
   const dateParts = getReceiptDateParts();
+  const change = selectedPayment === "Tunai" ? Math.max(0, cashReceived - totals.payable) : 0;
   return {
     ...dateParts,
     status: "Selesai",
@@ -1167,10 +1155,13 @@ function createReceiptSnapshot() {
     items: totals.selected.map(cloneReceiptItem),
     subtotal: totals.subtotal,
     discountAmount: totals.discountAmount,
+    upgradeAmount: totals.upgradeAmount,
     reward: totals.reward,
     rewardAmount: totals.rewardAmount,
     dp: totals.dp,
     total: totals.payable,
+    cashReceived: selectedPayment === "Tunai" ? cashReceived : totals.payable,
+    change,
   };
 }
 
@@ -1246,10 +1237,13 @@ function createReceiptFromTransaction(transaction) {
     items: itemsForReceipt,
     subtotal,
     discountAmount,
+    upgradeAmount: 0,
     reward: rewardAmount ? { serviceName: "Pemakaian Member" } : null,
     rewardAmount,
     dp,
     total: transaction.amount,
+    cashReceived: transaction.payment === "Tunai" ? transaction.amount : 0,
+    change: 0,
   };
 }
 
@@ -1277,6 +1271,7 @@ function renderReceiptItem(item) {
         : "";
   const discountLine = item.discountRate ? `<div class="receipt-subline">Diskon : ${item.discountRate}%</div>` : "";
   const memberLine = item.memberFree ? `<div class="receipt-subline">Pemakaian Member</div>` : "";
+  const upgradeLine = item.isUpgrade ? `<div class="receipt-subline">Upgrade dari ${item.upgradeFromName}</div>` : "";
 
   return `
     <div class="receipt-item">
@@ -1287,6 +1282,7 @@ function renderReceiptItem(item) {
       ${actionLines}
       ${discountLine}
       ${memberLine}
+      ${upgradeLine}
     </div>
   `;
 }
@@ -1299,6 +1295,9 @@ function renderReceipt(receipt = lastReceipt) {
     : "";
   const rewardRow = receipt.rewardAmount
     ? `<div><span>Member</span><strong>- ${formatReceiptAmount(receipt.rewardAmount)}</strong></div>`
+    : "";
+  const upgradeRow = receipt.upgradeAmount
+    ? `<div><span>Upgrade</span><strong>- ${formatReceiptAmount(receipt.upgradeAmount)}</strong></div>`
     : "";
   const dpRow = receipt.dp ? `<div><span>DP</span><strong>- ${formatReceiptAmount(receipt.dp)}</strong></div>` : "";
 
@@ -1326,12 +1325,13 @@ function renderReceipt(receipt = lastReceipt) {
     <div class="receipt-total-block">
       <div><span>Subtotal</span><strong>${formatReceiptAmount(receipt.subtotal)}</strong></div>
       ${discountRow}
+      ${upgradeRow}
       ${rewardRow}
       ${dpRow}
       <div><span>Total</span><strong>${formatReceiptAmount(receipt.total)}</strong></div>
       <div><span>Grd Total</span><strong>${formatReceiptAmount(receipt.total)}</strong></div>
-      <div><span>${receipt.payment}</span><strong>${formatReceiptAmount(receipt.total)}</strong></div>
-      <div><span>Kembali</span><strong>0</strong></div>
+      <div><span>${receipt.payment}</span><strong>${formatReceiptAmount(receipt.cashReceived || receipt.total)}</strong></div>
+      <div><span>Kembali</span><strong>${formatReceiptAmount(receipt.change || 0)}</strong></div>
     </div>
     <div class="receipt-separator"></div>
     <div class="receipt-footer">
@@ -1449,18 +1449,20 @@ function renderMemberBenefitsDropdown(customer) {
     <div class="member-list-rows">
       ${rewards
         .map((reward) => {
-          const used = getMemberUsed(reward.serviceId);
+          const rewardId = getRewardId(reward);
+          const used = getMemberUsed(reward);
           const remaining = getMemberRemaining(reward);
-          const eligibleLine = serviceCartLines.some((line) => line.itemId === reward.serviceId && !line.memberFree);
-          const canCreateLine = getServiceLineCount(reward.serviceId) === 0;
+          const serviceId = getRewardServiceId(reward);
+          const eligibleLine = serviceCartLines.some((line) => line.itemId === serviceId && !line.memberFree);
+          const canCreateLine = getServiceLineCount(serviceId) === 0;
           const isUsed = used > 0;
           return `
             <div class="member-list-row${isUsed ? " ready" : ""}">
-              <span>${reward.serviceName} ${remaining}/${reward.target}</span>
+              <span>${getRewardName(reward, { withMember: true })} ${remaining}/${reward.target}</span>
               <span class="member-list-stepper">
-                <button type="button" data-member-service="${reward.serviceId}" data-member-delta="-1" ${used <= 0 ? "disabled" : ""}>−</button>
+                <button type="button" data-member-service="${rewardId}" data-member-delta="-1" ${used <= 0 ? "disabled" : ""}>−</button>
                 <b>${used}</b>
-                <button type="button" data-member-service="${reward.serviceId}" data-member-delta="1" ${remaining <= 0 || (!eligibleLine && !canCreateLine) ? "disabled" : ""}>+</button>
+                <button type="button" data-member-service="${rewardId}" data-member-delta="1" ${remaining <= 0 || (!eligibleLine && !canCreateLine) ? "disabled" : ""}>+</button>
               </span>
             </div>
           `;
@@ -1590,7 +1592,7 @@ function renderCustomerMemberSummary(customer) {
         .map(
           (reward) => `
             <div class="member-summary-row">
-              <span>${reward.serviceName}</span>
+              <span>${getRewardName(reward, { withMember: true })}</span>
               <b>${reward.progress}/${reward.target}</b>
             </div>
           `,
@@ -1695,18 +1697,29 @@ function renderItems() {
 
   grid.innerHTML = entries
     .map(
-      (item) => `
-        <article class="item-card" data-id="${item.id}">
+      (item) => {
+        const upgrade = item.type === "member" ? getMemberUpgradeOffer(item) : null;
+        const itemClass = upgrade ? " upgrade-available" : "";
+        const memberNote = upgrade
+          ? `<span class="member-upgrade-note">Upgrade dari ${upgrade.fromPlan.serviceName}</span>`
+          : item.type === "member"
+            ? `<span class="member-package-note">${item.target} kali</span>`
+            : "";
+        const price = upgrade ? upgrade.topUpPrice : item.price;
+        return `
+        <article class="item-card${itemClass}" data-id="${item.id}">
           <div class="item-card-head">
             <h3>${item.name}</h3>
+            ${memberNote}
           </div>
           <div class="item-bottom">
             <span class="price-stack">
-              <span class="price">${formatMoney(item.price)}</span>
+              ${upgrade ? `<small>Tambah biaya</small>` : ""}
+              <span class="price">${formatMoney(price)}</span>
             </span>
           </div>
-        </article>
-      `,
+        </article>`;
+      },
     )
     .join("");
 }
@@ -1809,7 +1822,7 @@ function renderServiceStaffMenu(item) {
 }
 
 function renderCart() {
-  const { selected, discountAmount, reward, rewardAmount, dp, payable } = calculateTotals();
+  const { selected, discountAmount, upgradeAmount, reward, rewardAmount, dp, payable } = calculateTotals();
   const list = document.querySelector("#cart-list");
 
   if (!selected.length) {
@@ -1854,6 +1867,7 @@ function renderCart() {
               <button class="staff-select" type="button" data-staff-for="${item.id}">
                 ${item.staff || "Pilih petugas"}
               </button>
+              ${item.isUpgrade ? `<span class="upgrade-cart-note">Upgrade dari ${item.upgradeFromName}</span>` : ""}
               ${staffMenu}
             </div>
           `;
@@ -1878,7 +1892,7 @@ function renderCart() {
               <div class="cart-qty" data-id="${item.id}">
                 <button type="button" data-delta="-1">−</button>
                 <strong>${item.qty}</strong>
-                ${item.type === "service" ? "" : `<button type="button" data-delta="1" ${item.qty >= getMaxQty(item) ? "disabled" : ""}>+</button>`}
+                ${item.type === "service" || item.type === "member" ? "" : `<button type="button" data-delta="1" ${item.qty >= getMaxQty(item) ? "disabled" : ""}>+</button>`}
               </div>
             </div>
           </article>
@@ -1888,12 +1902,15 @@ function renderCart() {
   }
 
   const discountLine = document.querySelector("#discount-line");
+  const upgradeLine = document.querySelector("#upgrade-line");
   const rewardLine = document.querySelector("#reward-line");
   const dpLine = document.querySelector("#dp-line");
   discountLine.hidden = discountAmount === 0;
+  upgradeLine.hidden = upgradeAmount === 0;
   rewardLine.hidden = rewardAmount === 0;
   dpLine.hidden = dp === 0;
   document.querySelector("#discount").textContent = `- ${formatMoney(discountAmount)}`;
+  document.querySelector("#upgrade").textContent = `- ${formatMoney(upgradeAmount)}`;
   document.querySelector("#reward").textContent = `- ${formatMoney(rewardAmount)}`;
   document.querySelector("#reward-label").textContent = reward ? reward.label : "Pemakaian Member";
   document.querySelector("#dp").textContent = `- ${formatMoney(dp)}`;
@@ -1910,17 +1927,33 @@ function setPayment(method) {
 
 function renderConfirmationSummary(mode) {
   const summary = document.querySelector("#confirm-summary");
-  const { selected, discountAmount, reward, rewardAmount, dp, payable } = calculateTotals();
+  const { selected, discountAmount, upgradeAmount, reward, rewardAmount, dp, payable } = calculateTotals();
   const customerDp = selectedCustomer?.dp || 0;
   const customerLabel = selectedCustomer
     ? `${selectedCustomer.name} · ${selectedCustomer.status}`
     : "Pelanggan belum dipilih";
+  const change = Math.max(0, cashReceived - payable);
+  const cashFields =
+    mode === "payment" && selectedPayment === "Tunai"
+      ? `
+        <div class="modal-cash-row">
+          <span>Uang diterima</span>
+          <label class="modal-dp-input">
+            <input type="number" id="modal-cash-received" inputmode="numeric" min="0" placeholder="0" value="${cashReceived}" />
+          </label>
+        </div>
+        <div class="modal-change-row">
+          <span>Kembalian</span>
+          <strong id="modal-change">${formatMoney(change)}</strong>
+        </div>`
+      : "";
 
   summary.innerHTML = `
     <div><span>Pelanggan</span><strong>${customerLabel}</strong></div>
     <div><span>Item</span><strong>${selected.length} item</strong></div>
     ${mode === "draft" ? "" : `<div><span>Pembayaran</span><strong>${selectedPayment}</strong></div>`}
     ${discountAmount ? `<div><span>Diskon Item</span><strong>- ${formatMoney(discountAmount)}</strong></div>` : ""}
+    ${upgradeAmount ? `<div><span>Upgrade</span><strong>- ${formatMoney(upgradeAmount)}</strong></div>` : ""}
     ${rewardAmount ? `<div><span>Pemakaian Member</span><strong>${reward.serviceName} · - ${formatMoney(rewardAmount)}</strong></div>` : ""}
     ${customerDp ? `<div><span>DP Pelanggan</span><strong>- ${formatMoney(customerDp)}</strong></div>` : ""}
     <div class="modal-dp-row">
@@ -1930,6 +1963,7 @@ function renderConfirmationSummary(mode) {
       </label>
     </div>
     <div><span>Total</span><strong id="modal-total">${formatMoney(payable)}</strong></div>
+    ${cashFields}
   `;
 }
 
@@ -1946,6 +1980,7 @@ function openConfirmation(mode) {
       ? "Transaksi akan masuk daftar pending dan bisa dilanjutkan nanti."
       : "Pastikan metode pembayaran dan total sudah sesuai.";
   confirmButton.textContent = mode === "draft" ? "Simpan Draft" : "Bayar Sekarang";
+  cashReceived = 0;
 
   renderConfirmationSummary(mode);
   modal.hidden = false;
@@ -1954,6 +1989,7 @@ function openConfirmation(mode) {
 function closeConfirmation() {
   document.querySelector("#confirm-modal").hidden = true;
   customDp = 0;
+  cashReceived = 0;
 }
 
 function openAddCustomerModal() {
@@ -2076,8 +2112,14 @@ document.addEventListener("click", (event) => {
 
   const customerOption = event.target.closest("[data-customer]");
   if (customerOption) {
+    const nextCustomer = customers.find((customer) => customer.id === customerOption.dataset.customer);
+    if (selectedCustomer?.id !== nextCustomer?.id) {
+      for (let index = memberCartLines.length - 1; index >= 0; index -= 1) {
+        if (memberCartLines[index].isUpgrade) memberCartLines.splice(index, 1);
+      }
+    }
     clearMemberUsage();
-    selectedCustomer = customers.find((customer) => customer.id === customerOption.dataset.customer);
+    selectedCustomer = nextCustomer;
     document.querySelector("#customer-picker").classList.remove("open");
     dropdownSearchTerm = "";
     renderCustomer();
@@ -2122,7 +2164,7 @@ document.addEventListener("click", (event) => {
 
   const staffChoice = event.target.closest("[data-staff]");
   if (staffChoice) {
-    const item = serviceCartLines.find((entry) => entry.id === staffChoice.dataset.id) || items.find((entry) => entry.id === staffChoice.dataset.id);
+    const item = serviceCartLines.find((entry) => entry.id === staffChoice.dataset.id) || memberCartLines.find((entry) => entry.id === staffChoice.dataset.id) || items.find((entry) => entry.id === staffChoice.dataset.id);
     item.staff = staffChoice.dataset.staff;
     activeStaffMenu = null;
     activeStaffAction = null;
@@ -2223,10 +2265,16 @@ document.addEventListener("click", (event) => {
 
   if (event.target.closest("#confirm-payment")) {
     if (activeConfirmMode === "payment") {
+      const { payable } = calculateTotals();
+      if (selectedPayment === "Tunai" && cashReceived < payable) {
+        showToast("Uang tunai yang diterima masih kurang");
+        return;
+      }
       lastReceipt = createReceiptSnapshot();
       closeConfirmation();
       setReceiptReturn("pos-view");
       renderReceipt(lastReceipt);
+      applyPurchasedMemberships();
       prepareNextTransaction();
       setView("receipt-view");
       showToast("Pembayaran tersimpan");
@@ -2298,7 +2346,7 @@ document.addEventListener("click", (event) => {
   const quantityButton = event.target.closest(".cart-qty button");
   if (quantityButton) {
     const quantity = quantityButton.closest(".cart-qty");
-    const item = serviceCartLines.find((entry) => entry.id === quantity.dataset.id) || items.find((entry) => entry.id === quantity.dataset.id);
+    const item = serviceCartLines.find((entry) => entry.id === quantity.dataset.id) || memberCartLines.find((entry) => entry.id === quantity.dataset.id) || items.find((entry) => entry.id === quantity.dataset.id);
     if (!item) return;
     const delta = Number(quantityButton.dataset.delta);
     if (item.type === "service") {
@@ -2309,12 +2357,17 @@ document.addEventListener("click", (event) => {
         const index = serviceCartLines.findIndex((entry) => entry.id === item.id);
         if (index >= 0) {
           if (item.memberFree) {
-            const serviceId = item.memberUsageServiceId;
-            memberUsage[serviceId] = Math.max(0, getMemberUsed(serviceId) - 1);
+            const rewardId = item.memberUsageRewardId;
+            memberUsage[rewardId] = Math.max(0, getMemberUsed(rewardId) - 1);
             refreshMemberBenefits();
           }
           serviceCartLines.splice(index, 1);
         }
+      }
+    } else if (item.type === "member") {
+      if (delta < 0) {
+        const index = memberCartLines.findIndex((entry) => entry.id === item.id);
+        if (index >= 0) memberCartLines.splice(index, 1);
       }
     } else if (delta > 0) {
       increaseItem(item);
@@ -2389,6 +2442,29 @@ document.addEventListener("click", (event) => {
     if (searchInput) searchInput.value = "";
     salesPage = 1;
     renderSalesList();
+    return;
+  }
+
+  const upgradeMemberAction = event.target.closest("[data-upgrade-member]");
+  if (upgradeMemberAction) {
+    const customer = customers.find((entry) => entry.id === selectedMembershipId);
+    if (!customer) return;
+    selectedCustomer = customer;
+    activeFilter = "member";
+    searchTerm = "";
+    document.querySelectorAll("[data-filter]").forEach((button) => {
+      button.classList.toggle("active", button.dataset.filter === activeFilter);
+    });
+    const itemSearch = document.querySelector("#item-search");
+    if (itemSearch) itemSearch.value = "";
+    renderCustomer();
+    renderCustomerDropdown();
+    updateSearchPlaceholder();
+    updateCatalogHeading();
+    renderItems();
+    renderCart();
+    setView("pos-view");
+    showToast("Pilih paket upgrade untuk menambahkannya ke keranjang");
     return;
   }
 
@@ -3068,6 +3144,18 @@ document.addEventListener("input", (event) => {
     const { payable } = calculateTotals();
     const totalEl = document.querySelector("#modal-total");
     if (totalEl) totalEl.textContent = formatMoney(payable);
+    const changeEl = document.querySelector("#modal-change");
+    if (changeEl) changeEl.textContent = formatMoney(Math.max(0, cashReceived - payable));
+    return;
+  }
+
+  const cashReceivedInput = event.target.closest("#modal-cash-received");
+  if (cashReceivedInput) {
+    const value = Number(cashReceivedInput.value);
+    cashReceived = Number.isNaN(value) || value < 0 ? 0 : Math.round(value);
+    const { payable } = calculateTotals();
+    const changeEl = document.querySelector("#modal-change");
+    if (changeEl) changeEl.textContent = formatMoney(Math.max(0, cashReceived - payable));
     return;
   }
 
@@ -3137,7 +3225,8 @@ function membershipServiceMatches(reward, serviceName) {
     hairspa: ["Hair Spa"],
   };
   const service = serviceName.toLowerCase();
-  const candidates = [reward.serviceName, ...(aliases[reward.serviceId] || [])].map((name) => name.toLowerCase());
+  const rewardServiceId = getRewardServiceId(reward);
+  const candidates = [getRewardName(reward), ...(aliases[rewardServiceId] || [])].map((name) => name.toLowerCase());
   return candidates.some((candidate) => service.includes(candidate) || candidate.includes(service));
 }
 
@@ -3151,7 +3240,7 @@ function getMembershipUsageHistory(customer) {
       rewards
         .filter((reward) => membershipServiceMatches(reward, serviceName))
         .map((reward) => ({
-          serviceName: reward.serviceName,
+          serviceName: getRewardName(reward),
           dateTime: formatMembershipHistoryDate(date, index),
           qty: 1,
         })),
@@ -3208,6 +3297,7 @@ function renderMembershipDetail(customerId) {
 
   rewardsEl.innerHTML = rewards
     .map((reward) => {
+      const plan = getRewardPlan(reward);
       const active = Math.min(reward.progress, reward.target);
       const bars = Array.from({ length: reward.target }, (_, index) => {
         const done = index < active;
@@ -3219,9 +3309,10 @@ function renderMembershipDetail(customerId) {
       return `
         <div class="membership-reward-card${readyClass}">
           <span>Saldo Member</span>
-          <strong>${reward.serviceName}</strong>
+          <strong>${getRewardName(reward, { withMember: true })}</strong>
           <small>${headline}</small>
           <div class="reward-progress-bar">${bars}</div>
+          ${plan?.upgradeTo ? `<button class="membership-upgrade-action" type="button" data-upgrade-member="${plan.upgradeTo}">Upgrade ke ${getMembershipPlan(plan.upgradeTo)?.serviceName || "paket berikutnya"}</button>` : ""}
         </div>
       `;
     })
