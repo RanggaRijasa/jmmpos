@@ -400,6 +400,19 @@ const receiptFormatter = new Intl.NumberFormat("id-ID", {
 
 const customers = [
   {
+    id: "umum",
+    code: "CUST.0000",
+    name: "UMUM",
+    phone: "-",
+    status: "Non Member",
+    type: "non-member",
+    totalVisits: 0,
+    lastVisit: "-",
+    reminderDate: "-",
+    dp: 0,
+    rewards: null,
+  },
+  {
     id: "dewi",
     code: "CUST.0001",
     name: "Dewi Anggraini",
@@ -686,6 +699,7 @@ let selectedCustomer = null;
 let selectedPayment = "QRIS";
 let customDp = 0;
 let cashReceived = 0;
+let cardNumber = "";
 let activeStaffMenu = null;
 let activeStaffAction = null;
 let activeDiscountMenu = null;
@@ -693,6 +707,7 @@ let activeServiceLevelMenu = null;
 let searchTerm = "";
 let customerSearchTerm = "";
 let dropdownSearchTerm = "";
+let pendingSearchTerm = "";
 let activeDetailCustomerId = "dewi";
 let activeConfirmMode = "payment";
 let lastReceipt = null;
@@ -1220,7 +1235,55 @@ function createReceiptSnapshot() {
     total: totals.payable,
     cashReceived: selectedPayment === "Tunai" ? cashReceived : totals.payable,
     change,
+    cardNumber: selectedPayment === "Kartu" ? cardNumber : "",
   };
+}
+
+function formatIndonesianDate(date = new Date()) {
+  const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function getNextInvoiceId() {
+  const max = salesTransactions.reduce((highest, t) => {
+    const num = Number(t.id.replace("POS-", ""));
+    return Math.max(highest, Number.isNaN(num) ? 0 : num);
+  }, 0);
+  return `POS-${String(max + 1).padStart(6, "0")}`;
+}
+
+function saveDraftTransaction() {
+  const totals = calculateTotals();
+  const now = new Date();
+  const dateRaw = now.toISOString().split("T")[0];
+  const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const date = formatIndonesianDate(now);
+  const staffItem = totals.selected.find((item) => item.type === "service" && item.staff);
+  const staff = staffItem?.staff || totals.selected[0]?.staff || selectedCustomer?.name || "UMUM";
+
+  const transaction = {
+    id: getNextInvoiceId(),
+    time,
+    date,
+    dateRaw,
+    customer: selectedCustomer?.name || "UMUM",
+    staff,
+    amount: totals.payable,
+    payment: selectedPayment,
+    items: totals.selected.map((item) => ({
+      name: item.name,
+      qty: item.qty,
+      price: item.price,
+      staff: item.staff || "",
+      type: item.type,
+    })),
+    status: "Pending",
+    dp: totals.dp,
+    reward: totals.rewardAmount,
+  };
+
+  salesTransactions.unshift(transaction);
+  return transaction;
 }
 
 function setReceiptReturn(viewId) {
@@ -1370,6 +1433,7 @@ function renderReceipt(receipt = lastReceipt) {
       <div><span>Tanggal</span><strong>${receipt.date}</strong></div>
       <div><span>Jam</span><strong>${receipt.time}</strong></div>
       <div><span>Pembayaran</span><strong>${receipt.payment}</strong></div>
+      ${receipt.cardNumber ? `<div><span>No. Kartu</span><strong>${receipt.cardNumber}</strong></div>` : ""}
       <div><span>Deskripsi</span><strong>-</strong></div>
     </div>
     <div class="receipt-separator"></div>
@@ -1400,6 +1464,9 @@ function prepareNextTransaction() {
   resetCart();
   selectedCustomer = null;
   selectedPayment = "QRIS";
+  cashReceived = 0;
+  customDp = 0;
+  cardNumber = "";
   activeFilter = "service";
   searchTerm = "";
   dropdownSearchTerm = "";
@@ -1475,7 +1542,10 @@ function renderCustomer() {
   summary.classList.remove("empty");
   summary.innerHTML = `
     <span>Pelanggan</span>
-    <strong>${selectedCustomer.name}</strong>
+    <div class="customer-title-row">
+      <strong>${selectedCustomer.name}</strong>
+      ${selectedCustomer.id === "umum" ? `<button class="customer-edit" type="button" data-edit-umum>Edit</button>` : ""}
+    </div>
     <small>${selectedCustomer.phone}</small>
   `;
   const rewards = getCustomerRewards(selectedCustomer);
@@ -2009,26 +2079,10 @@ function renderConfirmationSummary(mode) {
   const customerLabel = selectedCustomer
     ? `${selectedCustomer.name} · ${selectedCustomer.status}`
     : "Pelanggan belum dipilih";
-  const change = Math.max(0, cashReceived - payable);
-  const cashFields =
-    mode === "payment" && selectedPayment === "Tunai"
-      ? `
-        <div class="modal-cash-row">
-          <span>Uang diterima</span>
-          <label class="modal-dp-input">
-            <input type="number" id="modal-cash-received" inputmode="numeric" min="0" placeholder="0" value="${cashReceived}" />
-          </label>
-        </div>
-        <div class="modal-change-row">
-          <span>Kembalian</span>
-          <strong id="modal-change">${formatMoney(change)}</strong>
-        </div>`
-      : "";
 
   summary.innerHTML = `
     <div><span>Pelanggan</span><strong>${customerLabel}</strong></div>
     <div><span>Item</span><strong>${selected.length} item</strong></div>
-    ${mode === "draft" ? "" : `<div><span>Pembayaran</span><strong>${selectedPayment}</strong></div>`}
     ${discountAmount ? `<div><span>Diskon Item</span><strong>- ${formatMoney(discountAmount)}</strong></div>` : ""}
     ${rewardAmount ? `<div><span>Pemakaian Member</span><strong>${reward.serviceName} · - ${formatMoney(rewardAmount)}</strong></div>` : ""}
     ${customerDp ? `<div><span>DP Pelanggan</span><strong>- ${formatMoney(customerDp)}</strong></div>` : ""}
@@ -2039,7 +2093,72 @@ function renderConfirmationSummary(mode) {
       </label>
     </div>
     <div><span>Total</span><strong id="modal-total">${formatMoney(payable)}</strong></div>
-    ${cashFields}
+  `;
+}
+
+function renderConfirmationPayment(mode) {
+  const container = document.querySelector("#modal-payment");
+  if (!container || mode === "draft") {
+    if (container) container.innerHTML = "";
+    return;
+  }
+
+  const { payable } = calculateTotals();
+  const isTunai = selectedPayment === "Tunai";
+  const isQRIS = selectedPayment === "QRIS";
+  const isKartu = selectedPayment === "Kartu";
+
+  const change = Math.max(0, cashReceived - payable);
+
+  container.innerHTML = `
+    <div class="modal-payment-methods">
+      <button type="button" class="${isTunai ? "active" : ""}" data-modal-payment="Tunai">
+        <span class="method-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="6" width="18" height="12" rx="2"></rect>
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M6 9h2M16 15h2"></path>
+          </svg>
+        </span>
+        Tunai
+      </button>
+      <button type="button" class="${isQRIS ? "active" : ""}" data-modal-payment="QRIS">
+        <span class="method-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"></path>
+            <path d="M14 14h2v2h-2zM18 14h2v6h-2zM14 18h2v2h-2z"></path>
+          </svg>
+        </span>
+        QRIS
+      </button>
+      <button type="button" class="${isKartu ? "active" : ""}" data-modal-payment="Kartu">
+        <span class="method-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+            <line x1="2" y1="10" x2="22" y2="10"></line>
+          </svg>
+        </span>
+        Kartu
+      </button>
+    </div>
+    ${isTunai ? `
+      <label class="modal-payment-input">
+        <span>Uang diterima</span>
+        <div class="modal-dp-input">
+          <input type="number" id="modal-cash-received" inputmode="numeric" min="0" placeholder="0" value="${cashReceived || ""}" />
+        </div>
+      </label>
+      <div class="modal-change-row">
+        <span>Kembalian</span>
+        <strong id="modal-change">${formatMoney(change)}</strong>
+      </div>
+    ` : ""}
+    ${isKartu ? `
+      <label class="modal-payment-input">
+        <span>Nomor kartu</span>
+        <input type="text" id="modal-card-number" inputmode="numeric" autocomplete="off" placeholder="**** **** **** ****" value="${cardNumber}" maxlength="19" />
+      </label>
+    ` : ""}
   `;
 }
 
@@ -2057,8 +2176,10 @@ function openConfirmation(mode) {
       : "Pastikan metode pembayaran dan total sudah sesuai.";
   confirmButton.textContent = mode === "draft" ? "Simpan Draft" : "Bayar Sekarang";
   cashReceived = 0;
+  cardNumber = "";
 
   renderConfirmationSummary(mode);
+  renderConfirmationPayment(mode);
   modal.hidden = false;
 }
 
@@ -2066,6 +2187,7 @@ function closeConfirmation() {
   document.querySelector("#confirm-modal").hidden = true;
   customDp = 0;
   cashReceived = 0;
+  cardNumber = "";
 }
 
 function openAddCustomerModal() {
@@ -2075,6 +2197,21 @@ function openAddCustomerModal() {
 
 function closeAddCustomerModal() {
   const modal = document.querySelector("#add-customer-modal");
+  if (modal) modal.hidden = true;
+}
+
+function openEditUmumModal() {
+  const modal = document.querySelector("#edit-umum-modal");
+  const nameInput = document.querySelector("#edit-umum-name");
+  const phoneInput = document.querySelector("#edit-umum-phone");
+  if (!modal) return;
+  nameInput.value = selectedCustomer?.name || "UMUM";
+  phoneInput.value = selectedCustomer?.phone === "-" ? "" : (selectedCustomer?.phone || "");
+  modal.hidden = false;
+}
+
+function closeEditUmumModal() {
+  const modal = document.querySelector("#edit-umum-modal");
   if (modal) modal.hidden = true;
 }
 
@@ -2105,6 +2242,12 @@ function setView(id) {
     if (membershipList) membershipList.scrollTop = 0;
   }
   if (id === "membership-detail-view" && selectedMembershipId) renderMembershipDetail(selectedMembershipId);
+  if (id === "pending-view") {
+    pendingSearchTerm = "";
+    const pendingSearchInput = document.querySelector("#pending-search");
+    if (pendingSearchInput) pendingSearchInput.value = "";
+    renderPendingList();
+  }
 }
 
 document.addEventListener("click", (event) => {
@@ -2271,6 +2414,35 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const editUmumButton = event.target.closest("[data-edit-umum]");
+  if (editUmumButton) {
+    openEditUmumModal();
+    return;
+  }
+
+  const cancelEditUmum = event.target.closest("#cancel-edit-umum");
+  if (cancelEditUmum) {
+    closeEditUmumModal();
+    return;
+  }
+
+  const saveEditUmum = event.target.closest("#save-edit-umum");
+  if (saveEditUmum) {
+    const nameInput = document.querySelector("#edit-umum-name");
+    const phoneInput = document.querySelector("#edit-umum-phone");
+    selectedCustomer.name = nameInput.value.trim() || "UMUM";
+    selectedCustomer.phone = phoneInput.value.trim() || "-";
+    closeEditUmumModal();
+    renderCustomer();
+    renderCart();
+    return;
+  }
+
+  if (event.target.id === "edit-umum-modal") {
+    closeEditUmumModal();
+    return;
+  }
+
   const discountButton = event.target.closest("[data-discount-for]");
   if (discountButton) {
     const item = serviceCartLines.find((entry) => entry.id === discountButton.dataset.discountFor);
@@ -2335,6 +2507,13 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const modalPaymentButton = event.target.closest("[data-modal-payment]");
+  if (modalPaymentButton) {
+    selectedPayment = modalPaymentButton.dataset.modalPayment;
+    renderConfirmationPayment(activeConfirmMode);
+    return;
+  }
+
   const payButton = event.target.closest("#pay-button");
   if (payButton) {
     const hasItems = getCartItems().length > 0;
@@ -2369,6 +2548,10 @@ document.addEventListener("click", (event) => {
         showToast("Uang tunai yang diterima masih kurang");
         return;
       }
+      if (selectedPayment === "Kartu" && cardNumber.trim().replace(/\D/g, "").length < 4) {
+        showToast("Masukkan nomor kartu yang valid");
+        return;
+      }
       lastReceipt = createReceiptSnapshot();
       closeConfirmation();
       setReceiptReturn("pos-view");
@@ -2379,7 +2562,10 @@ document.addEventListener("click", (event) => {
       return;
     }
 
+    saveDraftTransaction();
     closeConfirmation();
+    prepareNextTransaction();
+    renderPendingList();
     showToast("Transaksi masuk draft");
     return;
   }
@@ -2833,6 +3019,9 @@ function getPaymentIcon(payment) {
   if (payment === "Tunai") {
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"></rect><circle cx="12" cy="12" r="3"></circle><path d="M6 9h2M16 15h2"></path></svg>`;
   }
+  if (payment === "Kartu") {
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>`;
+  }
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"></path><path d="M14 14h2v2h-2zM18 14h2v6h-2zM14 18h2v2h-2z"></path></svg>`;
 }
 
@@ -3079,17 +3268,58 @@ function getPendingTransactions() {
   return salesTransactions.filter((t) => t.status === "Pending");
 }
 
+function renderPendingItemDetail(line) {
+  const catalogItem = findCatalogItem(line);
+  const itemId = catalogItem?.id || "";
+  const actions = serviceActionMap[itemId] || [];
+  const staff = line.staff || "";
+
+  if (line.type === "service") {
+    const actionRows = actions.length && staff
+      ? actions.map((action) => `<small>${action} By : ${staff}</small>`).join("")
+      : staff ? `<small>Staff: ${staff}</small>` : "";
+    return `
+      <div class="pending-item-detail">
+        <span>${line.qty}x ${line.name}</span>
+        ${actionRows}
+      </div>
+    `;
+  }
+
+  if (line.type === "member") {
+    return `
+      <div class="pending-item-detail">
+        <span>${line.qty}x ${line.name}</span>
+        <small>Paket membership</small>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="pending-item-detail">
+      <span>${line.qty}x ${line.name}</span>
+      <small>Produk langsung</small>
+    </div>
+  `;
+}
+
 function renderPendingList() {
   const list = document.querySelector("#pending-list");
   if (!list) return;
 
-  const pending = getPendingTransactions();
+  const pending = getPendingTransactions().filter((t) => {
+    if (!pendingSearchTerm) return true;
+    const term = pendingSearchTerm.toLowerCase();
+    const itemNames = t.items.map((item) => item.name).join(" ");
+    const text = `${t.id} ${t.customer} ${t.staff} ${itemNames}`.toLowerCase();
+    return text.includes(term);
+  });
 
   if (!pending.length) {
     list.innerHTML = `
       <div class="empty-cart" style="border:0; background:transparent;">
         <strong>Tidak ada transaksi pending</strong>
-        <span>Semua transaksi telah diselesaikan.</span>
+        <span>${pendingSearchTerm ? "Coba kata kunci lain." : "Semua transaksi telah diselesaikan."}</span>
       </div>`;
     return;
   }
@@ -3098,16 +3328,19 @@ function renderPendingList() {
     .map((t) => {
       return `
         <article class="pending-row" data-pending-id="${t.id}">
-          <div class="pending-row-time">
-            <strong>${t.time}</strong>
-            <span>${t.date}</span>
+          <div class="pending-row-header">
+            <div class="pending-row-info">
+              <span class="pending-customer">${t.customer}</span>
+              <small>${t.staff} · ${t.id}</small>
+            </div>
+            <div class="pending-row-meta">
+              <span class="pending-row-status">Pending</span>
+              <span class="pending-row-amount">${formatMoney(t.amount)}</span>
+            </div>
           </div>
-          <div class="pending-row-info">
-            <strong>${t.customer}</strong>
-            <span>${t.staff} · ${t.id}</span>
+          <div class="pending-row-items">
+            ${t.items.map(renderPendingItemDetail).join("")}
           </div>
-          <span class="pending-row-status">Pending</span>
-          <span class="pending-row-amount">${formatMoney(t.amount)}</span>
         </article>
       `;
     })
@@ -3120,7 +3353,7 @@ function loadPendingTransaction(id) {
 
   resetCart();
   selectedCustomer = customers.find((customer) => customer.name === t.customer) || null;
-  selectedPayment = t.payment === "Tunai" ? "Tunai" : "QRIS";
+  selectedPayment = ["Tunai", "QRIS", "Kartu"].includes(t.payment) ? t.payment : "QRIS";
   activeFilter = "service";
   searchTerm = "";
 
@@ -3138,11 +3371,14 @@ function loadPendingTransaction(id) {
           syncServiceStaffSummary(serviceLine);
         }
       }
+    } else if (catalogItem.type === "member") {
+      const added = addMemberLine(catalogItem);
+      if (added) {
+        const memberLine = memberCartLines[memberCartLines.length - 1];
+        memberLine.staff = line.staff || t.staff || "";
+      }
     } else {
       catalogItem.qty = Math.min(line.qty || 1, getMaxQty(catalogItem));
-      if (catalogItem.type === "member") {
-        catalogItem.staff = line.staff || t.staff || "";
-      }
     }
   });
 
@@ -3238,6 +3474,22 @@ document.addEventListener("input", (event) => {
     const { payable } = calculateTotals();
     const changeEl = document.querySelector("#modal-change");
     if (changeEl) changeEl.textContent = formatMoney(Math.max(0, cashReceived - payable));
+    return;
+  }
+
+  const cardNumberInput = event.target.closest("#modal-card-number");
+  if (cardNumberInput) {
+    const raw = cardNumberInput.value.replace(/\D/g, "").slice(0, 16);
+    const formatted = raw.match(/.{1,4}/g)?.join(" ") || "";
+    cardNumber = formatted;
+    cardNumberInput.value = formatted;
+    return;
+  }
+
+  const pendingSearchInput = event.target.closest("#pending-search");
+  if (pendingSearchInput) {
+    pendingSearchTerm = pendingSearchInput.value.trim().toLowerCase();
+    renderPendingList();
     return;
   }
 
