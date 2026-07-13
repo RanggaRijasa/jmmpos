@@ -121,6 +121,7 @@
             <p class="eyebrow">JMM Salon Cashier System</p>
             <h1>Penjualan POS</h1>
           </div>
+          <button class="soft-action" id="pending-popup-button" type="button">List Pending</button>
         </header>
 
         <div class="pos-layout">
@@ -658,6 +659,21 @@
           <button class="modal-secondary" id="cancel-payment" type="button">Batal</button>
           <button class="modal-primary" id="confirm-payment" type="button">Simpan Transaksi</button>
         </div>
+      </section>
+    </div>
+
+    <div class="modal-layer" id="pending-popup-modal" hidden>
+      <section class="modal-card pending-popup-card" aria-label="Daftar pending dan draft">
+        <button class="modal-close" id="close-pending-popup" type="button" aria-label="Tutup">×</button>
+        <div class="pending-popup-heading">
+          <h2>Transaksi Pending</h2>
+          <p>Tap transaksi untuk melanjutkan pembayaran.</p>
+        </div>
+        <label class="pending-search">
+          <input id="pending-popup-search" type="search" placeholder="Cari pelanggan / nota / item..." autocomplete="off" />
+          <span aria-hidden="true">⌕</span>
+        </label>
+        <div class="pending-list" id="pending-popup-list"></div>
       </section>
     </div>
 

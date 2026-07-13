@@ -708,6 +708,7 @@ let searchTerm = "";
 let customerSearchTerm = "";
 let dropdownSearchTerm = "";
 let pendingSearchTerm = "";
+let pendingPopupSearchTerm = "";
 let activeDetailCustomerId = "dewi";
 let activeConfirmMode = "payment";
 let lastReceipt = null;
@@ -2215,6 +2216,21 @@ function closeEditUmumModal() {
   if (modal) modal.hidden = true;
 }
 
+function openPendingPopup() {
+  const modal = document.querySelector("#pending-popup-modal");
+  if (!modal) return;
+  pendingPopupSearchTerm = "";
+  const searchInput = document.querySelector("#pending-popup-search");
+  if (searchInput) searchInput.value = "";
+  renderPendingPopup();
+  modal.hidden = false;
+}
+
+function closePendingPopup() {
+  const modal = document.querySelector("#pending-popup-modal");
+  if (modal) modal.hidden = true;
+}
+
 function showToast(message) {
   const toast = document.querySelector("#toast");
   toast.textContent = message;
@@ -2443,6 +2459,23 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const pendingPopupButton = event.target.closest("#pending-popup-button");
+  if (pendingPopupButton) {
+    openPendingPopup();
+    return;
+  }
+
+  const closePendingPopupButton = event.target.closest("#close-pending-popup");
+  if (closePendingPopupButton) {
+    closePendingPopup();
+    return;
+  }
+
+  if (event.target.id === "pending-popup-modal") {
+    closePendingPopup();
+    return;
+  }
+
   const discountButton = event.target.closest("[data-discount-for]");
   if (discountButton) {
     const item = serviceCartLines.find((entry) => entry.id === discountButton.dataset.discountFor);
@@ -2566,6 +2599,7 @@ document.addEventListener("click", (event) => {
     closeConfirmation();
     prepareNextTransaction();
     renderPendingList();
+    renderPendingPopup();
     showToast("Transaksi masuk draft");
     return;
   }
@@ -2769,6 +2803,10 @@ document.addEventListener("click", (event) => {
   const pendingRow = event.target.closest("[data-pending-id]");
   if (pendingRow) {
     loadPendingTransaction(pendingRow.dataset.pendingId);
+    const popupModal = document.querySelector("#pending-popup-modal");
+    if (popupModal && !popupModal.hidden) {
+      closePendingPopup();
+    }
     return;
   }
 
@@ -3303,28 +3341,24 @@ function renderPendingItemDetail(line) {
   `;
 }
 
-function renderPendingList() {
-  const list = document.querySelector("#pending-list");
-  if (!list) return;
-
+function getPendingListHtml(term = "") {
   const pending = getPendingTransactions().filter((t) => {
-    if (!pendingSearchTerm) return true;
-    const term = pendingSearchTerm.toLowerCase();
+    if (!term) return true;
+    const lowerTerm = term.toLowerCase();
     const itemNames = t.items.map((item) => item.name).join(" ");
     const text = `${t.id} ${t.customer} ${t.staff} ${itemNames}`.toLowerCase();
-    return text.includes(term);
+    return text.includes(lowerTerm);
   });
 
   if (!pending.length) {
-    list.innerHTML = `
+    return `
       <div class="empty-cart" style="border:0; background:transparent;">
         <strong>Tidak ada transaksi pending</strong>
-        <span>${pendingSearchTerm ? "Coba kata kunci lain." : "Semua transaksi telah diselesaikan."}</span>
+        <span>${term ? "Coba kata kunci lain." : "Semua transaksi telah diselesaikan."}</span>
       </div>`;
-    return;
   }
 
-  list.innerHTML = pending
+  return pending
     .map((t) => {
       return `
         <article class="pending-row" data-pending-id="${t.id}">
@@ -3345,6 +3379,18 @@ function renderPendingList() {
       `;
     })
     .join("");
+}
+
+function renderPendingList() {
+  const list = document.querySelector("#pending-list");
+  if (!list) return;
+  list.innerHTML = getPendingListHtml(pendingSearchTerm);
+}
+
+function renderPendingPopup() {
+  const list = document.querySelector("#pending-popup-list");
+  if (!list) return;
+  list.innerHTML = getPendingListHtml(pendingPopupSearchTerm);
 }
 
 function loadPendingTransaction(id) {
@@ -3493,6 +3539,13 @@ document.addEventListener("input", (event) => {
     return;
   }
 
+  const pendingPopupSearchInput = event.target.closest("#pending-popup-search");
+  if (pendingPopupSearchInput) {
+    pendingPopupSearchTerm = pendingPopupSearchInput.value.trim().toLowerCase();
+    renderPendingPopup();
+    return;
+  }
+
   const searchInput = event.target.closest("#item-search");
   if (!searchInput) return;
 
@@ -3515,6 +3568,10 @@ document.addEventListener("keydown", (event) => {
     if (activeDiscountMenu) {
       activeDiscountMenu = null;
       renderCart();
+    }
+    const pendingPopupModal = document.querySelector("#pending-popup-modal");
+    if (pendingPopupModal && !pendingPopupModal.hidden) {
+      closePendingPopup();
     }
   }
 
