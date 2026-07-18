@@ -714,6 +714,8 @@ let activeConfirmMode = "payment";
 let lastReceipt = null;
 let receiptReturnView = "pos-view";
 let serviceLineCounter = 0;
+let activeCmsPage = "dashboard";
+let cmsSidebarCollapsed = false;
 let memberLineCounter = 0;
 const serviceCartLines = [];
 const memberCartLines = [];
@@ -2264,6 +2266,12 @@ function setView(id) {
     if (pendingSearchInput) pendingSearchInput.value = "";
     renderPendingList();
   }
+  if (id === "cms-view") {
+    renderCmsPage(activeCmsPage);
+    const layout = document.querySelector("#cms-layout");
+    if (layout) layout.classList.toggle("collapsed", cmsSidebarCollapsed);
+    document.querySelector("#cms-content")?.scrollTo({ top: 0 });
+  }
 }
 
 document.addEventListener("click", (event) => {
@@ -2807,6 +2815,36 @@ document.addEventListener("click", (event) => {
     if (popupModal && !popupModal.hidden) {
       closePendingPopup();
     }
+    return;
+  }
+
+  const cmsEntryButton = event.target.closest("#cms-entry-button");
+  if (cmsEntryButton) {
+    openCmsView();
+    return;
+  }
+
+  const cmsBackButton = event.target.closest("#cms-back-pos");
+  if (cmsBackButton) {
+    setView("pos-view");
+    return;
+  }
+
+  const cmsSidebarToggle = event.target.closest("#cms-sidebar-toggle");
+  if (cmsSidebarToggle) {
+    toggleCmsSidebar();
+    return;
+  }
+
+  const cmsMenuToggle = event.target.closest("#cms-menu-toggle");
+  if (cmsMenuToggle) {
+    toggleCmsSidebar();
+    return;
+  }
+
+  const cmsNavItem = event.target.closest("[data-cms-page]");
+  if (cmsNavItem) {
+    renderCmsPage(cmsNavItem.dataset.cmsPage);
     return;
   }
 
@@ -3445,6 +3483,144 @@ function loadPendingTransaction(id) {
   document.querySelector("#cart-list")?.scrollTo({ top: 0 });
   setView("pos-view");
   showToast(`Draft ${t.id} dimuat ke POS`);
+}
+
+const CMS_PAGE_LABELS = {
+  dashboard: "Dashboard",
+  customers: "Pelanggan",
+  services: "Master Jasa",
+  "service-activities": "Aktivitas Jasa",
+  "products-stock": "Produk & Stok",
+  "membership-plans": "Paket Membership",
+  promotions: "Promo & Diskon",
+  staff: "Petugas",
+  sales: "Penjualan",
+  pending: "Draft / Pending",
+  reminders: "Reminder Pelanggan",
+  members: "Member",
+  "member-visits": "Kunjungan member",
+  "sales-report": "Laporan Penjualan",
+  "revenue-report": "Laporan Pendapatan",
+  "stock-report": "Laporan Stok",
+  "staff-commission": "Komisi Petugas",
+  "users-access": "Pengguna & Hak Akses",
+  "salon-settings": "Pengaturan Salon",
+};
+
+function renderCmsPlaceholder(label) {
+  return `
+    <div class="cms-placeholder">
+      <div>
+        <h3>${label}</h3>
+        <p>Halaman ini sedang dalam pengembangan. Konten akan disesuaikan dengan data sistem.</p>
+      </div>
+    </div>
+  `;
+}
+
+function renderCmsDashboard() {
+  const today = new Date();
+  const todayRaw = today.toISOString().split("T")[0];
+  const todayTransactions = salesTransactions.filter((t) => t.dateRaw === todayRaw && t.status !== "Pending");
+  const completedTransactions = salesTransactions.filter((t) => t.status !== "Pending");
+  const totalRevenue = completedTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const totalPending = getPendingTransactions().length;
+  const totalMembers = customers.filter((c) => c.status === "Member").length;
+
+  return `
+    <div class="cms-dashboard-grid">
+      <div class="cms-card"><h4>Total penjualan</h4><strong>${formatMoney(totalRevenue)}</strong></div>
+      <div class="cms-card"><h4>Transaksi hari ini</h4><strong>${todayTransactions.length}</strong></div>
+      <div class="cms-card"><h4>Pending</h4><strong>${totalPending}</strong></div>
+      <div class="cms-card"><h4>Member</h4><strong>${totalMembers}</strong></div>
+    </div>
+    <div class="cms-table-wrap">
+      <table class="cms-table">
+        <thead><tr><th>ID</th><th>Waktu</th><th>Pelanggan</th><th>Metode</th><th>Total</th></tr></thead>
+        <tbody>
+          ${todayTransactions.length
+            ? todayTransactions.slice(0, 5).map((t) => `<tr><td>${t.id}</td><td>${t.time}</td><td>${t.customer}</td><td>${t.payment}</td><td>${formatMoney(t.amount)}</td></tr>`).join("")
+            : `<tr><td colspan="5" style="text-align:center;color:var(--muted);">Belum ada transaksi hari ini</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderCmsStaffCommission() {
+  const staffMap = {};
+  salesTransactions.forEach((t) => {
+    if (t.status === "Pending") return;
+    const staff = t.staff || "UMUM";
+    if (!staffMap[staff]) staffMap[staff] = { total: 0, transactions: 0, services: 0 };
+    staffMap[staff].total += t.amount;
+    staffMap[staff].transactions += 1;
+    const serviceCount = t.items
+      .filter((i) => i.type === "service")
+      .reduce((sum, i) => sum + (i.qty || 1), 0);
+    staffMap[staff].services += serviceCount;
+  });
+
+  const rows = Object.entries(staffMap)
+    .map(([name, data]) => {
+      const commission = Math.round(data.total * 0.1);
+      return `<tr><td>${name}</td><td>${data.services}</td><td>${data.transactions}</td><td>${formatMoney(data.total)}</td><td>${formatMoney(commission)}</td></tr>`;
+    })
+    .join("");
+
+  return `
+    <div class="cms-table-wrap">
+      <table class="cms-table">
+        <thead><tr><th>Petugas</th><th>Jasa</th><th>Transaksi</th><th>Total Penjualan</th><th>Komisi (10%)</th></tr></thead>
+        <tbody>
+          ${rows || `<tr><td colspan="5" style="text-align:center;color:var(--muted);">Belum ada data komisi</td></tr>`}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderCmsPage(page) {
+  activeCmsPage = page;
+  const title = document.querySelector("#cms-page-title");
+  const content = document.querySelector("#cms-content");
+  const label = CMS_PAGE_LABELS[page] || page;
+  if (title) title.textContent = label;
+
+  document.querySelectorAll("[data-cms-page]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.cmsPage === page);
+  });
+
+  if (!content) return;
+  if (page === "dashboard") {
+    content.innerHTML = renderCmsDashboard();
+  } else if (page === "staff-commission") {
+    content.innerHTML = renderCmsStaffCommission();
+  } else {
+    content.innerHTML = renderCmsPlaceholder(label);
+  }
+}
+
+function toggleCmsSidebar() {
+  cmsSidebarCollapsed = !cmsSidebarCollapsed;
+  const layout = document.querySelector("#cms-layout");
+  if (layout) layout.classList.toggle("collapsed", cmsSidebarCollapsed);
+
+  const sidebarToggle = document.querySelector("#cms-sidebar-toggle");
+  const menuToggle = document.querySelector("#cms-menu-toggle");
+  const isExpanded = !cmsSidebarCollapsed;
+  if (sidebarToggle) {
+    sidebarToggle.setAttribute("aria-expanded", String(isExpanded));
+    sidebarToggle.setAttribute("aria-label", isExpanded ? "Tutup sidebar" : "Buka sidebar");
+  }
+  if (menuToggle) {
+    menuToggle.setAttribute("aria-expanded", String(isExpanded));
+    menuToggle.setAttribute("aria-label", isExpanded ? "Tutup sidebar" : "Buka sidebar");
+  }
+}
+
+function openCmsView() {
+  setView("cms-view");
 }
 
 document.addEventListener("input", (event) => {
