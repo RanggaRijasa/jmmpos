@@ -1,0 +1,138 @@
+      <section class="tablet-screen view" id="sales-view" aria-label="Daftar penjualan">
+        <header class="topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Daftar Penjualan</h1>
+          </div>
+        </header>
+
+        <div class="sales-layout">
+          <aside class="filter-panel">
+            <div class="filter-header">
+              <h2>Filter</h2>
+              <span class="filter-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+              </span>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Periode Tanggal</label>
+              <div class="date-range">
+                <div class="date-input-wrap">
+                  <input id="filter-date-from" type="date" value="2026-06-26" />
+                </div>
+                <span class="range-sep">s/d</span>
+                <div class="date-input-wrap">
+                  <input id="filter-date-to" type="date" value="2026-06-27" />
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Periode Jam</label>
+              <div class="date-range">
+                <div class="date-input-wrap">
+                  <input id="filter-time-from" type="time" value="00:00" />
+                </div>
+                <span class="range-sep">s/d</span>
+                <div class="date-input-wrap">
+                  <input id="filter-time-to" type="time" value="23:59" />
+                </div>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Metode Pembayaran</label>
+              <div class="select-wrap">
+                <select id="filter-payment">
+                  <option value="">Semua</option>
+                  <option value="Tunai">Tunai</option>
+                  <option value="QRIS">QRIS</option>
+                  <option value="Kartu">Kartu</option>
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <label class="filter-label">Status</label>
+              <div class="select-wrap">
+                <select id="filter-status">
+                  <option value="">Semua</option>
+                  <option value="Selesai">Selesai</option>
+                  <option value="Pending">Pending</option>
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+            </div>
+
+            <button class="sales-filter-apply" id="sales-filter-apply" type="button">Terapkan Filter</button>
+            <button class="sales-filter-reset" id="sales-filter-reset" type="button">Reset</button>
+
+            <div class="filter-summary">
+              <h3>Ringkasan</h3>
+              <div class="summary-row">
+                <span>Total</span>
+                <strong>Rp 4.275.000</strong>
+              </div>
+              <div class="summary-row">
+                <span>Jumlah Transaksi</span>
+                <strong>26</strong>
+              </div>
+              <div class="summary-row">
+                <span>Rata-rata per Transaksi</span>
+                <strong>Rp 164.423</strong>
+              </div>
+            </div>
+          </aside>
+
+          <section class="sales-right">
+            <div class="sales-toolbar">
+              <label class="sales-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="search" placeholder="Cari nama pelanggan / no. nota / petugas..." autocomplete="off" />
+              </label>
+              <div class="sort-wrap">
+                <select>
+                  <option>Terbaru</option>
+                  <option>Terlama</option>
+                  <option>Total Tertinggi</option>
+                </select>
+                <span class="select-arrow">▾</span>
+              </div>
+            </div>
+
+            <div class="sales-list" id="sales-list"></div>
+
+            <div class="sales-pagination" id="sales-pagination"></div>
+
+            <div class="sales-detail-panel" id="sales-detail-panel" hidden>
+              <div class="detail-panel-actions">
+                <button class="detail-back" id="detail-back" type="button">‹ Kembali ke daftar</button>
+                <button class="detail-print" id="detail-print-receipt" type="button">Cetak Nota</button>
+              </div>
+              <div class="detail-card">
+                <div class="detail-header">
+                  <div>
+                    <strong id="detail-invoice">POS-088046</strong>
+                    <span id="detail-datetime">27 Jun 2026 · 11:42</span>
+                  </div>
+                  <span class="badge" id="detail-payment">Tunai</span>
+                </div>
+                <div class="detail-customer">
+                  <strong id="detail-customer-name">Dewi Anggraini</strong>
+                  <span id="detail-staff">Petugas: Wira</span>
+                </div>
+                <div class="detail-items" id="detail-items"></div>
+                <div class="detail-adjustments" id="detail-adjustments"></div>
+                <div class="detail-total-row">
+                  <span>Total</span>
+                  <strong id="detail-total">Rp 936.000</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+

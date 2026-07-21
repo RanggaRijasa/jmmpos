@@ -1,0 +1,288 @@
+.customer-list-panel {
+  display: flex;
+  flex-direction: column;
+  height: 640px;
+  min-height: 0;
+  margin: 24px 48px 48px;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.customer-list-tools {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 14px;
+}
+
+.entries-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.entries-control strong {
+  display: grid;
+  min-width: 46px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--ink);
+}
+
+.customer-search {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  flex: 1;
+  max-width: 400px;
+  margin-left: auto;
+}
+
+.customer-search input {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: 0;
+  background: var(--raised);
+  color: var(--ink);
+}
+
+.filter-button,
+.add-customer-button,
+.table-action {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--gold-dark);
+  font-weight: 900;
+}
+
+.filter-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  min-width: 92px;
+}
+
+.add-customer-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  background: linear-gradient(180deg, #e7b13a, var(--gold));
+  border-color: var(--gold);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(155, 98, 13, 0.18);
+}
+
+.add-customer-button span {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.customer-table {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--raised);
+}
+
+.customer-table-head,
+.customer-row {
+  display: grid;
+  grid-template-columns: 100px minmax(160px, 1.2fr) 164px 112px 112px;
+  align-items: center;
+  gap: 14px;
+}
+
+.customer-table-head {
+  min-height: 48px;
+  padding: 0 16px;
+  background: #f1e8d9;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.customer-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: #d8b46c transparent;
+}
+
+.customer-row {
+  min-height: 84px;
+  padding: 10px 16px;
+  border-top: 1px solid #ead6b3;
+  background: #fffaf3;
+}
+
+.customer-row:nth-child(even) {
+  background: #fff7e9;
+}
+
+.customer-row:hover {
+  background: var(--gold-lift);
+}
+
+.customer-code,
+.last-visit {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.customer-cell-main strong,
+.customer-cell-main small {
+  display: block;
+}
+
+.customer-cell-main strong {
+  font-size: 15px;
+}
+
+.customer-cell-main small {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.table-action {
+  height: 38px;
+  background: var(--gold-soft);
+}
+
+.customer-empty {
+  display: grid;
+  min-height: 300px;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.customer-empty strong {
+  color: var(--ink);
+}
+
+.reward-meter {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.reward-meter span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.reward-meter strong {
+  color: var(--gold-dark);
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.reward-meter small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.reward-meter.ready strong {
+  color: var(--gold-dark);
+}
+
+.reward-dots {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+}
+
+.reward-dots i {
+  height: 7px;
+  border-radius: 999px;
+  background: #efe6d8;
+}
+
+.reward-dots i.done {
+  background: var(--gold-soft);
+}
+
+.reward-dots i.free,
+.reward-meter.ready .reward-dots i.done {
+  background: linear-gradient(180deg, #e7b13a, var(--gold));
+}
+
+.reward-meter.compact {
+  gap: 4px;
+}
+
+.reward-meter.compact span {
+  display: none;
+}
+
+.reward-meter.compact strong {
+  font-size: 12px;
+}
+
+.reward-meter.compact small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reward-meter.strip {
+  grid-template-columns: minmax(0, 1fr) 132px;
+  align-items: center;
+  gap: 4px 10px;
+  max-width: 520px;
+  margin-top: 5px;
+}
+
+.reward-meter.strip span,
+.reward-meter.strip strong {
+  display: none;
+}
+
+.reward-meter.strip small {
+  overflow: hidden;
+  color: var(--gold-dark);
+  font-size: 11px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reward-meter.strip .reward-dots {
+  min-width: 0;
+}
+
+.reward-meter.strip .reward-dots i {
+  height: 6px;
+}
+

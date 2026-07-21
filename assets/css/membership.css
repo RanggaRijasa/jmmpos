@@ -1,0 +1,268 @@
+.membership-layout {
+  height: 660px;
+  padding: 24px 48px 48px;
+}
+
+.membership-list-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  overflow: hidden;
+  height: 100%;
+}
+
+.membership-list {
+  display: grid;
+  gap: 10px;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 4px;
+  align-content: start;
+}
+
+.membership-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center;
+  gap: 16px;
+  height: 72px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--raised);
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+
+.membership-row:hover {
+  border-color: var(--gold);
+  background: var(--gold-lift);
+}
+
+.membership-row.selected {
+  border-color: var(--gold);
+  background: var(--gold-lift);
+}
+
+.membership-row-action {
+  color: var(--gold-dark);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.membership-row-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.membership-row-info strong {
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.membership-row-info span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.membership-detail-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.membership-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  height: 100%;
+  padding: 30px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.membership-empty strong {
+  color: var(--ink);
+}
+
+.membership-detail-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.membership-profile {
+  flex-shrink: 0;
+  padding-bottom: 20px;
+  border-bottom: 1px dashed var(--border);
+}
+
+.membership-profile h2 {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.membership-profile p {
+  margin-top: 18px;
+}
+
+.membership-rewards {
+  flex: 1;
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+  align-content: start;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.membership-reward-card {
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+.membership-reward-card.ready {
+  border-color: var(--gold);
+  background: var(--gold-lift);
+}
+
+.membership-reward-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.membership-reward-card strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--gold-dark);
+  font-size: 16px;
+}
+
+.membership-reward-card small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.membership-detail-layout {
+  display: grid;
+  grid-template-columns: 440px 1fr;
+  gap: 22px;
+  height: 660px;
+  padding: 24px 48px 48px;
+}
+
+.membership-detail-card,
+.membership-history-panel {
+  min-height: 0;
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.membership-detail-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.membership-history-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.membership-usage-list {
+  display: grid;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  align-content: start;
+}
+
+.membership-usage-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  min-height: 70px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+.membership-usage-row strong,
+.membership-usage-row span {
+  display: block;
+}
+
+.membership-usage-row strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.membership-usage-row span {
+  margin-top: 6px;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 13px;
+}
+
+.membership-usage-row b {
+  color: var(--gold-dark);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 18px;
+}
+
+.membership-empty.compact {
+  height: auto;
+  min-height: 160px;
+}
+
+.reward-progress-bar {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.reward-progress-bar i {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: #efe9df;
+}
+
+.reward-progress-bar i.done {
+  background: var(--gold);
+}
+
+.reward-progress-bar i.free {
+  background: var(--success);
+}
+

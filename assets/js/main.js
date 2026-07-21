@@ -1,0 +1,12 @@
+renderCustomer();
+renderCustomerDropdown();
+updateSearchPlaceholder();
+updateCatalogHeading();
+renderItems();
+renderCart();
+renderCustomerList();
+renderCustomerDetail(activeDetailCustomerId);
+setPayment(selectedPayment);
+renderSalesList();
+renderPendingList();
+renderMembershipList();

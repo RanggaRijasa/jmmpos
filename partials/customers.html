@@ -1,0 +1,90 @@
+      <section class="tablet-screen view" id="customer-list-view" aria-label="Daftar pelanggan">
+        <header class="topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Daftar Pelanggan</h1>
+          </div>
+        </header>
+
+        <section class="customer-list-panel">
+          <div class="customer-list-tools">
+            <button class="add-customer-button" id="add-customer-button" type="button">
+              <span aria-hidden="true">+</span>
+              Tambah Pelanggan
+            </button>
+            <label class="customer-search">
+              <span>Cari</span>
+              <input id="customer-search" type="search" autocomplete="off" placeholder="Nama atau nomor HP" />
+            </label>
+          </div>
+
+          <div class="customer-table">
+            <div class="customer-table-head">
+              <span>ID</span>
+              <span>Pelanggan</span>
+              <span>Status</span>
+              <span>Terakhir</span>
+              <span>Action</span>
+            </div>
+            <div class="customer-list" id="customer-list"></div>
+          </div>
+        </section>
+      </section>
+
+      <section class="tablet-screen view" id="customer-view" aria-label="Detail pelanggan">
+        <header class="topbar">
+          <button class="back-button" data-target="customer-list-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Detail Pelanggan</h1>
+          </div>
+        </header>
+
+        <div class="customer-layout">
+          <aside class="profile-card">
+            <h2 id="detail-name">Dewi Anggraini</h2>
+            <div id="detail-badge"></div>
+            <p id="detail-phone">No HP: 0812 3456 7890</p>
+            <div class="customer-member-summary" id="detail-member-list"></div>
+            <div class="reminder-box">
+              <strong>Reminder otomatis</strong>
+              <span id="detail-reminder">Hubungi 7 hari setelah jasa terakhir: 04 Jul 2026.</span>
+            </div>
+            <button class="whatsapp-action">WhatsApp Pelanggan</button>
+          </aside>
+
+          <section class="history-panel">
+            <div class="section-heading plain">
+              <div>
+                <h2>Sejarah Transaksi</h2>
+                <p>Tap salah satu transaksi untuk melihat detail nota dan item.</p>
+              </div>
+            </div>
+            <div class="history-list" id="detail-history-list"></div>
+            <div class="sales-detail-panel customer-transaction-detail-panel" id="customer-transaction-detail-panel" hidden>
+              <button class="detail-back" id="customer-detail-back" type="button">‹ Kembali ke riwayat</button>
+              <div class="detail-card">
+                <div class="detail-header">
+                  <div>
+                    <strong id="customer-detail-invoice">POS-088046</strong>
+                    <span id="customer-detail-datetime">27 Jun 2026 · 11:42</span>
+                  </div>
+                  <span class="badge" id="customer-detail-payment">Tunai</span>
+                </div>
+                <div class="detail-customer">
+                  <strong id="customer-detail-customer-name">Dewi Anggraini</strong>
+                  <span id="customer-detail-staff">Petugas: Wira</span>
+                </div>
+                <div class="detail-items" id="customer-detail-items"></div>
+                <div class="detail-adjustments" id="customer-detail-adjustments"></div>
+                <div class="detail-total-row">
+                  <span>Total</span>
+                  <strong id="customer-detail-total">Rp 936.000</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+

@@ -1,0 +1,100 @@
+      <section class="tablet-screen view" id="pos-view" aria-label="Penjualan POS">
+        <header class="topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Penjualan POS</h1>
+          </div>
+          <button class="soft-action" id="pending-popup-button" type="button">List Pending</button>
+        </header>
+
+        <div class="pos-layout">
+          <section class="pos-catalog">
+            <div class="customer-strip" id="customer-picker">
+              <div class="customer-summary empty" id="customer-summary">
+                <span>Pelanggan</span>
+                <strong>Belum dipilih</strong>
+                <small>Pilih pelanggan untuk transaksi ini</small>
+              </div>
+              <div class="customer-member-area" id="customer-member-area" hidden>
+                <button class="benefit-toggle" id="member-benefit-toggle" type="button" aria-expanded="false">
+                  <span>List Member</span>
+                  <b id="member-benefit-count">0</b>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                </button>
+              </div>
+              <button class="soft-action" id="customer-toggle" type="button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span class="btn-label">Pilih</span>
+              </button>
+              <button class="soft-action" id="customer-add-pos" type="button">+ Pelanggan Baru</button>
+              <div class="member-benefits" id="member-benefits" hidden></div>
+              <div class="customer-dropdown" id="customer-dropdown" aria-label="Pilihan pelanggan"></div>
+            </div>
+
+            <div class="catalog-toolbar">
+              <div class="category-tabs" role="tablist" aria-label="Kategori POS">
+                <button class="category active" data-filter="service" type="button">
+                  <span class="tab-icon" aria-hidden="true">✂</span>
+                  <strong>Jasa</strong>
+                </button>
+                <button class="category" data-filter="product" type="button">
+                  <span class="tab-icon" aria-hidden="true">▯</span>
+                  <strong>Produk</strong>
+                </button>
+                <button class="category" data-filter="member" type="button">
+                  <span class="tab-icon" aria-hidden="true">★</span>
+                  <strong>Member</strong>
+                </button>
+              </div>
+              <label class="search-box">
+                <input id="item-search" type="search" placeholder="Cari jasa..." autocomplete="off" />
+                <span aria-hidden="true">⌕</span>
+              </label>
+            </div>
+
+            <div class="section-heading">
+              <h2 id="catalog-heading">Jasa Salon</h2>
+            </div>
+
+            <div class="item-grid" id="item-grid"></div>
+          </section>
+
+          <aside class="cart-panel" aria-label="Keranjang transaksi">
+            <div class="cart-head">
+              <div>
+                <h2>Keranjang</h2>
+              </div>
+              <span class="badge">3 item</span>
+            </div>
+
+            <div class="cart-list" id="cart-list"></div>
+
+            <div class="payment-summary">
+              <h3>Ringkasan Pembayaran</h3>
+              <div class="summary-line adjustment" id="discount-line" hidden>
+                <span>Diskon Item</span>
+                <strong class="saving" id="discount">- Rp 0</strong>
+              </div>
+              <div class="summary-line adjustment" id="reward-line" hidden>
+                <span id="reward-label">Pemakaian Member</span>
+                <strong class="saving" id="reward">- Rp 0</strong>
+              </div>
+              <div class="summary-line adjustment" id="dp-line" hidden>
+                <span>DP</span>
+                <strong class="saving" id="dp">- Rp 0</strong>
+              </div>
+              <div class="summary-line total">
+                <span>Total</span>
+                <strong id="total">Rp 0</strong>
+              </div>
+            </div>
+
+            <div class="cart-actions">
+              <button class="secondary-action" id="draft-button" type="button">Simpan Draft</button>
+              <button class="primary-action" id="pay-button" type="button">Bayar</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+

@@ -1,0 +1,70 @@
+    <div class="modal-layer" id="confirm-modal" hidden>
+      <section class="modal-card" aria-label="Konfirmasi pembayaran">
+        <h2 id="modal-title">Konfirmasi Pembayaran</h2>
+        <p id="confirm-copy">Pastikan transaksi sudah sesuai sebelum disimpan.</p>
+        <div class="modal-summary" id="confirm-summary"></div>
+        <div class="modal-payment" id="modal-payment"></div>
+        <div class="modal-actions">
+          <button class="modal-secondary" id="cancel-payment" type="button">Batal</button>
+          <button class="modal-primary" id="confirm-payment" type="button">Simpan Transaksi</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-layer" id="pending-popup-modal" hidden>
+      <section class="modal-card pending-popup-card" aria-label="Daftar pending dan draft">
+        <button class="modal-close" id="close-pending-popup" type="button" aria-label="Tutup">×</button>
+        <div class="pending-popup-heading">
+          <h2>Transaksi Pending</h2>
+          <p>Tap transaksi untuk melanjutkan pembayaran.</p>
+        </div>
+        <label class="pending-search">
+          <input id="pending-popup-search" type="search" placeholder="Cari pelanggan / nota / item..." autocomplete="off" />
+          <span aria-hidden="true">⌕</span>
+        </label>
+        <div class="pending-list" id="pending-popup-list"></div>
+      </section>
+    </div>
+
+    <div class="modal-layer" id="add-customer-modal" hidden>
+      <section class="modal-card add-customer-card" aria-label="Tambah pelanggan">
+        <h2>Tambah Pelanggan</h2>
+        <p>Form contoh untuk visualisasi tablet kasir.</p>
+        <div class="add-form">
+          <label>
+            Nama Pelanggan
+            <input type="text" placeholder="Nama pelanggan" />
+          </label>
+          <label>
+            Nomor HP
+            <input type="tel" placeholder="08xx xxxx xxxx" />
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-secondary" id="cancel-add-customer" type="button">Batal</button>
+          <button class="modal-primary" id="save-add-customer" type="button">Simpan Pelanggan</button>
+        </div>
+      </section>
+    </div>
+
+    <div class="modal-layer" id="edit-umum-modal" hidden>
+      <section class="modal-card add-customer-card" aria-label="Edit pelanggan umum">
+        <h2>Edit Pelanggan</h2>
+        <p>Ubah nama dan nomor HP pelanggan UMUM.</p>
+        <div class="add-form">
+          <label>
+            Nama Pelanggan
+            <input id="edit-umum-name" type="text" placeholder="Nama pelanggan" />
+          </label>
+          <label>
+            Nomor HP
+            <input id="edit-umum-phone" type="tel" placeholder="08xx xxxx xxxx" />
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-secondary" id="cancel-edit-umum" type="button">Batal</button>
+          <button class="modal-primary" id="save-edit-umum" type="button">Simpan</button>
+        </div>
+      </section>
+    </div>
+
