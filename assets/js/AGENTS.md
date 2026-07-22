@@ -23,6 +23,13 @@ The application currently uses shared in-memory state. A mutating operation must
 
 DOM IDs and `data-*` attributes form the contract with `partials/` and `core/events.js`. Search for all consumers before renaming one.
 
+## Membership branch contract
+
+- `customer.memberBranch` is the member's registered or issuing branch. Leave it empty for non-members.
+- A transaction only counts as using membership when it has a positive `reward` or an item marked `memberFree`/`memberUpgrade`.
+- When membership is used, copy `memberBranch` into both the transaction snapshot and the affected line item. Do not infer membership usage merely because the customer is a member.
+- Sales, pending drafts, receipt snapshots, and CMS history must read the stored transaction branch first so historical records do not change when a customer profile is edited later.
+
 ## Validation
 
 Run:

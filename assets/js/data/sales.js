@@ -1,13 +1,13 @@
 const salesTransactions = [
   {
-    id: "POS-088046", time: "11:42", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Dewi Anggraini", staff: "Wira", amount: 936000, payment: "Tunai",
+    id: "POS-088046", time: "11:42", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Dewi Anggraini", staff: "Wira", amount: 760000, payment: "Tunai",
     items: [
-      { name: "Hair Cut", qty: 1, price: 160000, staff: "Wira", type: "service" },
+      { name: "Hair Cut", qty: 1, price: 160000, staff: "Wira", type: "service", memberFree: true, memberBranch: "Cabang Kartini" },
       { name: "Creambath", qty: 1, price: 230000, staff: "Kartini", type: "service" },
       { name: "Vitamin Rambut", qty: 1, price: 80000, type: "product" },
       { name: "Hair Colour", qty: 1, price: 450000, staff: "Siska", type: "service" },
     ],
-    status: "Selesai", dp: 0, reward: 0,
+    status: "Selesai", dp: 0, reward: 160000, memberBranch: "Cabang Kartini",
   },
   {
     id: "POS-088045", time: "10:33", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Sapriti", staff: "Kartini", amount: 450000, payment: "QRIS",
@@ -68,11 +68,11 @@ const salesTransactions = [
     status: "Selesai", dp: 50000, reward: 0,
   },
   {
-    id: "POS-088038", time: "15:10", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Dewi Anggraini", staff: "Kartini", amount: 160000, payment: "Tunai",
+    id: "POS-088038", time: "15:10", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Dewi Anggraini", staff: "Kartini", amount: 0, payment: "Tunai",
     items: [
-      { name: "Gunting Rambut", qty: 1, price: 160000, staff: "Kartini", type: "service" },
+      { name: "Gunting Rambut", qty: 1, price: 160000, staff: "Kartini", type: "service", memberFree: true, memberBranch: "Cabang Kartini" },
     ],
-    status: "Selesai", dp: 0, reward: 160000,
+    status: "Selesai", dp: 0, reward: 160000, memberBranch: "Cabang Kartini",
   },
   {
     id: "POS-088037", time: "14:55", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Lia Kartika", staff: "Wira", amount: 60000, payment: "QRIS",
@@ -99,13 +99,13 @@ const salesTransactions = [
     status: "Selesai", dp: 100000, reward: 0,
   },
   {
-    id: "POS-088034", time: "11:40", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Siti Rahma", staff: "Wira", amount: 880000, payment: "Tunai",
+    id: "POS-088034", time: "11:40", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Siti Rahma", staff: "Wira", amount: 730000, payment: "Tunai",
     items: [
       { name: "Hair Colour", qty: 1, price: 450000, staff: "Wira", type: "service" },
-      { name: "Creambath", qty: 1, price: 230000, staff: "Kartini", type: "service" },
+      { name: "Creambath", qty: 1, price: 230000, staff: "Kartini", type: "service", memberFree: true, memberBranch: "Cabang Mulyosari" },
       { name: "Hair Spa", qty: 1, price: 280000, staff: "Nadya", type: "service" },
     ],
-    status: "Pending", dp: 0, reward: 0,
+    status: "Pending", dp: 0, reward: 230000, memberBranch: "Cabang Mulyosari",
   },
   {
     id: "POS-088033", time: "10:15", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Priscila Tan", staff: "Priscila", amount: 410000, payment: "QRIS",
@@ -116,11 +116,11 @@ const salesTransactions = [
     status: "Pending", dp: 0, reward: 0,
   },
   {
-    id: "POS-088032", time: "09:45", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Dewi Anggraini", staff: "Kartini", amount: 450000, payment: "Tunai",
+    id: "POS-088032", time: "09:45", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Dewi Anggraini", staff: "Kartini", amount: 150000, payment: "Tunai",
     items: [
-      { name: "Hair Colour", qty: 1, price: 450000, staff: "Kartini", type: "service" },
+      { name: "Hair Colour", qty: 1, price: 600000, staff: "Kartini", type: "service", memberUpgrade: true, memberUseAmount: 450000, memberBranch: "Cabang Kartini" },
     ],
-    status: "Pending", dp: 0, reward: 0,
+    status: "Pending", dp: 0, reward: 450000, memberBranch: "Cabang Kartini",
   },
   {
     id: "POS-088031", time: "09:10", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Nina Septiani", staff: "Priscila", amount: 750000, payment: "QRIS",
@@ -238,4 +238,3 @@ let salesPage = 1;
 const salesPerPage = 5;
 let salesSearchTerm = "";
 let selectedSalesId = null;
-

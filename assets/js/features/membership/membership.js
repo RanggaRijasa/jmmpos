@@ -50,6 +50,7 @@ function getMembershipUsageHistory(customer) {
           serviceName: getRewardName(reward),
           dateTime: formatMembershipHistoryDate(date, index),
           qty: 1,
+          branch: getCustomerMemberBranch(customer),
         })),
     )
     .slice(0, 12);
@@ -67,7 +68,7 @@ function renderMembershipList() {
         <article class="membership-row${selectedClass}" data-membership-id="${customer.id}">
           <div class="membership-row-info">
             <strong>${customer.name}</strong>
-            <span>${customer.phone}</span>
+            <span>${customer.phone}${getCustomerMemberBranch(customer) ? ` · ${getCustomerMemberBranch(customer)}` : ""}</span>
           </div>
           <div>${badge}</div>
           <span class="pending-row-amount">${customer.totalVisits} kunjungan</span>
@@ -116,7 +117,7 @@ function renderMembershipDetail(customerId) {
         <div class="membership-reward-card${readyClass}">
           <span>Saldo Member</span>
           <strong>${getRewardName(reward, { withMember: true })}</strong>
-          <small>${headline}</small>
+          <small>${headline} · ${getCustomerMemberBranch(customer)}</small>
           <div class="reward-progress-bar">${bars}</div>
         </div>
       `;
@@ -147,7 +148,7 @@ function renderMembershipUsageHistory(customer) {
         <article class="membership-usage-row">
           <div>
             <strong>${item.serviceName}</strong>
-            <span>${item.dateTime}</span>
+            <span>${item.dateTime} · ${item.branch}</span>
           </div>
           <b>(${item.qty})</b>
         </article>
@@ -160,4 +161,3 @@ function clearMembershipDetail() {
   selectedMembershipId = null;
   renderMembershipList();
 }
-

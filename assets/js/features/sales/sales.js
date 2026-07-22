@@ -29,7 +29,7 @@ function filteredSales() {
 
   if (salesSearchTerm) {
     result = result.filter((t) => {
-      const text = `${t.customer} ${t.id} ${t.staff}`.toLowerCase();
+      const text = `${t.customer} ${t.id} ${t.staff} ${getTransactionMemberBranch(t)}`.toLowerCase();
       return text.includes(salesSearchTerm);
     });
   }
@@ -102,6 +102,7 @@ function renderSalesList() {
   list.innerHTML = pageItems
     .map((t) => {
       const selectedClass = selectedSalesId === t.id ? " selected" : "";
+      const memberBranch = getTransactionMemberBranch(t);
       return `
         <article class="sales-row${selectedClass}" data-sales-id="${t.id}">
           <div class="sales-row-time">
@@ -111,6 +112,7 @@ function renderSalesList() {
           <div class="sales-row-info">
             <strong>${t.customer}</strong>
             <span>${t.staff} · ${t.id}</span>
+            ${memberBranch ? `<small class="member-branch-tag">Member · ${memberBranch}</small>` : ""}
           </div>
           <span class="payment-badge">${getPaymentIcon(t.payment)}${t.payment}</span>
           <span class="sales-row-amount">${formatMoney(t.amount)}</span>
@@ -149,6 +151,9 @@ function renderTransactionDetailItem(line, index) {
         : receiptItem.type === "product"
           ? `<span>Produk langsung</span>`
           : "";
+  const memberLine = receiptItem.memberFree || receiptItem.memberUpgrade
+    ? `<span>Pemakaian Member · ${receiptItem.memberBranch || "Cabang belum ditentukan"}</span>`
+    : "";
 
   return `
     <div class="detail-item-row">
@@ -156,7 +161,7 @@ function renderTransactionDetailItem(line, index) {
         <span>${receiptItem.qty}x ${receiptItem.name}</span>
         <strong>${formatReceiptAmount(receiptItem.baseTotal)}</strong>
       </div>
-      ${actionLines ? `<div class="detail-item-sublines">${actionLines}</div>` : ""}
+      ${actionLines || memberLine ? `<div class="detail-item-sublines">${actionLines}${memberLine}</div>` : ""}
     </div>
   `;
 }
@@ -182,9 +187,10 @@ function renderTransactionDetailContent(t, ids) {
     `;
   }
   if (t.reward > 0) {
+    const memberBranch = getTransactionMemberBranch(t);
     adjustmentsHtml += `
       <div class="detail-adjustment-row">
-        <span>Pemakaian Member</span>
+        <span>Pemakaian Member${memberBranch ? ` · ${memberBranch}` : ""}</span>
         <strong class="saving">- ${formatMoney(t.reward)}</strong>
       </div>
     `;
@@ -265,6 +271,7 @@ function renderPendingItemDetail(line) {
       <div class="pending-item-detail">
         <span>${line.qty}x ${line.name}</span>
         ${actionRows}
+        ${line.memberFree || line.memberUpgrade ? `<small class="member-branch-copy">Pemakaian Member · ${line.memberBranch || "Cabang belum ditentukan"}</small>` : ""}
       </div>
     `;
   }
@@ -291,7 +298,7 @@ function getPendingListHtml(term = "") {
     if (!term) return true;
     const lowerTerm = term.toLowerCase();
     const itemNames = t.items.map((item) => item.name).join(" ");
-    const text = `${t.id} ${t.customer} ${t.staff} ${itemNames}`.toLowerCase();
+    const text = `${t.id} ${t.customer} ${t.staff} ${itemNames} ${getTransactionMemberBranch(t)}`.toLowerCase();
     return text.includes(lowerTerm);
   });
 
@@ -305,12 +312,14 @@ function getPendingListHtml(term = "") {
 
   return pending
     .map((t) => {
+      const memberBranch = getTransactionMemberBranch(t);
       return `
         <article class="pending-row" data-pending-id="${t.id}">
           <div class="pending-row-header">
             <div class="pending-row-info">
               <span class="pending-customer">${t.customer}</span>
               <small>${t.staff} · ${t.id}</small>
+              ${memberBranch ? `<small class="member-branch-tag">Member · ${memberBranch}</small>` : ""}
             </div>
             <div class="pending-row-meta">
               <span class="pending-row-status">Pending</span>
@@ -360,6 +369,16 @@ function loadPendingTransaction(id) {
           const serviceLine = serviceCartLines[serviceCartLines.length - 1];
           serviceLine.actionStaffs = createActionStaffs(serviceLine, line.staff || t.staff || "");
           syncServiceStaffSummary(serviceLine);
+          if (line.memberFree || line.memberUpgrade) {
+            const reward = getMemberRewardForService(catalogItem.id, selectedCustomer);
+            const rewardId = line.memberUsageRewardId || (reward ? getRewardId(reward) : "");
+            serviceLine.memberFree = Boolean(line.memberFree);
+            serviceLine.memberUpgrade = Boolean(line.memberUpgrade);
+            serviceLine.memberUseAmount = line.memberUseAmount || catalogItem.price;
+            serviceLine.memberUsageRewardId = rewardId;
+            serviceLine.memberBranch = line.memberBranch || getTransactionMemberBranch(t);
+            if (rewardId) memberUsage[rewardId] = getMemberUsed(rewardId) + 1;
+          }
         }
       }
     } else if (catalogItem.type === "member") {
@@ -391,4 +410,3 @@ function loadPendingTransaction(id) {
   setView("pos-view");
   showToast(`Draft ${t.id} dimuat ke POS`);
 }
-

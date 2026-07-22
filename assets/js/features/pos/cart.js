@@ -255,6 +255,26 @@ function getCustomerRewards(customer) {
   return [];
 }
 
+function getCustomerMemberBranch(customer) {
+  if (!customer || customer.type === "non-member" || customer.status === "Non Member") return "";
+  return customer.memberBranch || "Cabang belum ditentukan";
+}
+
+function transactionUsesMember(transaction) {
+  return Boolean(
+    transaction?.reward > 0 ||
+      transaction?.items?.some((item) => item.memberFree || item.memberUpgrade || item.memberUsageRewardId),
+  );
+}
+
+function getTransactionMemberBranch(transaction) {
+  if (!transactionUsesMember(transaction)) return "";
+  const itemBranch = transaction.items?.find((item) => item.memberBranch)?.memberBranch;
+  if (transaction.memberBranch || itemBranch) return transaction.memberBranch || itemBranch;
+  const customer = customers.find((entry) => entry.name === transaction.customer);
+  return getCustomerMemberBranch(customer);
+}
+
 function getMembershipPlan(planId) {
   return membershipPlans.find((plan) => plan.id === planId) || null;
 }
@@ -370,7 +390,7 @@ function decreaseMemberUsage(rewardId) {
 function getRewardText(customer) {
   const reward = getFirstReward(customer);
   if (!reward) return "Benefit member belum aktif";
-  return `${getRewardName(reward)}: ${reward.progress}/${reward.target} tersisa`;
+  return `${getRewardName(reward)} · ${getCustomerMemberBranch(customer)}: ${reward.progress}/${reward.target} tersisa`;
 }
 
 function renderRewardMeter(customer, mode = "normal") {
@@ -396,7 +416,7 @@ function renderRewardMeter(customer, mode = "normal") {
     <div class="reward-meter ${mode} ${active > 0 ? "ready" : ""}">
       <span>Saldo Member</span>
       <strong>${getRewardName(reward)}</strong>
-      <small>${getRewardName(reward)} · ${headline}</small>
+      <small>${getRewardName(reward)} · ${getCustomerMemberBranch(customer)} · ${headline}</small>
       <div class="reward-dots" aria-label="${getRewardName(reward)} ${active} dari ${reward.target}">${dots}</div>
     </div>
   `;
@@ -412,6 +432,7 @@ function getAppliedReward(selected) {
   return {
     label: "Pemakaian Member",
     serviceName,
+    branch: getCustomerMemberBranch(selectedCustomer),
     amount: memberItems.reduce((sum, item) => sum + (item.memberUpgrade ? item.memberUseAmount || 0 : getLinePayable(item)), 0),
     itemIds: memberItems.map((item) => item.id),
   };
@@ -490,6 +511,7 @@ function cloneReceiptItem(item) {
     discountAmount: getLineDiscountAmount(item),
     memberFree: Boolean(item.memberFree),
     memberUpgrade: Boolean(item.memberUpgrade),
+    memberBranch: item.memberUsageRewardId ? getCustomerMemberBranch(selectedCustomer) : item.memberBranch || "",
     serviceLevel: item.serviceLevel?.name || "Normal",
     memberUseAmount: item.memberUseAmount || 0,
     actionStaffs,
@@ -511,6 +533,7 @@ function createReceiptSnapshot() {
     discountAmount: totals.discountAmount,
     reward: totals.reward,
     rewardAmount: totals.rewardAmount,
+    memberBranch: totals.reward?.branch || "",
     dp: totals.dp,
     total: totals.payable,
     cashReceived: selectedPayment === "Tunai" ? cashReceived : totals.payable,
@@ -556,10 +579,16 @@ function saveDraftTransaction() {
       price: item.price,
       staff: item.staff || "",
       type: item.type,
+      memberFree: Boolean(item.memberFree),
+      memberUpgrade: Boolean(item.memberUpgrade),
+      memberUsageRewardId: item.memberUsageRewardId || "",
+      memberUseAmount: item.memberUseAmount || 0,
+      memberBranch: item.memberUsageRewardId ? getCustomerMemberBranch(selectedCustomer) : "",
     })),
     status: "Pending",
     dp: totals.dp,
     reward: totals.rewardAmount,
+    memberBranch: totals.rewardAmount ? totals.reward?.branch || getCustomerMemberBranch(selectedCustomer) : "",
   };
 
   salesTransactions.unshift(transaction);
@@ -610,6 +639,9 @@ function transactionLineToReceiptItem(line, index) {
     discountRate: line.discountRate || 0,
     discountAmount: 0,
     memberFree: Boolean(line.memberFree),
+    memberUpgrade: Boolean(line.memberUpgrade),
+    memberUseAmount: line.memberUseAmount || 0,
+    memberBranch: line.memberBranch || "",
     staff: line.staff || "",
     actionStaffs: {},
   };
@@ -640,6 +672,7 @@ function createReceiptFromTransaction(transaction) {
     discountAmount,
     reward: rewardAmount ? { serviceName: "Pemakaian Member" } : null,
     rewardAmount,
+    memberBranch: getTransactionMemberBranch(transaction),
     dp,
     total: transaction.amount,
     cashReceived: transaction.payment === "Tunai" ? transaction.amount : 0,
@@ -671,9 +704,9 @@ function renderReceiptItem(item) {
         : "";
   const discountLine = item.discountRate ? `<div class="receipt-subline">Diskon : ${item.discountRate}%</div>` : "";
   const memberLine = item.memberUpgrade
-    ? `<div class="receipt-subline">Pemakaian Member · ${formatReceiptAmount(item.memberUseAmount || 0)}</div>`
+    ? `<div class="receipt-subline">Pemakaian Member · ${formatReceiptAmount(item.memberUseAmount || 0)}${item.memberBranch ? ` · ${item.memberBranch}` : ""}</div>`
     : item.memberFree
-      ? `<div class="receipt-subline">Pemakaian Member</div>`
+      ? `<div class="receipt-subline">Pemakaian Member${item.memberBranch ? ` · ${item.memberBranch}` : ""}</div>`
       : "";
   return `
     <div class="receipt-item">
@@ -695,7 +728,7 @@ function renderReceipt(receipt = lastReceipt) {
     ? `<div><span>Diskon</span><strong>- ${formatReceiptAmount(receipt.discountAmount)}</strong></div>`
     : "";
   const rewardRow = receipt.rewardAmount
-    ? `<div><span>Member</span><strong>- ${formatReceiptAmount(receipt.rewardAmount)}</strong></div>`
+    ? `<div><span>Member${receipt.memberBranch ? ` · ${receipt.memberBranch}` : ""}</span><strong>- ${formatReceiptAmount(receipt.rewardAmount)}</strong></div>`
     : "";
   const dpRow = receipt.dp ? `<div><span>DP</span><strong>- ${formatReceiptAmount(receipt.dp)}</strong></div>` : "";
 
@@ -710,6 +743,7 @@ function renderReceipt(receipt = lastReceipt) {
     <div class="receipt-meta">
       <div><span>#Dokumen</span><strong>${receipt.doc}</strong></div>
       <div><span>Pelanggan</span><strong>${receipt.customer}</strong></div>
+      ${receipt.memberBranch ? `<div><span>Cabang Member</span><strong>${receipt.memberBranch}</strong></div>` : ""}
       <div><span>Tanggal</span><strong>${receipt.date}</strong></div>
       <div><span>Jam</span><strong>${receipt.time}</strong></div>
       <div><span>Pembayaran</span><strong>${receipt.payment}</strong></div>
@@ -763,4 +797,3 @@ function prepareNextTransaction() {
   setPayment(selectedPayment);
   renderCart();
 }
-

@@ -199,7 +199,7 @@ function renderCart() {
                   </button>`
               }
               ${canUpgrade ? `<button class="service-level-select${item.memberUpgrade ? " active" : ""}" type="button" data-service-level-for="${item.id}">${item.memberUpgrade ? item.serviceLevel.name : "Upgrade"}</button>` : ""}
-              ${item.memberUpgrade ? `<span class="reward-note">1 kuota member · bayar selisih</span>` : reward?.itemIds?.includes(item.id) ? `<span class="reward-note">Kuota member dipakai</span>` : ""}
+              ${item.memberUpgrade ? `<span class="reward-note">1 kuota member · ${getCustomerMemberBranch(selectedCustomer)} · bayar selisih</span>` : reward?.itemIds?.includes(item.id) ? `<span class="reward-note">Kuota member dipakai · ${getCustomerMemberBranch(selectedCustomer)}</span>` : ""}
               ${discountMenu}
               ${serviceLevelMenu}
               ${staffMenu}
@@ -277,7 +277,7 @@ function renderConfirmationSummary(mode) {
     <div><span>Pelanggan</span><strong>${customerLabel}</strong></div>
     <div><span>Item</span><strong>${selected.length} item</strong></div>
     ${discountAmount ? `<div><span>Diskon Item</span><strong>- ${formatMoney(discountAmount)}</strong></div>` : ""}
-    ${rewardAmount ? `<div><span>Pemakaian Member</span><strong>${reward.serviceName} · - ${formatMoney(rewardAmount)}</strong></div>` : ""}
+    ${rewardAmount ? `<div><span>Pemakaian Member</span><strong>${reward.serviceName} · ${reward.branch} · - ${formatMoney(rewardAmount)}</strong></div>` : ""}
     ${customerDp ? `<div><span>DP Pelanggan</span><strong>- ${formatMoney(customerDp)}</strong></div>` : ""}
     <div class="modal-dp-row">
       <span>DP</span>
@@ -382,4 +382,3 @@ function closeConfirmation() {
   cashReceived = 0;
   cardNumber = "";
 }
-

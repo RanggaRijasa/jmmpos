@@ -61,6 +61,28 @@ button {
   cursor: pointer;
 }
 
+.member-branch-tag {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  min-height: 20px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--gold-dark) !important;
+  font-size: 10px !important;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.member-branch-copy {
+  display: block;
+  margin-top: 4px;
+  color: var(--gold-dark) !important;
+  font-size: 10px !important;
+  font-weight: 800;
+}
+
 .tablet-shell {
   width: 1366px;
   height: 900px;
