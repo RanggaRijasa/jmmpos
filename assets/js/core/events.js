@@ -5,6 +5,7 @@ function setView(id) {
   document.querySelectorAll(".view").forEach((view) => {
     view.classList.toggle("active", view.id === id);
   });
+  syncSalonBranchUi();
 
   if (id === "customer-list-view") {
     renderCustomerList();
@@ -30,6 +31,7 @@ function setView(id) {
     if (layout) layout.classList.toggle("collapsed", cmsSidebarCollapsed);
     window.scrollTo({ top: 0, left: 0 });
   }
+  if (id === "home-view") renderHomeOnlineStaff();
 }
 
 document.addEventListener("click", (event) => {
@@ -39,6 +41,26 @@ document.addEventListener("click", (event) => {
   const shouldKeepMemberListOpen = Boolean(event.target.closest(".item-card, .cart-qty button"));
   if (!event.target.closest("#customer-picker")) {
     closeCustomerPopovers({ keepBenefits: shouldKeepMemberListOpen });
+  }
+
+  if (event.target.closest("#manage-staff-presence")) {
+    openStaffPresenceModal(activeSalonBranch);
+    return;
+  }
+
+  if (event.target.closest("#close-staff-presence, #cancel-staff-presence")) {
+    closeStaffPresenceModal();
+    return;
+  }
+
+  if (event.target.closest("#save-staff-presence")) {
+    saveStaffPresence();
+    return;
+  }
+
+  if (event.target.id === "staff-presence-modal") {
+    closeStaffPresenceModal();
+    return;
   }
 
   const detailCustomer = event.target.closest("[data-detail-customer]");
@@ -245,7 +267,7 @@ document.addEventListener("click", (event) => {
   const discountButton = event.target.closest("[data-discount-for]");
   if (discountButton) {
     const item = serviceCartLines.find((entry) => entry.id === discountButton.dataset.discountFor);
-    if (!item || item.memberFree) return;
+    if (!item || item.memberFree || item.memberUpgrade) return;
     activeStaffMenu = null;
     activeStaffAction = null;
     activeDiscountMenu = activeDiscountMenu === discountButton.dataset.discountFor ? null : discountButton.dataset.discountFor;
@@ -273,16 +295,16 @@ document.addEventListener("click", (event) => {
     if (!item || !input) return;
     const raw = input.value.trim().replace(",", ".");
     const value = Number(raw);
-    if (Number.isNaN(value) || value <= 0 || value > 100) {
-      showToast("Masukkan angka diskon 1-100");
+    if (Number.isNaN(value) || value < 0 || value > 100) {
+      showToast("Masukkan angka diskon 0-100");
       return;
     }
-    const currentTotal = getLineDiscountRate(item);
-    if (currentTotal + value > 100) {
+    const fixedRate = getLineFixedDiscountRate(item);
+    if (fixedRate + value > 100) {
       showToast("Total diskon tidak boleh lebih dari 100%");
       return;
     }
-    item.discounts = [...(item.discounts || []), value];
+    item.discounts = value ? [value] : [];
     activeDiscountMenu = null;
     activeStaffMenu = null;
     activeStaffAction = null;
@@ -294,7 +316,7 @@ document.addEventListener("click", (event) => {
   if (clearDiscountsBadge) {
     const item = serviceCartLines.find((entry) => entry.id === clearDiscountsBadge.dataset.clearDiscounts);
     if (item) {
-      item.discounts = [];
+      applyDefaultServicePromotion(item);
       renderCart();
     }
     return;
@@ -352,6 +374,7 @@ document.addEventListener("click", (event) => {
         return;
       }
       lastReceipt = createReceiptSnapshot();
+      saveCompletedTransaction(lastReceipt);
       closeConfirmation();
       setReceiptReturn("pos-view");
       renderReceipt(lastReceipt);
@@ -527,6 +550,7 @@ document.addEventListener("click", (event) => {
     document.querySelector("#filter-time-from").value = "00:00";
     document.querySelector("#filter-time-to").value = "23:59";
     document.querySelector("#filter-payment").value = "";
+    document.querySelector("#filter-branch").value = "";
     document.querySelector("#filter-status").value = "";
     salesSearchTerm = "";
     const searchInput = document.querySelector(".sales-search input");
@@ -615,3 +639,34 @@ document.addEventListener("click", (event) => {
 
 });
 
+document.addEventListener("change", (event) => {
+  const presenceBranchSelect = event.target.closest("#staff-presence-branch");
+  if (presenceBranchSelect) {
+    setStaffPresenceDraftBranch(presenceBranchSelect.value);
+    return;
+  }
+
+  const presenceCheckbox = event.target.closest("[data-staff-presence-name]");
+  if (presenceCheckbox) {
+    toggleStaffPresenceDraft(presenceCheckbox.dataset.staffPresenceName, presenceCheckbox.checked);
+    return;
+  }
+
+  const branchSelect = event.target.closest("#pos-branch-select");
+  if (!branchSelect) return;
+  activeSalonBranch = salonBranches.some((branch) => branch.name === branchSelect.value)
+    ? branchSelect.value
+    : DEFAULT_SALON_BRANCH;
+  syncSalonBranchUi();
+  activeStaffMenu = null;
+  activeStaffAction = null;
+  renderCart();
+  showToast(`Cabang transaksi: ${activeSalonBranch}`);
+});
+
+document.addEventListener("input", (event) => {
+  const presenceSearch = event.target.closest("#staff-presence-search");
+  if (!presenceSearch) return;
+  staffPresenceSearchTerm = presenceSearch.value;
+  renderStaffPresenceList();
+});

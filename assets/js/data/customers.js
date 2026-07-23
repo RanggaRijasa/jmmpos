@@ -29,16 +29,16 @@ const customers = [
     phone: "0812 3456 7890",
     status: "Member",
     type: "member",
-    memberBranch: "Cabang Kartini",
+    frequentBranch: "Cabang Kartini",
     totalVisits: 18,
     lastVisit: "27 Jun 2026",
     reminderDate: "04 Jul 2026",
     dp: 0,
     rewards: [
-      { membershipId: "member-detok-rontok", progress: 4, target: 6 },
-      { serviceId: "cut", serviceName: "Gunting Rambut", progress: 10, target: 10 },
-      { serviceId: "colour", serviceName: "Hair Colour", progress: 7, target: 10 },
-      { serviceId: "cream", serviceName: "Creambath", progress: 4, target: 6 },
+      { membershipId: "member-detok-rontok", branch: "Cabang Kartini", progress: 4, target: 6 },
+      { serviceId: "cut", serviceName: "Gunting Rambut", branch: "Cabang Mulyosari", progress: 10, target: 10 },
+      { serviceId: "colour", serviceName: "Hair Colour", branch: "Cabang Citraland", progress: 7, target: 10 },
+      { serviceId: "cream", serviceName: "Creambath", branch: "Cabang Kartini", progress: 4, target: 6 },
     ],
   },
   {
@@ -48,13 +48,13 @@ const customers = [
     phone: "0813 2222 8899",
     status: "Member",
     type: "member",
-    memberBranch: "Cabang Mulyosari",
+    frequentBranch: "Cabang Mulyosari",
     totalVisits: 12,
     lastVisit: "20 Jun 2026",
     reminderDate: "27 Jun 2026",
     dp: 0,
     rewards: [
-      { serviceId: "cream", serviceName: "Creambath", progress: 6, target: 10 },
+      { serviceId: "cream", serviceName: "Creambath", branch: "Cabang Mulyosari", progress: 6, target: 10 },
     ],
   },
   {
@@ -77,14 +77,14 @@ const customers = [
     phone: "0852 5555 4477",
     status: "Member",
     type: "member",
-    memberBranch: "Cabang Kartini",
+    frequentBranch: "Cabang Kartini",
     totalVisits: 24,
     lastVisit: "18 Jun 2026",
     reminderDate: "25 Jun 2026",
     dp: 150000,
     rewards: [
-      { serviceId: "cut", serviceName: "Gunting Rambut", progress: 6, target: 6 },
-      { serviceId: "keratin", serviceName: "Keratin Treatment", progress: 4, target: 10 },
+      { serviceId: "cut", serviceName: "Gunting Rambut", branch: "Cabang Kartini", progress: 6, target: 6 },
+      { serviceId: "keratin", serviceName: "Keratin Treatment", branch: "Cabang Citraland", progress: 4, target: 10 },
     ],
   },
   {
@@ -94,13 +94,13 @@ const customers = [
     phone: "0819 7733 4466",
     status: "Member",
     type: "member",
-    memberBranch: "Cabang Citraland",
+    frequentBranch: "Cabang Citraland",
     totalVisits: 10,
     lastVisit: "17 Jun 2026",
     reminderDate: "24 Jun 2026",
     dp: 100000,
     rewards: [
-      { serviceId: "hairwash", serviceName: "Hair Wash", progress: 10, target: 10 },
+      { serviceId: "hairwash", serviceName: "Hair Wash", branch: "Cabang Citraland", progress: 10, target: 10 },
     ],
   },
   {
@@ -110,14 +110,14 @@ const customers = [
     phone: "0877 4040 7007",
     status: "Member",
     type: "member",
-    memberBranch: "Cabang Mulyosari",
+    frequentBranch: "Cabang Mulyosari",
     totalVisits: 16,
     lastVisit: "15 Jun 2026",
     reminderDate: "22 Jun 2026",
     dp: 50000,
     rewards: [
-      { serviceId: "keratin", serviceName: "Keratin Treatment", progress: 8, target: 10 },
-      { serviceId: "cream", serviceName: "Creambath", progress: 5, target: 6 },
+      { serviceId: "keratin", serviceName: "Keratin Treatment", branch: "Cabang Mulyosari", progress: 8, target: 10 },
+      { serviceId: "cream", serviceName: "Creambath", branch: "Cabang Kartini", progress: 5, target: 6 },
     ],
   },
   {
@@ -140,13 +140,13 @@ const customers = [
     phone: "0812 7788 4411",
     status: "Member",
     type: "member",
-    memberBranch: "Cabang Kartini",
+    frequentBranch: "Cabang Kartini",
     totalVisits: 8,
     lastVisit: "08 Jun 2026",
     reminderDate: "15 Jun 2026",
     dp: 0,
     rewards: [
-      { serviceId: "cream", serviceName: "Creambath", progress: 8, target: 10 },
+      { serviceId: "cream", serviceName: "Creambath", branch: "Cabang Kartini", progress: 8, target: 10 },
     ],
   },
   {
@@ -156,14 +156,14 @@ const customers = [
     phone: "0822 6060 9911",
     status: "Member",
     type: "member",
-    memberBranch: "Cabang Citraland",
+    frequentBranch: "Cabang Citraland",
     totalVisits: 20,
     lastVisit: "07 Jun 2026",
     reminderDate: "14 Jun 2026",
     dp: 0,
     rewards: [
-      { serviceId: "colour", serviceName: "Hair Colour", progress: 10, target: 10 },
-      { serviceId: "cut", serviceName: "Gunting Rambut", progress: 3, target: 6 },
+      { serviceId: "colour", serviceName: "Hair Colour", branch: "Cabang Citraland", progress: 10, target: 10 },
+      { serviceId: "cut", serviceName: "Gunting Rambut", branch: "Cabang Mulyosari", progress: 3, target: 6 },
     ],
   },
   {
@@ -186,12 +186,12 @@ const customers = [
     phone: "0813 9000 7711",
     status: "Member",
     type: "member",
-    memberBranch: "Cabang Mulyosari",
+    frequentBranch: "Cabang Mulyosari",
     totalVisits: 31,
     lastVisit: "02 Jun 2026",
     reminderDate: "09 Jun 2026",
     dp: 200000,
-    reward: { serviceId: "smoothing", serviceName: "Smoothing", progress: 7, target: 10 },
+    reward: { serviceId: "smoothing", serviceName: "Smoothing", branch: "Cabang Mulyosari", progress: 7, target: 10 },
   },
   {
     id: "salsa",
@@ -200,29 +200,84 @@ const customers = [
     phone: "0878 3311 2200",
     status: "Member",
     type: "member",
-    memberBranch: "Cabang Kartini",
+    frequentBranch: "Cabang Kartini",
     totalVisits: 5,
     lastVisit: "01 Jun 2026",
     reminderDate: "08 Jun 2026",
     dp: 0,
-    reward: { serviceId: "hairspa", serviceName: "Hair Spa", progress: 5, target: 6 },
+    reward: { serviceId: "hairspa", serviceName: "Hair Spa", branch: "Cabang Kartini", progress: 5, target: 6 },
   },
 ];
 
-const staffOptions = [
-  "Kartini",
-  "Wira",
-  "Siska",
-  "Priscila",
-  "Sapriti",
-  "Nadya",
-  "Dewi",
-  "Rani",
-  "Yuni",
-  "Laras",
-  "Tika",
-  "Mira",
+const salonBranches = [
+  { id: "kartini", name: "Cabang Kartini", code: "KARTINI", address: "Jl. Kartini No.100 Surabaya" },
+  { id: "mulyosari", name: "Cabang Mulyosari", code: "MULYOSARI", address: "Jl. Mulyosari No.88 Surabaya" },
+  { id: "citraland", name: "Cabang Citraland", code: "CITRALAND", address: "Jl. Puncak Indah Lontar No.5 Surabaya" },
 ];
+
+const DEFAULT_SALON_BRANCH = salonBranches[0].name;
+
+const staffDirectory = [
+  { id: "STF-001", name: "Kartini", phone: "0812 2400 5800", branch: "Cabang Kartini", specialty: "Hair Cut & Styling", status: "Aktif" },
+  { id: "STF-002", name: "Wira", phone: "0813 2537 5883", branch: "Cabang Mulyosari", specialty: "Colour & Treatment", status: "Aktif" },
+  { id: "STF-003", name: "Siska", phone: "0814 2674 5966", branch: "Cabang Citraland", specialty: "Beauty Care", status: "Aktif" },
+  { id: "STF-004", name: "Priscila", phone: "0815 2811 6049", branch: "Cabang Kartini", specialty: "Hair Cut & Styling", status: "Aktif" },
+  { id: "STF-005", name: "Sapriti", phone: "0816 2948 6132", branch: "Cabang Mulyosari", specialty: "Colour & Treatment", status: "Aktif" },
+  { id: "STF-006", name: "Nadya", phone: "0817 3085 6215", branch: "Cabang Citraland", specialty: "Beauty Care", status: "Aktif" },
+  { id: "STF-007", name: "Dewi", phone: "0818 3222 6298", branch: "Cabang Kartini", specialty: "Hair Cut & Styling", status: "Aktif" },
+  { id: "STF-008", name: "Rani", phone: "0812 3359 6381", branch: "Cabang Mulyosari", specialty: "Colour & Treatment", status: "Aktif" },
+  { id: "STF-009", name: "Yuni", phone: "0813 3496 6464", branch: "Cabang Citraland", specialty: "Beauty Care", status: "Aktif" },
+  { id: "STF-010", name: "Laras", phone: "0814 3633 6547", branch: "Cabang Kartini", specialty: "Hair Cut & Styling", status: "Aktif" },
+  { id: "STF-011", name: "Tika", phone: "0815 3770 6630", branch: "Cabang Mulyosari", specialty: "Colour & Treatment", status: "Cuti" },
+  { id: "STF-012", name: "Mira", phone: "0816 3907 6713", branch: "Cabang Citraland", specialty: "Beauty Care", status: "Aktif" },
+];
+
+const staffOptions = staffDirectory.map((staff) => staff.name);
+
+const staffPresence = {
+  Kartini: "Cabang Kartini",
+  Priscila: "Cabang Kartini",
+  Dewi: "Cabang Kartini",
+  Wira: "Cabang Kartini",
+  Sapriti: "Cabang Mulyosari",
+  Rani: "Cabang Mulyosari",
+  Siska: "Cabang Citraland",
+  Nadya: "Cabang Citraland",
+  Yuni: "Cabang Citraland",
+};
+
+function getSalonBranch(name = DEFAULT_SALON_BRANCH) {
+  return salonBranches.find((branch) => branch.name === name) || salonBranches[0];
+}
+
+function getStaffRecord(name) {
+  return staffDirectory.find((staff) => staff.name === name) || null;
+}
+
+function getStaffBranch(name) {
+  return getStaffRecord(name)?.branch || DEFAULT_SALON_BRANCH;
+}
+
+function getStaffPresenceBranch(name) {
+  return staffPresence[name] || "";
+}
+
+function isStaffOnlineAtBranch(name, branch) {
+  return getStaffPresenceBranch(name) === branch;
+}
+
+function getOnlineStaff(branch) {
+  return staffDirectory.filter((staff) => staff.status === "Aktif" && isStaffOnlineAtBranch(staff.name, branch));
+}
+
+function getStaffPresenceGroups(branch) {
+  const activeStaff = staffDirectory.filter((staff) => staff.status === "Aktif");
+  const online = activeStaff.filter((staff) => isStaffOnlineAtBranch(staff.name, branch));
+  const others = activeStaff
+    .filter((staff) => !isStaffOnlineAtBranch(staff.name, branch))
+    .sort((left, right) => Number(right.branch === branch) - Number(left.branch === branch) || left.name.localeCompare(right.name));
+  return { online, others };
+}
 
 const serviceActionMap = {
   cut: ["Cuci", "Potong", "Styling"],

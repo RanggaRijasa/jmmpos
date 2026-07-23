@@ -2,6 +2,31 @@ function formatMoney(value) {
   return formatter.format(value).replace(/\u00a0/g, " ");
 }
 
+function getTransactionBranch(transaction) {
+  return transaction?.branch || DEFAULT_SALON_BRANCH;
+}
+
+function getStaffChoiceMarkup(name) {
+  const assignedBranch = getStaffBranch(name);
+  const presenceBranch = getStaffPresenceBranch(name);
+  const onlineHere = presenceBranch === activeSalonBranch;
+  const helping = onlineHere && assignedBranch !== activeSalonBranch;
+  const detail = onlineHere
+    ? `${helping ? `Online di sini · asal ${assignedBranch.replace("Cabang ", "")}` : `Online di ${presenceBranch.replace("Cabang ", "")}`}`
+    : presenceBranch
+      ? `Online di ${presenceBranch.replace("Cabang ", "")} · asal ${assignedBranch.replace("Cabang ", "")}`
+      : `Asal ${assignedBranch.replace("Cabang ", "")}`;
+  return `<span class="staff-choice-copy"><strong>${onlineHere ? '<i class="staff-online-dot" aria-hidden="true"></i>' : ""}${name}${helping ? '<em class="staff-helping-tag">Bantuan</em>' : ""}</strong><small>${detail}</small></span>`;
+}
+
+function syncSalonBranchUi() {
+  const selector = document.querySelector("#pos-branch-select");
+  if (selector) selector.value = activeSalonBranch;
+  const homeLabel = document.querySelector("#home-branch-label");
+  if (homeLabel) homeLabel.textContent = activeSalonBranch;
+  if (typeof renderHomeOnlineStaff === "function") renderHomeOnlineStaff();
+}
+
 function blurNativeDateTimePicker() {
   const active = document.activeElement;
   if (active?.matches?.('input[type="date"], input[type="time"]')) {
@@ -19,7 +44,7 @@ function getServiceLineCount(itemId) {
 }
 
 function getServiceActions(item) {
-  const id = item.itemId || item.id;
+  const id = item.activeServiceId || item.itemId || item.id;
   return serviceActionMap[id] || ["Konsultasi", "Treatment", "Finishing"];
 }
 
@@ -85,7 +110,8 @@ function addServiceLine(item, options = {}) {
     itemId: item.id,
     qty: 1,
     staff: "",
-    discounts: [],
+    discounts: getServiceFlexibleDiscountRate(item) ? [getServiceFlexibleDiscountRate(item)] : [],
+    fixedDiscountRate: getServiceFixedDiscountRate(item),
     baseServicePrice: item.price,
     baseServiceName: item.name,
     serviceLevel: getServiceLevels(item)[0],
@@ -100,9 +126,7 @@ function addServiceLine(item, options = {}) {
 }
 
 function getServiceLevels(item) {
-  return Array.isArray(item?.levels) && item.levels.length
-    ? item.levels
-    : [{ id: "normal", name: "Normal", price: item?.price || 0 }];
+  return [{ id: "normal", name: "Normal", price: item?.baseServicePrice || item?.price || 0 }];
 }
 
 function getMemberRewardForService(serviceId, customer = selectedCustomer) {
@@ -117,13 +141,13 @@ function getMemberUnitPrice(reward) {
 
 function getServiceUpgradeOptions(item) {
   if (item.type !== "service" || !item.memberUsageRewardId) return [];
-  const basePrice = item.baseServicePrice || getServiceLevels(item).find((level) => level.id === "normal")?.price || item.price;
-  return getServiceLevels(item)
-    .filter((level) => level.id !== "normal")
-    .map((level) => ({
-      ...level,
-      topUp: Math.max(0, level.price - basePrice),
-    }));
+  const sourceId = item.itemId || item.id;
+  const source = items.find((entry) => entry.type === "service" && entry.id === sourceId);
+  const basePrice = item.baseServicePrice || source?.price || item.price;
+  return (source?.upgradeServiceIds || [])
+    .map((serviceId) => items.find((entry) => entry.type === "service" && entry.id === serviceId))
+    .filter(Boolean)
+    .map((service) => ({ id: service.id, itemId: service.id, name: service.name, price: service.price, topUp: Math.max(0, service.price - basePrice) }));
 }
 
 function releaseMemberUsage(line) {
@@ -131,15 +155,24 @@ function releaseMemberUsage(line) {
   if (!rewardId) return;
   memberUsage[rewardId] = Math.max(0, getMemberUsed(rewardId) - 1);
   delete line.memberUsageRewardId;
+  delete line.memberBranch;
   delete line.memberUseAmount;
   delete line.memberUpgrade;
   delete line.memberFree;
+  delete line.activeServiceId;
+  line.name = line.baseServiceName || line.name;
+  line.price = line.baseServicePrice || line.price;
+  line.serviceLevel = getServiceLevels(line)[0];
+  line.actionStaffs = createActionStaffs(line);
+  syncServiceStaffSummary(line);
+  applyDefaultServicePromotion(line);
 }
 
 function applyServiceLevel(line, levelId) {
-  const level = getServiceLevels(line).find((entry) => entry.id === levelId);
+  const baseLevel = getServiceLevels(line)[0];
+  const level = levelId === "normal" ? baseLevel : getServiceUpgradeOptions(line).find((entry) => entry.id === levelId);
   if (!level) return false;
-  const basePrice = line.baseServicePrice || getServiceLevels(line).find((entry) => entry.id === "normal")?.price || line.price;
+  const basePrice = line.baseServicePrice || baseLevel.price || line.price;
   const baseName = line.baseServiceName || line.name;
 
   if (level.id === "normal") {
@@ -149,6 +182,9 @@ function applyServiceLevel(line, levelId) {
     line.price = basePrice;
     line.name = baseName;
     line.discounts = [];
+    delete line.activeServiceId;
+    line.actionStaffs = createActionStaffs(line);
+    syncServiceStaffSummary(line);
     return true;
   }
 
@@ -157,8 +193,11 @@ function applyServiceLevel(line, levelId) {
   line.memberUseAmount = basePrice;
   line.serviceLevel = level;
   line.price = level.price;
-  line.name = level.id === "premium" ? `${baseName} Premium` : `${baseName} ${level.name}`;
+  line.name = level.name;
+  line.activeServiceId = level.itemId;
   line.discounts = [];
+  line.actionStaffs = createActionStaffs(line);
+  syncServiceStaffSummary(line);
   return true;
 }
 
@@ -177,8 +216,25 @@ function addMemberLine(item) {
     staff: "",
     price: item.price,
     fullPrice: item.price,
+    memberBranch: activeSalonBranch,
   });
   return true;
+}
+
+function getMembershipBonusSummary(bonuses = []) {
+  return bonuses
+    .filter((bonus) => bonus?.name && Number(bonus.qty) > 0)
+    .map((bonus) => `${Math.max(1, Number(bonus.qty) || 1)}x ${bonus.name}`)
+    .join(" + ");
+}
+
+function cloneMembershipBonuses(bonuses = []) {
+  return bonuses.map((bonus) => ({
+    type: bonus.type === "service" ? "service" : "product",
+    itemId: bonus.itemId || "",
+    name: bonus.name || "",
+    qty: Math.max(1, Number(bonus.qty) || 1),
+  }));
 }
 
 function increaseItem(item) {
@@ -209,10 +265,16 @@ function clearMemberUsage() {
   serviceCartLines.forEach((line) => {
     delete line.memberFree;
     delete line.memberUsageRewardId;
+    delete line.memberBranch;
     delete line.memberUseAmount;
     delete line.memberUpgrade;
+    delete line.activeServiceId;
     line.serviceLevel = getServiceLevels(line)[0];
     line.price = line.baseServicePrice || line.price;
+    line.name = line.baseServiceName || line.name;
+    line.actionStaffs = createActionStaffs(line);
+    syncServiceStaffSummary(line);
+    applyDefaultServicePromotion(line);
   });
   Object.keys(memberUsage).forEach((key) => {
     delete memberUsage[key];
@@ -235,6 +297,10 @@ function resetCart() {
 }
 
 function findCatalogItem(line) {
+  if (line?.itemId) {
+    const byId = items.find((item) => item.type === line.type && item.id === line.itemId);
+    if (byId) return byId;
+  }
   const aliases = {
     "Hair Cut": "Gunting Rambut",
   };
@@ -255,9 +321,23 @@ function getCustomerRewards(customer) {
   return [];
 }
 
-function getCustomerMemberBranch(customer) {
+function getCustomerFrequentBranch(customer) {
   if (!customer || customer.type === "non-member" || customer.status === "Non Member") return "";
-  return customer.memberBranch || "Cabang belum ditentukan";
+  return customer.frequentBranch || customer.memberBranch || "Belum ditentukan";
+}
+
+function getRewardBranch(reward, customer) {
+  if (!reward) return "";
+  return reward.branch || customer?.memberBranch || customer?.frequentBranch || "Cabang belum ditentukan";
+}
+
+function getCustomerMembershipBranches(customer) {
+  return [...new Set(getCustomerRewards(customer).map((reward) => getRewardBranch(reward, customer)).filter(Boolean))];
+}
+
+function getMemberUsageBranch(rewardId, customer = selectedCustomer) {
+  const reward = getCustomerRewards(customer).find((entry) => getRewardId(entry) === rewardId);
+  return getRewardBranch(reward, customer);
 }
 
 function transactionUsesMember(transaction) {
@@ -272,7 +352,8 @@ function getTransactionMemberBranch(transaction) {
   const itemBranch = transaction.items?.find((item) => item.memberBranch)?.memberBranch;
   if (transaction.memberBranch || itemBranch) return transaction.memberBranch || itemBranch;
   const customer = customers.find((entry) => entry.name === transaction.customer);
-  return getCustomerMemberBranch(customer);
+  const branches = getCustomerMembershipBranches(customer);
+  return branches.length === 1 ? branches[0] : "";
 }
 
 function getMembershipPlan(planId) {
@@ -339,6 +420,7 @@ function increaseMemberUsage(rewardId) {
     serviceLine.memberUpgrade = false;
     serviceLine.memberUseAmount = serviceLine.price;
     serviceLine.memberUsageRewardId = rewardId;
+    serviceLine.memberBranch = getRewardBranch(reward, selectedCustomer);
     serviceLine.discounts = [];
   } else {
     const service = items.find((item) => item.id === serviceId && item.type === "service");
@@ -352,6 +434,7 @@ function increaseMemberUsage(rewardId) {
     const added = addServiceLine(service, {
       memberFree: true,
       memberUsageRewardId: rewardId,
+      memberBranch: getRewardBranch(reward, selectedCustomer),
       memberUseAmount: service.price,
       discounts: [],
     });
@@ -378,11 +461,16 @@ function decreaseMemberUsage(rewardId) {
 
   delete serviceCartLines[lineIndex].memberFree;
   delete serviceCartLines[lineIndex].memberUsageRewardId;
+  delete serviceCartLines[lineIndex].memberBranch;
   delete serviceCartLines[lineIndex].memberUseAmount;
   delete serviceCartLines[lineIndex].memberUpgrade;
+  delete serviceCartLines[lineIndex].activeServiceId;
   serviceCartLines[lineIndex].serviceLevel = getServiceLevels(serviceCartLines[lineIndex])[0];
   serviceCartLines[lineIndex].price = serviceCartLines[lineIndex].baseServicePrice || serviceCartLines[lineIndex].price;
   serviceCartLines[lineIndex].name = serviceCartLines[lineIndex].baseServiceName || serviceCartLines[lineIndex].name;
+  serviceCartLines[lineIndex].actionStaffs = createActionStaffs(serviceCartLines[lineIndex]);
+  syncServiceStaffSummary(serviceCartLines[lineIndex]);
+  applyDefaultServicePromotion(serviceCartLines[lineIndex]);
   memberUsage[rewardId] = Math.max(0, used - 1);
   return true;
 }
@@ -390,7 +478,7 @@ function decreaseMemberUsage(rewardId) {
 function getRewardText(customer) {
   const reward = getFirstReward(customer);
   if (!reward) return "Benefit member belum aktif";
-  return `${getRewardName(reward)} · ${getCustomerMemberBranch(customer)}: ${reward.progress}/${reward.target} tersisa`;
+  return `${getRewardName(reward)} · ${getRewardBranch(reward, customer)}: ${reward.progress}/${reward.target} tersisa`;
 }
 
 function renderRewardMeter(customer, mode = "normal") {
@@ -416,7 +504,7 @@ function renderRewardMeter(customer, mode = "normal") {
     <div class="reward-meter ${mode} ${active > 0 ? "ready" : ""}">
       <span>Saldo Member</span>
       <strong>${getRewardName(reward)}</strong>
-      <small>${getRewardName(reward)} · ${getCustomerMemberBranch(customer)} · ${headline}</small>
+      <small>${getRewardName(reward)} · ${getRewardBranch(reward, customer)} · ${headline}</small>
       <div class="reward-dots" aria-label="${getRewardName(reward)} ${active} dari ${reward.target}">${dots}</div>
     </div>
   `;
@@ -428,11 +516,12 @@ function getAppliedReward(selected) {
 
   const serviceNames = [...new Set(memberItems.map((item) => item.name))];
   const serviceName = serviceNames.length === 1 ? serviceNames[0] : `${memberItems.length} jasa`;
+  const branches = [...new Set(memberItems.map((item) => item.memberBranch || getMemberUsageBranch(item.memberUsageRewardId)).filter(Boolean))];
 
   return {
     label: "Pemakaian Member",
     serviceName,
-    branch: getCustomerMemberBranch(selectedCustomer),
+    branch: branches.join(" · "),
     amount: memberItems.reduce((sum, item) => sum + (item.memberUpgrade ? item.memberUseAmount || 0 : getLinePayable(item)), 0),
     itemIds: memberItems.map((item) => item.id),
   };
@@ -443,8 +532,40 @@ function getLineDiscounts(item) {
   return Array.isArray(item.discounts) ? item.discounts : [];
 }
 
-function getLineDiscountRate(item) {
+function getServiceFixedDiscountRate(item) {
+  return Math.min(100, Math.max(0, Number(item?.promotion?.fixedRate) || 0));
+}
+
+function getServiceFlexibleDiscountRate(item) {
+  return Math.min(100, Math.max(0, Number(item?.promotion?.flexibleRate) || 0));
+}
+
+function applyDefaultServicePromotion(item) {
+  item.fixedDiscountRate = getServiceFixedDiscountRate(item);
+  const flexibleRate = getServiceFlexibleDiscountRate(item);
+  item.discounts = flexibleRate ? [flexibleRate] : [];
+}
+
+function getLineFixedDiscountRate(item) {
+  if (item.type !== "service" || item.memberFree || item.memberUpgrade) return 0;
+  return Math.min(100, Math.max(0, Number(item.fixedDiscountRate) || 0));
+}
+
+function getLineFlexibleDiscountRate(item) {
   return Math.min(100, getLineDiscounts(item).reduce((sum, rate) => sum + rate, 0));
+}
+
+function getLinePromotionLabel(item) {
+  const fixed = getLineFixedDiscountRate(item);
+  const flexible = getLineFlexibleDiscountRate(item);
+  if (fixed && flexible) return `Promo ${fixed}% pasti + ${flexible}%`;
+  if (fixed) return `Promo ${fixed}% pasti`;
+  if (flexible) return `Diskon ${flexible}%`;
+  return "";
+}
+
+function getLineDiscountRate(item) {
+  return Math.min(100, getLineFixedDiscountRate(item) + getLineFlexibleDiscountRate(item));
 }
 
 function getLineBaseTotal(item) {
@@ -483,15 +604,18 @@ function getReceiptDateParts(date = new Date()) {
   const hour = pad(date.getHours());
   const minute = pad(date.getMinutes());
   const second = pad(date.getSeconds());
+  const branch = getSalonBranch(activeSalonBranch);
+  const dateCode = `${String(year).slice(-2)}${month}${day}`;
+  const sequence = salesTransactions.filter((transaction) => transaction.id.startsWith(`${branch.code}.${dateCode}`)).length + 1;
   return {
-    doc: `KARTINI.${String(year).slice(-2)}${month}${day}001`,
+    doc: `${branch.code}.${dateCode}${String(sequence).padStart(3, "0")}`,
     date: `${day}-${month}-${year}`,
     time: `${hour}:${minute}:${second}`,
   };
 }
 
 function getReceiptActionLabel(action, item) {
-  if ((item.itemId || item.id) === "cut" && action === "Potong") return "Hair cutting";
+  if ((item.activeServiceId || item.itemId || item.id) === "cut" && action === "Potong") return "Hair cutting";
   return action;
 }
 
@@ -500,6 +624,7 @@ function cloneReceiptItem(item) {
   return {
     id: item.id,
     itemId: item.itemId || item.id,
+    activeServiceId: item.activeServiceId || "",
     type: item.type,
     label: item.label,
     name: item.name,
@@ -509,13 +634,16 @@ function cloneReceiptItem(item) {
     payable: getLinePayable(item),
     discountRate: getLineDiscountRate(item),
     discountAmount: getLineDiscountAmount(item),
+    fixedDiscountRate: getLineFixedDiscountRate(item),
+    flexibleDiscountRate: getLineFlexibleDiscountRate(item),
     memberFree: Boolean(item.memberFree),
     memberUpgrade: Boolean(item.memberUpgrade),
-    memberBranch: item.memberUsageRewardId ? getCustomerMemberBranch(selectedCustomer) : item.memberBranch || "",
+    memberBranch: item.memberBranch || getMemberUsageBranch(item.memberUsageRewardId) || "",
     serviceLevel: item.serviceLevel?.name || "Normal",
     memberUseAmount: item.memberUseAmount || 0,
     actionStaffs,
     staff: item.staff,
+    bonuses: cloneMembershipBonuses(item.bonuses),
   };
 }
 
@@ -527,6 +655,7 @@ function createReceiptSnapshot() {
     ...dateParts,
     status: "Selesai",
     customer: selectedCustomer?.name || "UMUM",
+    branch: activeSalonBranch,
     payment: selectedPayment,
     items: totals.selected.map(cloneReceiptItem),
     subtotal: totals.subtotal,
@@ -575,22 +704,72 @@ function saveDraftTransaction() {
     payment: selectedPayment,
     items: totals.selected.map((item) => ({
       name: item.name,
+      itemId: item.itemId || item.id,
+      activeServiceId: item.activeServiceId || "",
       qty: item.qty,
       price: item.price,
       staff: item.staff || "",
+      actionStaffs: item.type === "service" ? normalizeActionStaffs(item) : {},
       type: item.type,
       memberFree: Boolean(item.memberFree),
       memberUpgrade: Boolean(item.memberUpgrade),
       memberUsageRewardId: item.memberUsageRewardId || "",
       memberUseAmount: item.memberUseAmount || 0,
-      memberBranch: item.memberUsageRewardId ? getCustomerMemberBranch(selectedCustomer) : "",
+      memberBranch: item.memberBranch || getMemberUsageBranch(item.memberUsageRewardId) || "",
+      bonuses: cloneMembershipBonuses(item.bonuses),
+      discountRate: getLineDiscountRate(item),
+      fixedDiscountRate: getLineFixedDiscountRate(item),
+      flexibleDiscountRate: getLineFlexibleDiscountRate(item),
     })),
     status: "Pending",
+    branch: activeSalonBranch,
     dp: totals.dp,
     reward: totals.rewardAmount,
-    memberBranch: totals.rewardAmount ? totals.reward?.branch || getCustomerMemberBranch(selectedCustomer) : "",
+    memberBranch: totals.rewardAmount ? totals.reward?.branch || "" : "",
   };
 
+  salesTransactions.unshift(transaction);
+  return transaction;
+}
+
+function saveCompletedTransaction(receipt) {
+  const [day, month, year] = receipt.date.split("-");
+  const dateRaw = `${year}-${month}-${day}`;
+  const primaryService = receipt.items.find((item) => item.type === "service");
+  const primaryStaff = Object.values(primaryService?.actionStaffs || {}).flat().find(Boolean) || primaryService?.staff || receipt.customer;
+  const transaction = {
+    id: receipt.doc,
+    time: receipt.time.slice(0, 5),
+    date: formatIndonesianDate(new Date(`${dateRaw}T00:00:00`)),
+    dateRaw,
+    customer: receipt.customer,
+    staff: primaryStaff,
+    branch: receipt.branch,
+    amount: receipt.total,
+    payment: receipt.payment,
+    items: receipt.items.map((item) => ({
+      name: item.name,
+      itemId: item.itemId || item.id,
+      activeServiceId: item.activeServiceId || "",
+      qty: item.qty,
+      price: item.price,
+      staff: item.staff || "",
+      actionStaffs: item.actionStaffs || {},
+      type: item.type,
+      memberFree: Boolean(item.memberFree),
+      memberUpgrade: Boolean(item.memberUpgrade),
+      memberUseAmount: item.memberUseAmount || 0,
+      memberBranch: item.memberBranch || "",
+      bonuses: cloneMembershipBonuses(item.bonuses),
+      discountRate: item.discountRate || 0,
+      fixedDiscountRate: item.fixedDiscountRate || 0,
+      flexibleDiscountRate: item.flexibleDiscountRate || 0,
+    })),
+    status: "Selesai",
+    dp: receipt.dp,
+    reward: receipt.rewardAmount,
+    memberBranch: receipt.memberBranch || "",
+  };
   salesTransactions.unshift(transaction);
   return transaction;
 }
@@ -629,6 +808,7 @@ function transactionLineToReceiptItem(line, index) {
   const receiptItem = {
     id: `${itemId}-${index}`,
     itemId,
+    activeServiceId: line.activeServiceId || "",
     type: line.type,
     label: line.type === "service" ? "Jasa" : line.type === "member" ? "Member" : "Produk",
     name: line.name,
@@ -638,15 +818,18 @@ function transactionLineToReceiptItem(line, index) {
     payable: qty * price,
     discountRate: line.discountRate || 0,
     discountAmount: 0,
+    fixedDiscountRate: line.fixedDiscountRate || 0,
+    flexibleDiscountRate: line.flexibleDiscountRate || 0,
     memberFree: Boolean(line.memberFree),
     memberUpgrade: Boolean(line.memberUpgrade),
     memberUseAmount: line.memberUseAmount || 0,
     memberBranch: line.memberBranch || "",
     staff: line.staff || "",
-    actionStaffs: {},
+    actionStaffs: line.actionStaffs || {},
+    bonuses: cloneMembershipBonuses(line.bonuses),
   };
 
-  if (line.type === "service") {
+  if (line.type === "service" && !Object.keys(receiptItem.actionStaffs).length) {
     receiptItem.actionStaffs = createActionStaffs({ itemId }, line.staff || "");
   }
 
@@ -666,6 +849,7 @@ function createReceiptFromTransaction(transaction) {
     time: `${transaction.time}:00`,
     status: transaction.status,
     customer: transaction.customer,
+    branch: getTransactionBranch(transaction),
     payment: transaction.payment,
     items: itemsForReceipt,
     subtotal,
@@ -702,12 +886,20 @@ function renderReceiptItem(item) {
       : item.type === "member" && item.staff
         ? `<div class="receipt-subline">Petugas By : ${item.staff}</div>`
         : "";
-  const discountLine = item.discountRate ? `<div class="receipt-subline">Diskon : ${item.discountRate}%</div>` : "";
+  const discountLine = item.discountRate
+    ? `<div class="receipt-subline">${item.fixedDiscountRate ? `Promo pasti ${item.fixedDiscountRate}%` : "Diskon"}${item.flexibleDiscountRate ? ` + tambahan ${item.flexibleDiscountRate}%` : ""} · total ${item.discountRate}%</div>`
+    : "";
   const memberLine = item.memberUpgrade
     ? `<div class="receipt-subline">Pemakaian Member · ${formatReceiptAmount(item.memberUseAmount || 0)}${item.memberBranch ? ` · ${item.memberBranch}` : ""}</div>`
     : item.memberFree
       ? `<div class="receipt-subline">Pemakaian Member${item.memberBranch ? ` · ${item.memberBranch}` : ""}</div>`
       : "";
+  const bonusLine = item.type === "member" && item.bonuses?.length
+    ? `<div class="receipt-subline">Bonus paket: ${getMembershipBonusSummary(item.bonuses)}</div>`
+    : "";
+  const membershipBranchLine = item.type === "member" && item.memberBranch
+    ? `<div class="receipt-subline">Cabang Membership: ${item.memberBranch}</div>`
+    : "";
   return `
     <div class="receipt-item">
       <div class="receipt-item-main">
@@ -717,6 +909,8 @@ function renderReceiptItem(item) {
       ${actionLines}
       ${discountLine}
       ${memberLine}
+      ${membershipBranchLine}
+      ${bonusLine}
     </div>
   `;
 }
@@ -732,10 +926,12 @@ function renderReceipt(receipt = lastReceipt) {
     : "";
   const dpRow = receipt.dp ? `<div><span>DP</span><strong>- ${formatReceiptAmount(receipt.dp)}</strong></div>` : "";
 
+  const transactionBranch = getSalonBranch(receipt.branch);
   target.innerHTML = `
     <div class="receipt-shop">
       <h2>JMM Salon</h2>
-      <p>Jl. Kartini No.100 Surabaya</p>
+      <p>${transactionBranch.name}</p>
+      <p>${transactionBranch.address}</p>
       <p>Telpon / Whatsapp: 0851 3788 0880</p>
       <p>Instagram: @jmmsalon_kartinisby</p>
     </div>
@@ -743,7 +939,8 @@ function renderReceipt(receipt = lastReceipt) {
     <div class="receipt-meta">
       <div><span>#Dokumen</span><strong>${receipt.doc}</strong></div>
       <div><span>Pelanggan</span><strong>${receipt.customer}</strong></div>
-      ${receipt.memberBranch ? `<div><span>Cabang Member</span><strong>${receipt.memberBranch}</strong></div>` : ""}
+      <div><span>Cabang Transaksi</span><strong>${transactionBranch.name}</strong></div>
+      ${receipt.memberBranch ? `<div><span>Cabang Membership</span><strong>${receipt.memberBranch}</strong></div>` : ""}
       <div><span>Tanggal</span><strong>${receipt.date}</strong></div>
       <div><span>Jam</span><strong>${receipt.time}</strong></div>
       <div><span>Pembayaran</span><strong>${receipt.payment}</strong></div>

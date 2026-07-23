@@ -54,14 +54,14 @@ function renderCustomer() {
   }
 
   summary.classList.remove("empty");
-  const memberBranch = getCustomerMemberBranch(selectedCustomer);
+  const frequentBranch = getCustomerFrequentBranch(selectedCustomer);
   summary.innerHTML = `
     <span>Pelanggan</span>
     <div class="customer-title-row">
       <strong>${selectedCustomer.name}</strong>
       ${selectedCustomer.id === "umum" ? `<button class="customer-edit" type="button" data-edit-umum>Edit</button>` : ""}
     </div>
-    <small>${selectedCustomer.phone}${memberBranch ? ` · ${memberBranch}` : ""}</small>
+    <small>${selectedCustomer.phone}${frequentBranch ? ` · Sering: ${frequentBranch}` : ""}</small>
   `;
   const rewards = getCustomerRewards(selectedCustomer);
   const hasBenefits = rewards.length > 0;
@@ -97,7 +97,7 @@ function renderMemberBenefitsDropdown(customer) {
           const isUsed = used > 0;
           return `
             <div class="member-list-row${isUsed ? " ready" : ""}">
-              <span>${getRewardName(reward, { withMember: true })} · ${getCustomerMemberBranch(customer)} · ${remaining}/${reward.target}</span>
+              <span>${getRewardName(reward, { withMember: true })} · ${getRewardBranch(reward, customer)} · ${remaining}/${reward.target}</span>
               <span class="member-list-stepper">
                 <button type="button" data-member-service="${rewardId}" data-member-delta="-1" ${used <= 0 ? "disabled" : ""}>−</button>
                 <b>${used}</b>
@@ -127,7 +127,7 @@ function renderCustomerDropdown() {
 
   const filtered = customers.filter((customer) => {
     if (!dropdownSearchTerm) return true;
-    const keyword = `${customer.name} ${customer.phone}`.toLowerCase();
+    const keyword = `${customer.name} ${customer.phone} ${getCustomerFrequentBranch(customer)}`.toLowerCase();
     return keyword.includes(dropdownSearchTerm);
   });
 
@@ -162,7 +162,7 @@ function renderCustomerDropdown() {
         <button class="customer-option${activeClass}" type="button" data-customer="${customer.id}">
           <span>
             <strong>${customer.name}</strong>
-            <small>${customer.phone}${getCustomerMemberBranch(customer) ? ` · ${getCustomerMemberBranch(customer)}` : ""}</small>
+            <small>${customer.phone}${getCustomerFrequentBranch(customer) ? ` · Sering: ${getCustomerFrequentBranch(customer)}` : ""}</small>
           </span>
           ${
             customer.type === "non-member"
@@ -181,7 +181,7 @@ function renderCustomerList() {
   if (!list) return;
 
   const filtered = customers.filter((customer) => {
-    const keyword = `${customer.code} ${customer.name} ${customer.phone} ${customer.status}`.toLowerCase();
+    const keyword = `${customer.code} ${customer.name} ${customer.phone} ${customer.status} ${getCustomerFrequentBranch(customer)}`.toLowerCase();
     return keyword.includes(customerSearchTerm);
   });
 
@@ -204,7 +204,7 @@ function renderCustomerList() {
             <strong>${customer.name}</strong>
             <small>${customer.phone}</small>
           </div>
-          <div>${getCustomerBadge(customer)}${getCustomerMemberBranch(customer) ? `<small class="member-branch-copy">${getCustomerMemberBranch(customer)}</small>` : ""}</div>
+          <div>${getCustomerBadge(customer)}${getCustomerFrequentBranch(customer) ? `<small class="member-branch-copy">Sering: ${getCustomerFrequentBranch(customer)}</small>` : ""}</div>
           <span class="last-visit">${customer.lastVisit}</span>
           <button class="table-action" type="button" data-detail-customer="${customer.id}">Lihat Detail</button>
         </article>
@@ -231,7 +231,7 @@ function renderCustomerMemberSummary(customer) {
         .map(
           (reward) => `
             <div class="member-summary-row">
-              <span>${getRewardName(reward, { withMember: true })} · ${getCustomerMemberBranch(customer)}</span>
+              <span>${getRewardName(reward, { withMember: true })} · ${getRewardBranch(reward, customer)}</span>
               <b>${reward.progress}/${reward.target}</b>
             </div>
           `,
@@ -265,6 +265,7 @@ function getFallbackTransactions(customer) {
     dateRaw: "",
     customer: customer.name,
     staff,
+    branch: getStaffBranch(staff),
     amount,
     payment: index % 2 === 0 ? "Tunai" : "QRIS",
     items: [
@@ -311,7 +312,7 @@ function renderCustomerDetail(customerId = activeDetailCustomerId) {
       return `
         <button class="history-row" type="button" data-customer-transaction-id="${transaction.id}">
           <strong>${transaction.date}</strong>
-          <span>${getTransactionItemSummary(transaction)} <small>${transaction.staff ? `· ${transaction.staff}` : ""}${getTransactionMemberBranch(transaction) ? ` · ${getTransactionMemberBranch(transaction)}` : ""}</small></span>
+          <span>${getTransactionItemSummary(transaction)} <small>${transaction.staff ? `· ${transaction.staff}` : ""} · ${getTransactionBranch(transaction)}${getTransactionMemberBranch(transaction) ? ` · Member ${getTransactionMemberBranch(transaction)}` : ""}</small></span>
           <b>${formatMoney(transaction.amount)}</b>
           <em class="${statusClass}">${transaction.status}</em>
         </button>

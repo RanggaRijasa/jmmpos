@@ -75,6 +75,21 @@ button {
   line-height: 1.2;
 }
 
+.transaction-branch-tag {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  min-height: 20px;
+  padding: 2px 8px;
+  border: 1px solid #ddc28d;
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--ink) !important;
+  font-size: 10px !important;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
 .member-branch-copy {
   display: block;
   margin-top: 4px;
@@ -175,6 +190,10 @@ h1 {
   justify-content: flex-end;
 }
 
+.home-operator {
+  justify-content: flex-end;
+}
+
 .date-block {
   display: grid;
   gap: 8px;
@@ -200,6 +219,81 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, 320px);
   gap: 28px 32px;
+}
+
+.home-online-compact {
+  width: 304px;
+  min-height: 48px;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: 0 7px 18px rgba(118, 83, 28, 0.07);
+  text-align: left;
+}
+
+.home-online-compact:hover,
+.home-online-compact:focus-visible {
+  border-color: var(--gold);
+  background: var(--raised);
+}
+
+.home-online-compact:focus-visible {
+  outline: 2px solid rgba(212, 154, 35, 0.45);
+  outline-offset: 2px;
+}
+
+.home-online-compact-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.home-online-compact-copy strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+}
+
+.home-online-compact-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-online-compact-copy b {
+  min-width: 20px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #e7f5ee;
+  color: #267a58;
+  font-size: 8px;
+  text-align: center;
+}
+
+.home-online-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 8px;
+  background: #e7f5ee;
+  color: var(--success);
+  font-size: 9px;
+}
+
+.home-online-chevron {
+  color: var(--gold-dark);
+  font-size: 18px;
+  line-height: 1;
 }
 
 .menu-tile {

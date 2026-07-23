@@ -25,10 +25,44 @@ DOM IDs and `data-*` attributes form the contract with `partials/` and `core/eve
 
 ## Membership branch contract
 
-- `customer.memberBranch` is the member's registered or issuing branch. Leave it empty for non-members.
+- `customer.frequentBranch` is the branch the customer visits most often; it is not ownership of a membership.
+- Every membership reward stores its own issuing `reward.branch`, allowing one customer to own packages from multiple branches.
 - A transaction only counts as using membership when it has a positive `reward` or an item marked `memberFree`/`memberUpgrade`.
-- When membership is used, copy `memberBranch` into both the transaction snapshot and the affected line item. Do not infer membership usage merely because the customer is a member.
+- When membership is used, copy that reward's `branch` into `memberBranch` on both the transaction snapshot and affected line item. Do not infer it from `frequentBranch` or merely because the customer is a member.
 - Sales, pending drafts, receipt snapshots, and CMS history must read the stored transaction branch first so historical records do not change when a customer profile is edited later.
+
+## Membership package bonus contract
+
+- `membershipPlans[].bonuses` is an optional array of `{ type, itemId, name, qty }` records. `type` is `product` or `service` (shown to users as treatment).
+- Package bonuses are available only when the package target is at least 10. CMS must preserve multiple bonus rows and copy them to the matching POS member catalog item.
+- Draft transactions, completed transactions, sales details, pending details, and receipt snapshots must store and render package bonuses from the transaction line so historical receipts do not change after a plan is edited.
+
+## Treatment promotion contract
+
+- `service.promotion.fixedRate` is the mandatory treatment discount automatically applied by POS. Cashiers cannot edit or remove this portion.
+- `service.promotion.flexibleRate` is the default additional discount. Cashiers may replace this portion, including with zero, while the fixed portion remains applied.
+- A service without either promotion rate must not expose the treatment-promotion editor in POS. Keep the combined rate at or below 100%.
+- Persist `discountRate`, `fixedDiscountRate`, and `flexibleDiscountRate` on draft, completed transaction, and receipt lines so later master-data changes do not alter history.
+
+## Treatment upgrade contract
+
+- `service.upgradeServiceIds` lists concrete destination treatment IDs; do not recreate the removed generic Premium price level.
+- Upgrade choices appear only while a matching membership quota is being used. The customer pays the non-negative difference between the destination treatment price and the membership treatment's normal price.
+- Store both the membership source `itemId` and chosen `activeServiceId` in transaction snapshots. Staff activities and receipt labels must follow `activeServiceId` after an upgrade.
+
+## Multi-branch salon contract
+
+- `staffDirectory` is the source of truth for petugas identity, assigned `branch`, specialty, phone, and status. Keep `staffOptions` synchronized because POS controls still use staff names as values.
+- `activeSalonBranch` is the branch where the cashier transaction occurs. A saved draft, completed transaction, and receipt snapshot must copy it to `transaction.branch`/`receipt.branch`.
+- `transaction.branch` (Cabang Transaksi), `reward.branch` (Cabang Membership), `customer.frequentBranch` (Sering Berkunjung), and `staff.branch` (Cabang Petugas) are different business concepts. Never substitute one for another in history or reports.
+- `staff-commission` is the Master Data configuration screen for per-treatment rates. `commission-report` is the read-only operational report calculated from completed service transactions, assigned staff, transaction branch, and the configured rate.
+
+## Daily staff presence contract
+
+- `staffDirectory[].branch` is the employee's permanent assignment; `staffPresence[name]` is the branch where that employee is working today. Changing presence must never rewrite the permanent branch.
+- One active employee can be online at only one branch at a time. Selecting an employee as cross-branch help moves only their daily presence.
+- Home renders online staff for `activeSalonBranch`. Every POS staff picker must group those online staff first, then active staff from the current branch, then other active staff.
+- Employees with a non-active master status such as `Cuti` are excluded from presence controls and new POS assignments.
 
 ## Validation
 

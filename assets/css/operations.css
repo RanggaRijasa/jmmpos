@@ -438,6 +438,7 @@
 .home-header-left {
   display: block;
   min-width: 0;
+  padding-top: 80px;
 }
 
 .home-title {
@@ -445,9 +446,9 @@
 }
 
 .home-header-spacer {
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
+  display: grid;
+  justify-items: end;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -1395,4 +1396,3 @@
   color: var(--gold-dark);
   font-size: 20px;
 }
-

@@ -5,7 +5,17 @@
             <p class="eyebrow">JMM Salon Cashier System</p>
             <h1>Penjualan POS</h1>
           </div>
-          <button class="soft-action" id="pending-popup-button" type="button">List Pending</button>
+          <div class="pos-topbar-actions">
+            <label class="salon-branch-select" for="pos-branch-select">
+              <span>Cabang Transaksi</span>
+              <select id="pos-branch-select" aria-label="Cabang transaksi">
+                <option>Cabang Kartini</option>
+                <option>Cabang Mulyosari</option>
+                <option>Cabang Citraland</option>
+              </select>
+            </label>
+            <button class="soft-action" id="pending-popup-button" type="button">List Pending</button>
+          </div>
         </header>
 
         <div class="pos-layout">
@@ -97,4 +107,3 @@
           </aside>
         </div>
       </section>
-

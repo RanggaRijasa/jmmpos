@@ -1,3 +1,36 @@
+.pos-topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.salon-branch-select {
+  display: grid;
+  gap: 3px;
+  min-width: 180px;
+}
+
+.salon-branch-select span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.salon-branch-select select {
+  height: 38px;
+  padding: 0 30px 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  outline: 0;
+  background: var(--raised);
+  color: var(--gold-dark);
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .catalog-toolbar {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -212,12 +245,38 @@
   line-height: 1.25;
 }
 
+.member-bonus-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.member-cart-bonus {
+  flex-basis: 100%;
+  color: var(--gold-dark);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
 .service-level-note {
   display: block;
   margin-top: 5px;
   color: var(--gold-dark);
   font-size: 10px;
   font-weight: 800;
+  line-height: 1.25;
+}
+
+.service-promotion-note {
+  display: block;
+  margin-top: 5px;
+  color: #9a5f00;
+  font-size: 9px;
+  font-weight: 900;
   line-height: 1.25;
 }
 
@@ -586,7 +645,7 @@
   flex-direction: column;
   gap: 6px;
   width: 220px;
-  max-height: 190px;
+  max-height: 280px;
   padding: 8px;
   overflow: hidden;
   border: 1px solid var(--border);
@@ -619,6 +678,88 @@
 .staff-menu b {
   color: var(--muted);
   font-size: 10px;
+}
+
+.staff-menu-group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 22px;
+  padding: 2px 5px 0;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.staff-menu-group-label b {
+  min-width: 18px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(49, 150, 109, 0.1);
+  color: inherit;
+  text-align: center;
+}
+
+.staff-menu-group-label.online {
+  color: #267a58;
+}
+
+.staff-menu button.online {
+  border: 1px solid #cfe8dc;
+  background: #f1faf6;
+  color: #267a58;
+}
+
+.staff-choice-copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  text-align: left;
+}
+
+.staff-choice-copy strong,
+.staff-choice-copy small {
+  display: block;
+  margin: 0;
+}
+
+.staff-choice-copy strong {
+  color: inherit;
+  font-size: 11px;
+}
+
+.staff-online-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 3px rgba(49, 150, 109, 0.12);
+}
+
+.staff-helping-tag {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--gold-dark);
+  font-size: 7px;
+  font-style: normal;
+  text-transform: uppercase;
+}
+
+.staff-choice-copy small {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.staff-option-list button.active .staff-choice-copy small {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .staff-menu-search,
@@ -780,13 +921,22 @@
 
 .staff-option-list {
   display: grid;
-  max-height: 150px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 190px;
   gap: 5px;
   padding: 6px;
   overflow-y: auto;
   border: 1px solid #efddb9;
   border-radius: 9px;
   background: #fff8e8;
+}
+
+.staff-option-list .staff-menu-group-label {
+  grid-column: 1 / -1;
+}
+
+.staff-option-list button {
+  min-width: 0;
 }
 
 .staff-option-list button {
@@ -880,6 +1030,28 @@
   grid-template-columns: 1fr;
   gap: 8px;
   width: 160px;
+}
+
+.discount-locked-note {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: var(--gold-soft);
+  color: var(--gold-dark);
+}
+
+.discount-locked-note strong {
+  font-size: 11px;
+}
+
+.discount-locked-note span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.cart-discount-badge.locked {
+  cursor: default;
 }
 
 .discount-number {
@@ -1135,4 +1307,3 @@
   color: var(--gold-dark);
   box-shadow: none;
 }
-

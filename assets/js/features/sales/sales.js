@@ -14,8 +14,9 @@ function getActiveFilters() {
   const timeFrom = document.querySelector("#filter-time-from")?.value || "";
   const timeTo = document.querySelector("#filter-time-to")?.value || "";
   const payment = document.querySelector("#filter-payment")?.value || "";
+  const branch = document.querySelector("#filter-branch")?.value || "";
   const status = document.querySelector("#filter-status")?.value || "";
-  return { dateFrom, dateTo, timeFrom, timeTo, payment, status };
+  return { dateFrom, dateTo, timeFrom, timeTo, payment, branch, status };
 }
 
 function parseTimeToMin(timeStr) {
@@ -29,7 +30,7 @@ function filteredSales() {
 
   if (salesSearchTerm) {
     result = result.filter((t) => {
-      const text = `${t.customer} ${t.id} ${t.staff} ${getTransactionMemberBranch(t)}`.toLowerCase();
+      const text = `${t.customer} ${t.id} ${t.staff} ${getTransactionBranch(t)} ${getTransactionMemberBranch(t)}`.toLowerCase();
       return text.includes(salesSearchTerm);
     });
   }
@@ -50,6 +51,9 @@ function filteredSales() {
   }
   if (filters.payment) {
     result = result.filter((t) => t.payment === filters.payment);
+  }
+  if (filters.branch) {
+    result = result.filter((t) => getTransactionBranch(t) === filters.branch);
   }
   if (filters.status) {
     result = result.filter((t) => t.status === filters.status);
@@ -112,6 +116,7 @@ function renderSalesList() {
           <div class="sales-row-info">
             <strong>${t.customer}</strong>
             <span>${t.staff} · ${t.id}</span>
+            <small class="transaction-branch-tag">${getTransactionBranch(t)}</small>
             ${memberBranch ? `<small class="member-branch-tag">Member · ${memberBranch}</small>` : ""}
           </div>
           <span class="payment-badge">${getPaymentIcon(t.payment)}${t.payment}</span>
@@ -154,6 +159,15 @@ function renderTransactionDetailItem(line, index) {
   const memberLine = receiptItem.memberFree || receiptItem.memberUpgrade
     ? `<span>Pemakaian Member · ${receiptItem.memberBranch || "Cabang belum ditentukan"}</span>`
     : "";
+  const membershipBranchLine = receiptItem.type === "member" && receiptItem.memberBranch
+    ? `<span>Cabang Membership · ${receiptItem.memberBranch}</span>`
+    : "";
+  const bonusLine = receiptItem.type === "member" && receiptItem.bonuses?.length
+    ? `<span>Bonus paket: ${getMembershipBonusSummary(receiptItem.bonuses)}</span>`
+    : "";
+  const promotionLine = receiptItem.discountRate
+    ? `<span>${receiptItem.fixedDiscountRate ? `Promo pasti ${receiptItem.fixedDiscountRate}%` : "Diskon"}${receiptItem.flexibleDiscountRate ? ` + tambahan ${receiptItem.flexibleDiscountRate}%` : ""} · total ${receiptItem.discountRate}%</span>`
+    : "";
 
   return `
     <div class="detail-item-row">
@@ -161,14 +175,14 @@ function renderTransactionDetailItem(line, index) {
         <span>${receiptItem.qty}x ${receiptItem.name}</span>
         <strong>${formatReceiptAmount(receiptItem.baseTotal)}</strong>
       </div>
-      ${actionLines || memberLine ? `<div class="detail-item-sublines">${actionLines}${memberLine}</div>` : ""}
+      ${actionLines || memberLine || membershipBranchLine || bonusLine || promotionLine ? `<div class="detail-item-sublines">${actionLines}${memberLine}${membershipBranchLine}${bonusLine}${promotionLine}</div>` : ""}
     </div>
   `;
 }
 
 function renderTransactionDetailContent(t, ids) {
   document.querySelector(ids.invoice).textContent = t.id;
-  document.querySelector(ids.datetime).textContent = `${t.date} · ${t.time}`;
+  document.querySelector(ids.datetime).textContent = `${t.date} · ${t.time} · ${getTransactionBranch(t)}`;
   document.querySelector(ids.payment).textContent = t.payment;
   document.querySelector(ids.customerName).textContent = t.customer;
   const customer = customers.find((c) => c.name === t.customer);
@@ -272,6 +286,7 @@ function renderPendingItemDetail(line) {
         <span>${line.qty}x ${line.name}</span>
         ${actionRows}
         ${line.memberFree || line.memberUpgrade ? `<small class="member-branch-copy">Pemakaian Member · ${line.memberBranch || "Cabang belum ditentukan"}</small>` : ""}
+        ${line.fixedDiscountRate || line.flexibleDiscountRate ? `<small>Promo ${line.fixedDiscountRate ? `${line.fixedDiscountRate}% pasti` : ""}${line.flexibleDiscountRate ? ` + ${line.flexibleDiscountRate}% tambahan` : ""}</small>` : ""}
       </div>
     `;
   }
@@ -281,6 +296,8 @@ function renderPendingItemDetail(line) {
       <div class="pending-item-detail">
         <span>${line.qty}x ${line.name}</span>
         <small>Paket membership</small>
+        ${line.memberBranch ? `<small>Cabang Membership · ${line.memberBranch}</small>` : ""}
+        ${line.bonuses?.length ? `<small>Bonus: ${getMembershipBonusSummary(line.bonuses)}</small>` : ""}
       </div>
     `;
   }
@@ -298,7 +315,7 @@ function getPendingListHtml(term = "") {
     if (!term) return true;
     const lowerTerm = term.toLowerCase();
     const itemNames = t.items.map((item) => item.name).join(" ");
-    const text = `${t.id} ${t.customer} ${t.staff} ${itemNames} ${getTransactionMemberBranch(t)}`.toLowerCase();
+    const text = `${t.id} ${t.customer} ${t.staff} ${itemNames} ${getTransactionBranch(t)} ${getTransactionMemberBranch(t)}`.toLowerCase();
     return text.includes(lowerTerm);
   });
 
@@ -319,6 +336,7 @@ function getPendingListHtml(term = "") {
             <div class="pending-row-info">
               <span class="pending-customer">${t.customer}</span>
               <small>${t.staff} · ${t.id}</small>
+              <small class="transaction-branch-tag">${getTransactionBranch(t)}</small>
               ${memberBranch ? `<small class="member-branch-tag">Member · ${memberBranch}</small>` : ""}
             </div>
             <div class="pending-row-meta">
@@ -353,6 +371,7 @@ function loadPendingTransaction(id) {
 
   resetCart();
   selectedCustomer = customers.find((customer) => customer.name === t.customer) || null;
+  activeSalonBranch = getTransactionBranch(t);
   selectedPayment = ["Tunai", "QRIS", "Kartu"].includes(t.payment) ? t.payment : "QRIS";
   activeFilter = "service";
   searchTerm = "";
@@ -367,18 +386,23 @@ function loadPendingTransaction(id) {
         const added = addServiceLine({ ...catalogItem, price: line.price || catalogItem.price });
         if (added) {
           const serviceLine = serviceCartLines[serviceCartLines.length - 1];
-          serviceLine.actionStaffs = createActionStaffs(serviceLine, line.staff || t.staff || "");
-          syncServiceStaffSummary(serviceLine);
           if (line.memberFree || line.memberUpgrade) {
             const reward = getMemberRewardForService(catalogItem.id, selectedCustomer);
             const rewardId = line.memberUsageRewardId || (reward ? getRewardId(reward) : "");
-            serviceLine.memberFree = Boolean(line.memberFree);
-            serviceLine.memberUpgrade = Boolean(line.memberUpgrade);
+            serviceLine.memberFree = true;
+            serviceLine.memberUpgrade = false;
             serviceLine.memberUseAmount = line.memberUseAmount || catalogItem.price;
             serviceLine.memberUsageRewardId = rewardId;
             serviceLine.memberBranch = line.memberBranch || getTransactionMemberBranch(t);
+            serviceLine.discounts = [];
+            if (line.memberUpgrade && line.activeServiceId) applyServiceLevel(serviceLine, line.activeServiceId);
             if (rewardId) memberUsage[rewardId] = getMemberUsed(rewardId) + 1;
+          } else {
+            serviceLine.fixedDiscountRate = line.fixedDiscountRate || 0;
+            serviceLine.discounts = line.flexibleDiscountRate ? [line.flexibleDiscountRate] : [];
           }
+          serviceLine.actionStaffs = line.actionStaffs || createActionStaffs(serviceLine, line.staff || t.staff || "");
+          syncServiceStaffSummary(serviceLine);
         }
       }
     } else if (catalogItem.type === "member") {
@@ -386,6 +410,7 @@ function loadPendingTransaction(id) {
       if (added) {
         const memberLine = memberCartLines[memberCartLines.length - 1];
         memberLine.staff = line.staff || t.staff || "";
+        memberLine.bonuses = cloneMembershipBonuses(line.bonuses);
       }
     } else {
       catalogItem.qty = Math.min(line.qty || 1, getMaxQty(catalogItem));
@@ -399,6 +424,7 @@ function loadPendingTransaction(id) {
   });
 
   renderCustomer();
+  syncSalonBranchUi();
   renderCustomerDropdown();
   updateSearchPlaceholder();
   updateCatalogHeading();

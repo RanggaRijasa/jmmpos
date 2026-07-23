@@ -17,7 +17,13 @@ function renderItems() {
       (item) => {
         const itemClass = "";
         const memberNote = item.type === "member" ? `<span class="member-package-note">${item.target} kali</span>` : "";
-        const serviceLevelNote = item.type === "service" && getServiceLevels(item).length > 1 ? `<span class="service-level-note">Normal · Premium</span>` : "";
+        const memberBonus = item.type === "member" && item.bonuses?.length
+          ? `<span class="member-bonus-note">Bonus: ${getMembershipBonusSummary(item.bonuses)}</span>`
+          : "";
+        const serviceLevelNote = item.type === "service" && item.upgradeServiceIds?.length ? `<span class="service-level-note">${item.upgradeServiceIds.length} opsi upgrade</span>` : "";
+        const promotionNote = item.type === "service" && getServiceFixedDiscountRate(item)
+          ? `<span class="service-promotion-note">Promo ${getServiceFixedDiscountRate(item)}% pasti${getServiceFlexibleDiscountRate(item) ? ` + ${getServiceFlexibleDiscountRate(item)}% fleksibel` : ""}</span>`
+          : "";
         return `
         <article class="item-card${itemClass}" data-id="${item.id}">
           <div class="item-card-head">
@@ -25,6 +31,8 @@ function renderItems() {
             ${memberNote}
             ${serviceLevelNote}
           </div>
+          ${promotionNote}
+          ${memberBonus}
           <div class="item-bottom">
             <span class="price-stack">
               <span class="price">${formatMoney(item.price)}</span>
@@ -36,6 +44,24 @@ function renderItems() {
     .join("");
 }
 
+function renderStaffMenuChoices(item, action = "") {
+  const { online, others } = getStaffPresenceGroups(activeSalonBranch);
+  const selected = action ? getActionStaffList(item, action) : item.staff ? [item.staff] : [];
+  const renderGroup = (label, staff, onlineGroup = false) => {
+    if (!staff.length) return "";
+    return `
+      <span class="staff-menu-group-label${onlineGroup ? " online" : ""}">${label}<b>${staff.length}</b></span>
+      ${staff.map((person) => {
+        const isSelected = selected.includes(person.name);
+        const attributes = action
+          ? `data-staff-action="${action}" data-action-staff="${person.name}" data-id="${item.id}"`
+          : `data-staff="${person.name}" data-id="${item.id}"`;
+        return `<button type="button" class="${onlineGroup ? "online " : ""}${isSelected ? "active" : ""}" ${attributes}>${getStaffChoiceMarkup(person.name)}${isSelected ? "<b>Dipilih</b>" : ""}</button>`;
+      }).join("")}`;
+  };
+  return renderGroup(`Online di ${activeSalonBranch.replace("Cabang ", "")}`, online, true) + renderGroup("Petugas lainnya", others);
+}
+
 function renderSimpleStaffMenu(item) {
   return `
     <div class="staff-menu">
@@ -43,25 +69,20 @@ function renderSimpleStaffMenu(item) {
         <input type="search" placeholder="Cari petugas..." autocomplete="off" />
       </label>
       <div class="staff-menu-items">
-        ${staffOptions
-          .map(
-            (staff) =>
-              `<button type="button" data-staff="${staff}" data-id="${item.id}">
-                <span>${staff}</span>
-                ${item.staff === staff ? `<b>Dipilih</b>` : ""}
-              </button>`,
-          )
-          .join("")}
+        ${renderStaffMenuChoices(item)}
       </div>
     </div>
   `;
 }
 
 function renderDiscountMenu(item) {
+  const fixedRate = getLineFixedDiscountRate(item);
+  const flexibleRate = getLineFlexibleDiscountRate(item);
   return `
     <div class="discount-menu discount-input-menu">
+      ${fixedRate ? `<div class="discount-locked-note"><strong>${fixedRate}% pasti</strong><span>Otomatis dan tidak dapat diubah kasir</span></div>` : ""}
       <label class="discount-number">
-        <input type="number" inputmode="numeric" min="1" max="100" placeholder="Diskon %" data-discount-input="${item.id}" />
+        <input type="number" inputmode="numeric" min="0" max="${100 - fixedRate}" value="${flexibleRate}" placeholder="Diskon tambahan %" data-discount-input="${item.id}" />
         <span>%</span>
       </label>
       <div class="discount-actions">
@@ -110,17 +131,7 @@ function renderServiceStaffMenu(item) {
                         <input type="search" placeholder="Cari petugas..." autocomplete="off" data-staff-search="${action}" data-id="${item.id}" />
                       </label>
                       <div class="staff-option-list">
-                        ${staffOptions
-                          .map(
-                            (staff) => {
-                              const isSelected = selected.includes(staff);
-                              return `<button type="button" class="${isSelected ? "active" : ""}" data-staff-action="${action}" data-action-staff="${staff}" data-id="${item.id}">
-                                <span>${staff}</span>
-                                ${isSelected ? `<b>Dipilih</b>` : ""}
-                              </button>`;
-                            },
-                          )
-                          .join("")}
+                        ${renderStaffMenuChoices(item, action)}
                       </div>`
                     : ""
                 }
@@ -175,9 +186,8 @@ function renderCart() {
   } else {
     list.innerHTML = selected
       .map((item) => {
-        const canDiscount = item.type === "service" && !item.memberFree;
+        const canDiscount = item.type === "service" && !item.memberFree && !item.memberUpgrade && getServiceFlexibleDiscountRate(item) > 0;
         const canUpgrade = item.type === "service" && getServiceUpgradeOptions(item).length > 0;
-        const discounts = getLineDiscounts(item);
         const lineBaseTotal = getLineBaseTotal(item);
         const lineTotal = getLinePayable(item);
         const discountMenu = canDiscount && activeDiscountMenu === item.id ? renderDiscountMenu(item) : "";
@@ -193,13 +203,13 @@ function renderCart() {
               ${
                 !canDiscount
                   ? ""
-                  : `<button class="discount-select${discounts.length ? " active" : ""}" type="button" data-discount-for="${item.id}">
+                  : `<button class="discount-select${getLineDiscountRate(item) ? " active" : ""}" type="button" data-discount-for="${item.id}">
                     <span aria-hidden="true">+</span>
-                    Diskon
+                    Ubah Diskon
                   </button>`
               }
               ${canUpgrade ? `<button class="service-level-select${item.memberUpgrade ? " active" : ""}" type="button" data-service-level-for="${item.id}">${item.memberUpgrade ? item.serviceLevel.name : "Upgrade"}</button>` : ""}
-              ${item.memberUpgrade ? `<span class="reward-note">1 kuota member · ${getCustomerMemberBranch(selectedCustomer)} · bayar selisih</span>` : reward?.itemIds?.includes(item.id) ? `<span class="reward-note">Kuota member dipakai · ${getCustomerMemberBranch(selectedCustomer)}</span>` : ""}
+              ${item.memberUpgrade ? `<span class="reward-note">1 kuota member · ${item.memberBranch || getMemberUsageBranch(item.memberUsageRewardId)} · bayar selisih</span>` : reward?.itemIds?.includes(item.id) ? `<span class="reward-note">Kuota member dipakai · ${item.memberBranch || getMemberUsageBranch(item.memberUsageRewardId)}</span>` : ""}
               ${discountMenu}
               ${serviceLevelMenu}
               ${staffMenu}
@@ -211,6 +221,8 @@ function renderCart() {
               <button class="staff-select" type="button" data-staff-for="${item.id}">
                 ${item.staff || "Pilih petugas"}
               </button>
+              <span class="reward-note">Cabang Membership · ${item.memberBranch || activeSalonBranch}</span>
+              ${item.bonuses?.length ? `<span class="member-cart-bonus">Bonus: ${getMembershipBonusSummary(item.bonuses)}</span>` : ""}
               ${staffMenu}
             </div>
           `;
@@ -221,12 +233,12 @@ function renderCart() {
           <article class="cart-row">
             <div class="cart-label-row">
               <small>${item.label}</small>
-              ${discounts.length ? `<span class="cart-discount-badge" data-clear-discounts="${item.id}">Diskon ${getLineDiscountRate(item)}%</span>` : ""}
+              ${getLineDiscountRate(item) ? `<span class="cart-discount-badge${getLineFixedDiscountRate(item) ? " locked" : ""}">${getLinePromotionLabel(item)}</span>` : ""}
             </div>
             <div class="cart-row-top">
               <strong>${item.name}</strong>
               <b class="cart-row-price">
-                ${discounts.length ? `<s>${formatMoney(lineBaseTotal)}</s>` : ""}
+                ${getLineDiscountRate(item) ? `<s>${formatMoney(lineBaseTotal)}</s>` : ""}
                 <span>${formatMoney(lineTotal)}</span>
               </b>
             </div>
@@ -275,6 +287,7 @@ function renderConfirmationSummary(mode) {
 
   summary.innerHTML = `
     <div><span>Pelanggan</span><strong>${customerLabel}</strong></div>
+    <div><span>Cabang Transaksi</span><strong>${activeSalonBranch}</strong></div>
     <div><span>Item</span><strong>${selected.length} item</strong></div>
     ${discountAmount ? `<div><span>Diskon Item</span><strong>- ${formatMoney(discountAmount)}</strong></div>` : ""}
     ${rewardAmount ? `<div><span>Pemakaian Member</span><strong>${reward.serviceName} · ${reward.branch} · - ${formatMoney(rewardAmount)}</strong></div>` : ""}

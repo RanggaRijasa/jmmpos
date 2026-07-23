@@ -1,5 +1,6 @@
 let activeFilter = "service";
 let selectedCustomer = null;
+let activeSalonBranch = DEFAULT_SALON_BRANCH;
 let selectedPayment = "QRIS";
 let customDp = 0;
 let cashReceived = 0;
@@ -27,8 +28,12 @@ const cmsPageNumbers = {};
 const cmsRowsPerPage = 6;
 let activeCommissionStaffId = "STF-001";
 const staffCommissionProfiles = {};
+let cmsMembershipBonusDraft = [];
+let cmsServiceUpgradeDraft = [];
+let staffPresenceDraftBranch = DEFAULT_SALON_BRANCH;
+let staffPresenceDraftNames = [];
+let staffPresenceSearchTerm = "";
 let memberLineCounter = 0;
 const serviceCartLines = [];
 const memberCartLines = [];
 const memberUsage = {};
-

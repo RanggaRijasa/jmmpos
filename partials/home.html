@@ -9,6 +9,21 @@
           </div>
           <img class="home-header-logo" src="assets/images/JMMSALON2Transparant.png" alt="JMM Salon" />
           <div class="home-header-spacer">
+            <button
+              class="home-online-compact"
+              id="manage-staff-presence"
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded="false"
+              aria-controls="staff-presence-modal"
+            >
+              <span class="home-online-icon" aria-hidden="true">●</span>
+              <span class="home-online-compact-copy">
+                <strong>Petugas Online <b id="home-online-staff-count">0</b></strong>
+                <small><span id="home-online-staff-branch">Cabang Kartini</span> · <span id="home-online-staff-summary">Belum diatur</span></small>
+              </span>
+              <span class="home-online-chevron" aria-hidden="true">›</span>
+            </button>
             <div class="operator home-operator">
               <div class="date-block">
                 <strong>Sabtu, 27 Juni 2026</strong>
@@ -17,7 +32,7 @@
               <span class="avatar">K</span>
               <div class="operator-info">
                 <strong>Kasir JMM</strong>
-                <span>Kasir</span>
+                <span>Kasir · <b id="home-branch-label">Cabang Kartini</b></span>
               </div>
             </div>
           </div>

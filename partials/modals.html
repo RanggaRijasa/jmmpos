@@ -26,6 +26,35 @@
       </section>
     </div>
 
+    <div class="modal-layer" id="staff-presence-modal" hidden>
+      <section class="modal-card staff-presence-card" aria-label="Atur petugas online">
+        <button class="modal-close" id="close-staff-presence" type="button" aria-label="Tutup">×</button>
+        <div class="staff-presence-heading">
+          <h2>Petugas Online</h2>
+          <p>Pilih pegawai yang sedang bertugas di cabang ini, termasuk bantuan dari cabang lain.</p>
+        </div>
+        <div class="staff-presence-toolbar">
+          <label>
+            <span>Cabang Hari Ini</span>
+            <select id="staff-presence-branch">
+              <option>Cabang Kartini</option>
+              <option>Cabang Mulyosari</option>
+              <option>Cabang Citraland</option>
+            </select>
+          </label>
+          <label>
+            <span>Cari Petugas</span>
+            <input id="staff-presence-search" type="search" placeholder="Nama, cabang, keahlian..." autocomplete="off" />
+          </label>
+        </div>
+        <div class="staff-presence-list" id="staff-presence-list"></div>
+        <div class="modal-actions">
+          <button class="modal-secondary" id="cancel-staff-presence" type="button">Batal</button>
+          <button class="modal-primary" id="save-staff-presence" type="button">Simpan Online</button>
+        </div>
+      </section>
+    </div>
+
     <div class="modal-layer" id="add-customer-modal" hidden>
       <section class="modal-card add-customer-card" aria-label="Tambah pelanggan">
         <h2>Tambah Pelanggan</h2>
@@ -67,4 +96,3 @@
         </div>
       </section>
     </div>
-

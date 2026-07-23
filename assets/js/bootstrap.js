@@ -9,12 +9,20 @@ const PARTIAL_PATHS = [
   "partials/receipt.html",
 ];
 
+const APP_ASSET_VERSION = "20260723-7";
+
+function getVersionedPath(path) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}v=${APP_ASSET_VERSION}`;
+}
+
 const SCRIPT_PATHS = [
   "assets/js/data/catalog.js",
   "assets/js/data/customers.js",
   "assets/js/data/sales.js",
   "assets/js/core/state.js",
   "assets/js/features/pos/cart.js",
+  "assets/js/features/staff/presence.js",
   "assets/js/features/customers/customers.js",
   "assets/js/features/pos/render.js",
   "assets/js/features/sales/sales.js",
@@ -26,7 +34,7 @@ const SCRIPT_PATHS = [
 ];
 
 async function fetchPartial(path) {
-  const response = await fetch(path);
+  const response = await fetch(getVersionedPath(path), { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`Gagal memuat ${path} (${response.status})`);
   }
@@ -36,7 +44,7 @@ async function fetchPartial(path) {
 function loadScript(path) {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = path;
+    script.src = getVersionedPath(path);
     script.onload = resolve;
     script.onerror = () => reject(new Error(`Gagal memuat ${path}`));
     document.body.append(script);

@@ -4,6 +4,7 @@ updateSearchPlaceholder();
 updateCatalogHeading();
 renderItems();
 renderCart();
+renderHomeOnlineStaff();
 renderCustomerList();
 renderCustomerDetail(activeDetailCustomerId);
 setPayment(selectedPayment);

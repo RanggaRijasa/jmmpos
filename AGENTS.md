@@ -10,7 +10,7 @@ The user-facing language is Indonesian. Preserve existing terminology, currency 
 
 - `index.html` is only the document shell, stylesheet order, and bootstrap entry point.
 - `partials/` owns static markup. Every application screen is an independent fragment.
-- `assets/js/bootstrap.js` fetches all fragments, assembles the DOM, and then loads classic scripts in dependency order.
+- `assets/js/bootstrap.js` fetches versioned fragments without using the browser cache, assembles the DOM, and then loads versioned classic scripts in dependency order. Keep the version in `index.html` and `APP_ASSET_VERSION` synchronized when changing bootstrapped assets.
 - `assets/js/data/` owns mock datasets and data-shaped constants.
 - `assets/js/core/` owns shared mutable state, common UI/navigation helpers, and delegated DOM events.
 - `assets/js/features/` owns domain behavior and renderers.
@@ -21,8 +21,9 @@ Read the nearest nested `AGENTS.md` before editing files under `assets/js/`, `as
 
 ## Change routing
 
-- Catalog items and membership plan definitions: `assets/js/data/catalog.js`
+- Catalog items, treatment promo defaults, upgrade mappings, and membership plan definitions: `assets/js/data/catalog.js`
 - Customer fixtures, staff fixtures, and customer histories: `assets/js/data/customers.js`
+- Daily staff presence, home online panel, and cross-branch attendance: `assets/js/features/staff/presence.js`
 - Sales fixtures: `assets/js/data/sales.js`
 - Cart calculations, discounts, member usage, receipts, and drafts: `assets/js/features/pos/cart.js`
 - POS rendering and payment confirmation: `assets/js/features/pos/render.js`
@@ -31,6 +32,8 @@ Read the nearest nested `AGENTS.md` before editing files under `assets/js/`, `as
 - CMS tables, forms, settings, and commission UI: `assets/js/features/cms/cms.js`
 - Membership list/detail/history: `assets/js/features/membership/membership.js`
 - Cross-feature click/input handling: `assets/js/core/events.js`
+
+Multi-branch data uses `staffDirectory` for staff placement, `activeSalonBranch` for the current cashier location, `transaction.branch` for historical transaction location, `customer.frequentBranch` for the customer's usual salon, and `reward.branch` for each membership's issuing branch. These fields are intentionally separate.
 
 ## Required verification
 

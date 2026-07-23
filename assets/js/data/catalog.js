@@ -14,6 +14,10 @@ const membershipPlans = [
     serviceName: "Detok Kombinasi",
     price: 1400000,
     target: 10,
+    bonuses: [
+      { type: "product", itemId: "vitamin", name: "Vitamin Rambut", qty: 1 },
+      { type: "service", itemId: "hairwash", name: "Hair Wash", qty: 1 },
+    ],
   },
   { id: "member-gunting-rambut", name: "Member Gunting Rambut", serviceId: "cut", serviceName: "Gunting Rambut", price: 1350000, target: 10 },
   { id: "member-hair-colour", name: "Member Hair Colour", serviceId: "colour", serviceName: "Hair Colour", price: 4050000, target: 10 },
@@ -31,10 +35,7 @@ const items = [
     label: "Jasa",
     name: "Gunting Rambut",
     price: 160000,
-    levels: [
-      { id: "normal", name: "Normal", price: 160000 },
-      { id: "premium", name: "Premium", price: 240000 },
-    ],
+    upgradeServiceIds: ["blowcatok"],
     qty: 0,
   },
   {
@@ -43,10 +44,7 @@ const items = [
     label: "Jasa",
     name: "Hair Colour",
     price: 450000,
-    levels: [
-      { id: "normal", name: "Normal", price: 450000 },
-      { id: "premium", name: "Premium", price: 600000 },
-    ],
+    upgradeServiceIds: ["highlight"],
     qty: 0,
   },
   {
@@ -55,10 +53,7 @@ const items = [
     label: "Jasa",
     name: "Creambath",
     price: 230000,
-    levels: [
-      { id: "normal", name: "Normal", price: 230000 },
-      { id: "premium", name: "Premium", price: 320000 },
-    ],
+    upgradeServiceIds: ["hairspa"],
     qty: 0,
   },
   {
@@ -67,6 +62,7 @@ const items = [
     label: "Jasa",
     name: "Keratin Treatment",
     price: 750000,
+    promotion: { fixedRate: 30, flexibleRate: 10 },
     qty: 0,
   },
   {
@@ -83,10 +79,7 @@ const items = [
     label: "Jasa",
     name: "Smoothing",
     price: 650000,
-    levels: [
-      { id: "normal", name: "Normal", price: 650000 },
-      { id: "premium", name: "Premium", price: 800000 },
-    ],
+    upgradeServiceIds: ["keratin"],
     qty: 0,
   },
   {
@@ -95,6 +88,7 @@ const items = [
     label: "Jasa",
     name: "Hair Spa",
     price: 280000,
+    promotion: { fixedRate: 20, flexibleRate: 10 },
     qty: 0,
   },
   {
@@ -207,10 +201,7 @@ const items = [
     label: "Jasa",
     name: "Detok Rontok",
     price: 180000,
-    levels: [
-      { id: "normal", name: "Normal", price: 180000 },
-      { id: "premium", name: "Premium", price: 280000 },
-    ],
+    upgradeServiceIds: ["detok-kombinasi"],
     qty: 0,
   },
   {
@@ -219,10 +210,7 @@ const items = [
     label: "Jasa",
     name: "Detok Kombinasi",
     price: 240000,
-    levels: [
-      { id: "normal", name: "Normal", price: 240000 },
-      { id: "premium", name: "Premium", price: 360000 },
-    ],
+    promotion: { fixedRate: 30, flexibleRate: 10 },
     qty: 0,
   },
   {
@@ -387,4 +375,3 @@ const items = [
   },
   ...membershipPlans.map((plan) => ({ ...plan, type: "member", label: "Member", qty: 0 })),
 ];
-
