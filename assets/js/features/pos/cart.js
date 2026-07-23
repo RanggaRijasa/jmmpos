@@ -326,6 +326,10 @@ function getCustomerFrequentBranch(customer) {
   return customer.frequentBranch || customer.memberBranch || "Belum ditentukan";
 }
 
+function getCustomerLastVisitBranch(customer) {
+  return customer?.lastVisitBranch || "";
+}
+
 function getRewardBranch(reward, customer) {
   if (!reward) return "";
   return reward.branch || customer?.memberBranch || customer?.frequentBranch || "Cabang belum ditentukan";

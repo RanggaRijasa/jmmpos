@@ -571,6 +571,7 @@ document.addEventListener("click", (event) => {
   if (reminderAction) {
     const isDone = reminderAction.classList.toggle("done");
     reminderAction.textContent = isDone ? "Sudah Kontak" : "Kontak";
+    updateReminderDoneCount();
     return;
   }
 
@@ -640,6 +641,12 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("change", (event) => {
+  const commissionFilter = event.target.closest("#commission-date-from, #commission-date-to, #commission-time-from, #commission-time-to, #commission-branch-filter");
+  if (commissionFilter) {
+    updateCommissionReportFilter(commissionFilter);
+    return;
+  }
+
   const presenceBranchSelect = event.target.closest("#staff-presence-branch");
   if (presenceBranchSelect) {
     setStaffPresenceDraftBranch(presenceBranchSelect.value);

@@ -23,3 +23,5 @@ Stylesheets are linked individually in `index.html`. Their order preserves the o
 - `cms.css`: all CMS shell, tables, forms, settings, commission, and CMS media rules.
 
 Reuse the CSS custom properties from `base.css`. Keep selectors within the owning domain where possible. Before moving a rule between files, check whether its current position affects cascade precedence.
+
+Commission PDF rules live in `cms.css` under `@media print` and target a dedicated `.cms-commission-print-report`. Keep the A4 portrait layout independent from the wide interactive report table so screen and print can evolve without breaking each other.

@@ -318,6 +318,31 @@
   color: var(--muted);
 }
 
+.reminder-last {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.reminder-last span,
+.reminder-last small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reminder-last small {
+  color: var(--gold-dark);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.reminder-row > b {
+  color: var(--ink);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
 .reminder-action {
   height: 38px;
   border: 0;

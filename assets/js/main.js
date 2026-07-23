@@ -11,3 +11,4 @@ setPayment(selectedPayment);
 renderSalesList();
 renderPendingList();
 renderMembershipList();
+renderReminderList();

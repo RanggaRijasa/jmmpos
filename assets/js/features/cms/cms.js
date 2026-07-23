@@ -106,13 +106,62 @@ function getItemAssignedStaffNames(item) {
   return staffOptions.includes(item.staff) ? [item.staff] : [];
 }
 
+function getCommissionActivityLines(item) {
+  if (item.type !== "service") return [];
+  const catalogItem = findCatalogItem(item);
+  const serviceId = item.activeServiceId || catalogItem?.id || item.itemId || item.id;
+  const service = getCmsServices().find((entry) => entry.id === serviceId) || catalogItem;
+  const activities = service?.actions || getServiceActions(item);
+  const actionStaffs = Object.fromEntries(activities.map((activity) => [
+    activity,
+    normalizeStaffValue(item.actionStaffs?.[activity], item.staff || ""),
+  ]));
+  const lineValue = (item.price || 0) * (item.qty || 1);
+  const activityValue = lineValue / Math.max(1, activities.length);
+
+  return activities.flatMap((activity, activityIndex) => {
+    const staffNames = (actionStaffs[activity] || []).filter((name) => staffOptions.includes(name));
+    if (!staffNames.length) return [];
+    const staffValue = activityValue / staffNames.length;
+    return staffNames.map((staffName) => ({
+      serviceId,
+      serviceName: service?.name || item.name,
+      activity,
+      activityIndex,
+      staffName,
+      staffValue,
+    }));
+  });
+}
+
+function getCommissionTreatmentLines(item) {
+  if (item.type !== "service") return [];
+  const activityLines = getCommissionActivityLines(item);
+  const catalogItem = findCatalogItem(item);
+  const serviceId = activityLines[0]?.serviceId || item.activeServiceId || catalogItem?.id || item.itemId || item.id;
+  const service = getCmsServices().find((entry) => entry.id === serviceId) || catalogItem;
+  const staffNames = [...new Set(activityLines.map((line) => line.staffName).filter(Boolean))];
+  if (!staffNames.length) staffNames.push(...getItemAssignedStaffNames(item));
+  const lineValue = (item.price || 0) * (item.qty || 1);
+  const staffValue = lineValue / Math.max(1, staffNames.length);
+  return staffNames.map((staffName) => ({
+    serviceId,
+    serviceName: service?.name || item.name,
+    activity: "Treatment Utama",
+    activityIndex: -1,
+    componentType: "treatment",
+    staffName,
+    staffValue,
+  }));
+}
+
 function getCmsStaff() {
   return staffDirectory.map((profile) => {
-    const completed = salesTransactions.filter((transaction) => transaction.status !== "Pending" && transaction.items.some((item) => getItemAssignedStaffNames(item).includes(profile.name)));
+    const completed = salesTransactions.filter((transaction) => transaction.status !== "Pending" && transaction.items.some((item) => getCommissionActivityLines(item).some((line) => line.staffName === profile.name)));
     const revenue = completed.reduce((sum, transaction) => sum + transaction.items.reduce((lineSum, item) => {
-      const assignedStaff = getItemAssignedStaffNames(item);
-      if (!assignedStaff.includes(profile.name)) return lineSum;
-      return lineSum + ((item.price || 0) * (item.qty || 1)) / assignedStaff.length;
+      return lineSum + getCommissionActivityLines(item)
+        .filter((line) => line.staffName === profile.name)
+        .reduce((activitySum, line) => activitySum + line.staffValue, 0);
     }, 0), 0);
     return {
       ...profile,
@@ -124,48 +173,88 @@ function getCmsStaff() {
 }
 
 function getStaffCommissionProfile(staffId) {
-  if (staffCommissionProfiles[staffId]) return staffCommissionProfiles[staffId];
-
-  const staffList = getCmsStaff();
+  const staffList = staffDirectory;
   const staff = staffList.find((person) => person.id === staffId) || staffList[0];
   const staffIndex = Math.max(0, staffList.findIndex((person) => person.id === staffId));
-  const workedServiceIds = new Set(salesTransactions
+  const workedActivities = new Set(salesTransactions
     .filter((transaction) => transaction.status !== "Pending")
     .flatMap((transaction) => transaction.items)
-    .filter((item) => item.type === "service" && getItemAssignedStaffNames(item).includes(staff.name))
-    .map((item) => findCatalogItem(item)?.id)
-    .filter(Boolean));
-  const profile = {};
+    .flatMap((item) => getCommissionActivityLines(item))
+    .filter((line) => line.staffName === staff.name)
+    .map((line) => `${line.serviceId}\u0000${line.activity}`));
+  const profile = staffCommissionProfiles[staffId] || {};
+
   getCmsServices().forEach((service, serviceIndex) => {
-    const enabled = workedServiceIds.has(service.id) || serviceIndex % 3 === staffIndex % 3 || (serviceIndex + staffIndex) % 7 === 0;
+    const existing = profile[service.id] || {};
+    const activitySettings = existing.activities || {};
+    const workedService = [...workedActivities].some((key) => key.startsWith(`${service.id}\u0000`));
+    const serviceEnabled = typeof existing.enabled === "boolean"
+      ? existing.enabled
+      : workedService || serviceIndex % 3 === staffIndex % 3 || (serviceIndex + staffIndex) % 7 === 0;
+    service.actions.forEach((activity, activityIndex) => {
+      if (activitySettings[activity]) return;
+      const worked = workedActivities.has(`${service.id}\u0000${activity}`);
+      const enabled = worked || (serviceIndex + activityIndex) % 3 === staffIndex % 3;
+      activitySettings[activity] = {
+        enabled,
+        rate: enabled ? [2.5, 5, 7.5, 10, 12.5][(serviceIndex + activityIndex + staffIndex) % 5] : 2.5,
+      };
+    });
     profile[service.id] = {
-      enabled,
-      rate: enabled ? [10, 12.5, 15, 17.5, 20][(serviceIndex + staffIndex) % 5] : 10,
+      enabled: serviceEnabled,
+      rate: Number.isFinite(existing.rate)
+        ? existing.rate
+        : serviceEnabled ? [10, 12.5, 15, 17.5, 20][(serviceIndex + staffIndex) % 5] : 10,
+      activities: activitySettings,
     };
   });
   staffCommissionProfiles[staffId] = profile;
   return profile;
 }
 
+function ensureCommissionReportFilters() {
+  if (commissionReportFiltersInitialized) return;
+  const dates = salesTransactions
+    .filter((transaction) => transaction.status !== "Pending" && transaction.dateRaw)
+    .map((transaction) => transaction.dateRaw)
+    .sort();
+  commissionReportDateFrom = dates[0] || "";
+  commissionReportDateTo = dates.at(-1) || "";
+  commissionReportFiltersInitialized = true;
+}
+
+function transactionMatchesCommissionFilters(transaction) {
+  if (transaction.status === "Pending") return false;
+  const date = transaction.dateRaw || "";
+  const time = (transaction.time || "00:00").slice(0, 5);
+  if (commissionReportDateFrom && date < commissionReportDateFrom) return false;
+  if (commissionReportDateTo && date > commissionReportDateTo) return false;
+  if (commissionReportTimeFrom && time < commissionReportTimeFrom) return false;
+  if (commissionReportTimeTo && time > commissionReportTimeTo) return false;
+  if (commissionReportBranch && getTransactionBranch(transaction) !== commissionReportBranch) return false;
+  return true;
+}
+
 function getCmsCommissionReport() {
+  ensureCommissionReportFilters();
   const rows = new Map();
-  const completed = salesTransactions.filter((transaction) => transaction.status !== "Pending");
+  const completed = salesTransactions.filter(transactionMatchesCommissionFilters);
   const staffByName = new Map(getCmsStaff().map((staff) => [staff.name, staff]));
 
   completed.forEach((transaction) => {
-    transaction.items.filter((item) => item.type === "service").forEach((item) => {
-      const assignedStaff = getItemAssignedStaffNames(item);
-      if (!assignedStaff.length) return;
-      const catalogItem = findCatalogItem(item);
-      const serviceId = catalogItem?.id;
-      const lineValue = (item.price || 0) * (item.qty || 1);
-
-      assignedStaff.forEach((staffName) => {
-        const staff = staffByName.get(staffName);
+    transaction.items.filter((item) => item.type === "service").forEach((item, itemIndex) => {
+      const commissionLines = [
+        ...getCommissionTreatmentLines(item),
+        ...getCommissionActivityLines(item).map((line) => ({ ...line, componentType: "activity" })),
+      ];
+      commissionLines.forEach((commissionLine) => {
+        const staff = staffByName.get(commissionLine.staffName);
         if (!staff) return;
-        const setting = serviceId ? getStaffCommissionProfile(staff.id)[serviceId] : null;
+        const serviceSetting = getStaffCommissionProfile(staff.id)[commissionLine.serviceId];
+        const setting = commissionLine.componentType === "activity"
+          ? serviceSetting?.activities?.[commissionLine.activity]
+          : serviceSetting;
         const rate = setting?.enabled ? setting.rate : 0;
-        const staffValue = lineValue / assignedStaff.length;
         const transactionBranch = getTransactionBranch(transaction);
         const key = `${staff.id}:${transactionBranch}`;
         const row = rows.get(key) || {
@@ -178,11 +267,30 @@ function getCmsCommissionReport() {
           serviceValue: 0,
           weightedRate: 0,
           commission: 0,
+          entries: [],
         };
+        const commission = commissionLine.staffValue * rate / 100;
         row.transactions.add(transaction.id);
-        row.serviceValue += staffValue;
-        row.weightedRate += staffValue * rate;
-        row.commission += staffValue * rate / 100;
+        row.serviceValue += commissionLine.staffValue;
+        row.weightedRate += commissionLine.staffValue * rate;
+        row.commission += commission;
+        row.entries.push({
+          id: `${transaction.id}-${itemIndex}-${commissionLine.componentType}-${commissionLine.activityIndex}-${staff.id}`,
+          transactionId: transaction.id,
+          dateRaw: transaction.dateRaw || "",
+          date: transaction.date,
+          time: transaction.time,
+          customer: transaction.customer,
+          transactionBranch,
+          serviceId: commissionLine.serviceId,
+          serviceName: commissionLine.serviceName,
+          activityName: commissionLine.activity,
+          componentType: commissionLine.componentType,
+          qty: item.qty || 1,
+          serviceValue: commissionLine.staffValue,
+          rate,
+          commission,
+        });
         rows.set(key, row);
       });
     });
@@ -191,10 +299,31 @@ function getCmsCommissionReport() {
   return [...rows.values()].map((row) => ({
     ...row,
     transactionCount: row.transactions.size,
+    dayCount: new Set(row.entries.map((entry) => entry.dateRaw)).size,
     averageRate: row.serviceValue ? row.weightedRate / row.serviceValue : 0,
     serviceValue: Math.round(row.serviceValue),
     commission: Math.round(row.commission),
+    entries: row.entries.sort((a, b) => `${b.dateRaw} ${b.time}`.localeCompare(`${a.dateRaw} ${a.time}`)),
   }));
+}
+
+function updateCommissionReportFilter(control) {
+  if (control.id === "commission-date-from") commissionReportDateFrom = control.value;
+  if (control.id === "commission-date-to") commissionReportDateTo = control.value;
+  if (control.id === "commission-time-from") commissionReportTimeFrom = control.value;
+  if (control.id === "commission-time-to") commissionReportTimeTo = control.value;
+  if (control.id === "commission-branch-filter") commissionReportBranch = control.value;
+  if (commissionReportDateFrom && commissionReportDateTo && commissionReportDateFrom > commissionReportDateTo) {
+    if (control.id === "commission-date-from") commissionReportDateTo = commissionReportDateFrom;
+    else commissionReportDateFrom = commissionReportDateTo;
+  }
+  if (commissionReportTimeFrom && commissionReportTimeTo && commissionReportTimeFrom > commissionReportTimeTo) {
+    if (control.id === "commission-time-from") commissionReportTimeTo = commissionReportTimeFrom;
+    else commissionReportTimeFrom = commissionReportTimeTo;
+  }
+  cmsPageNumbers["commission-report"] = 1;
+  cmsViewMode = "list";
+  renderCmsCurrentView();
 }
 
 function renderCmsStaffCommission() {
@@ -203,26 +332,59 @@ function renderCmsStaffCommission() {
   activeCommissionStaffId = selectedStaff.id;
   const services = getCmsServices();
   const profile = getStaffCommissionProfile(selectedStaff.id);
-  const activeCount = services.filter((service) => profile[service.id]?.enabled).length;
+  const activeTreatmentCount = services.filter((service) => profile[service.id]?.enabled).length;
+  const activeActivityCount = services.reduce((count, service) => count + service.actions.filter((activity) => profile[service.id]?.activities?.[activity]?.enabled).length, 0);
 
   const serviceRows = services.map((service) => {
-    const setting = profile[service.id] || { enabled: false, rate: 10 };
-    return `
-      <article class="cms-commission-item ${setting.enabled ? "enabled" : ""}">
-        <div class="cms-commission-service">
-          <strong>${service.name}</strong>
-          <span>${service.category}</span>
+    const treatmentSetting = profile[service.id] || { enabled: false, rate: 10, activities: {} };
+    const treatmentRow = `
+      <div class="cms-commission-activity cms-commission-treatment ${treatmentSetting.enabled ? "enabled" : ""}">
+        <div class="cms-commission-activity-copy">
+          <span>T</span>
+          <strong>Komisi Treatment</strong>
         </div>
-        <label class="cms-commission-switch" title="${setting.enabled ? "Nonaktifkan" : "Aktifkan"} ${service.name}">
-          <input type="checkbox" data-commission-toggle="${service.id}" ${setting.enabled ? "checked" : ""} />
+        <label class="cms-commission-switch" title="${treatmentSetting.enabled ? "Nonaktifkan" : "Aktifkan"} komisi treatment ${cmsEscape(service.name)}">
+          <input type="checkbox" data-commission-toggle="${service.id}" ${treatmentSetting.enabled ? "checked" : ""} />
           <span aria-hidden="true"></span>
-          <em>${setting.enabled ? "Aktif" : "Nonaktif"}</em>
+          <em>${treatmentSetting.enabled ? "Aktif" : "Nonaktif"}</em>
         </label>
         <div class="cms-commission-rate">
-          ${setting.enabled
-            ? `<label><input type="number" min="0" max="100" step="0.5" value="${setting.rate}" data-commission-rate="${service.id}" aria-label="Komisi ${service.name}" /><span>%</span></label>`
-            : `<span class="cms-commission-rate-empty" aria-label="Komisi belum aktif">-</span>`}
+          ${treatmentSetting.enabled
+            ? `<label><input type="number" min="0" max="100" step="0.5" value="${treatmentSetting.rate}" data-commission-rate="${service.id}" aria-label="Komisi treatment ${cmsEscape(service.name)}" /><span>%</span></label>`
+            : `<span class="cms-commission-rate-empty" aria-label="Komisi treatment belum aktif">-</span>`}
         </div>
+      </div>`;
+    const activityRows = service.actions.map((activity, activityIndex) => {
+      const setting = profile[service.id]?.activities?.[activity] || { enabled: false, rate: 5 };
+      return `
+        <div class="cms-commission-activity ${setting.enabled ? "enabled" : ""}">
+          <div class="cms-commission-activity-copy">
+            <span>${String(activityIndex + 1).padStart(2, "0")}</span>
+            <strong>${cmsEscape(activity)}</strong>
+          </div>
+          <label class="cms-commission-switch" title="${setting.enabled ? "Nonaktifkan" : "Aktifkan"} komisi ${cmsEscape(activity)}">
+            <input type="checkbox" data-commission-toggle="${service.id}" data-commission-activity="${activityIndex}" ${setting.enabled ? "checked" : ""} />
+            <span aria-hidden="true"></span>
+            <em>${setting.enabled ? "Aktif" : "Nonaktif"}</em>
+          </label>
+          <div class="cms-commission-rate">
+            ${setting.enabled
+              ? `<label><input type="number" min="0" max="100" step="0.5" value="${setting.rate}" data-commission-rate="${service.id}" data-commission-activity="${activityIndex}" aria-label="Komisi ${cmsEscape(activity)} pada ${cmsEscape(service.name)}" /><span>%</span></label>`
+              : `<span class="cms-commission-rate-empty" aria-label="Komisi belum aktif">-</span>`}
+          </div>
+        </div>`;
+    }).join("");
+    const serviceActiveCount = Number(treatmentSetting.enabled) + service.actions.filter((activity) => profile[service.id]?.activities?.[activity]?.enabled).length;
+    return `
+      <article class="cms-commission-item ${serviceActiveCount ? "enabled" : ""}">
+        <header class="cms-commission-service-head">
+          <div class="cms-commission-service">
+            <strong>${service.name}</strong>
+            <span>${service.category} · ${service.actions.length} aktivitas</span>
+          </div>
+          <b>${serviceActiveCount}/${service.actions.length + 1} aktif</b>
+        </header>
+        <div class="cms-commission-activities">${treatmentRow}${activityRows}</div>
       </article>`;
   }).join("");
 
@@ -230,7 +392,7 @@ function renderCmsStaffCommission() {
     <section class="cms-page-head cms-commission-page-head">
       <div>
         <h3>Komisi Petugas</h3>
-        <p>Master tarif komisi per treatment untuk setiap petugas dan cabang penempatannya.</p>
+        <p>Master tarif komisi treatment dan setiap aktivitas di dalamnya untuk setiap petugas.</p>
       </div>
       <button class="cms-primary-button" type="button" data-cms-action="save-commissions">Simpan Perubahan</button>
     </section>
@@ -246,7 +408,7 @@ function renderCmsStaffCommission() {
           </span>
         </label>
         <div class="cms-commission-overview">
-          <span><strong>${activeCount}</strong> treatment aktif</span>
+          <span><strong>${activeTreatmentCount}</strong> treatment · <strong>${activeActivityCount}</strong> aktivitas aktif</span>
           <span>${selectedStaff.branch} · ${selectedStaff.specialty}</span>
         </div>
       </header>
@@ -340,8 +502,8 @@ function getCmsPageRows(page) {
   if (page === "reminders") {
     return customers.filter((customer) => customer.id !== "umum").map((customer, index) => ({
       id: customer.id,
-      search: `${customer.name} ${customer.phone} ${customer.lastVisit}`,
-      cells: [`<strong>${customer.name}</strong>`, customer.phone, customer.lastVisit, customer.reminderDate, customer.status, cmsBadge(index % 3 === 0 ? "Sudah dihubungi" : "Belum dihubungi", index % 3 === 0 ? "success" : "warning")],
+      search: `${customer.name} ${customer.phone} ${customer.lastService} ${customer.lastVisit} ${getCustomerLastVisitBranch(customer)}`,
+      cells: [`<strong>${customer.name}</strong>`, customer.phone, `<strong>${customer.lastService || "—"}</strong><small>${customer.lastVisit}</small>`, getCustomerLastVisitBranch(customer) || "—", customer.reminderDate, customer.status, cmsBadge(index % 3 === 0 ? "Sudah dihubungi" : "Belum dihubungi", index % 3 === 0 ? "success" : "warning")],
     }));
   }
   if (page === "members") {
@@ -379,7 +541,7 @@ function getCmsPageRows(page) {
     return getCmsCommissionReport().map((row) => ({
       id: row.id,
       search: `${row.staff} ${row.staffBranch} ${row.transactionBranch}`,
-      cells: [`<strong>${row.staff}</strong>`, row.staffBranch, row.transactionBranch, row.transactionCount, formatMoney(row.serviceValue), `${row.averageRate.toFixed(1).replace(".0", "")}%`, `<strong>${formatMoney(row.commission)}</strong>`],
+      cells: [`<strong>${row.staff}</strong>`, row.staffBranch, row.transactionBranch, `${row.dayCount} hari`, row.transactionCount, formatMoney(row.serviceValue), `${row.averageRate.toFixed(1).replace(".0", "")}%`, `<strong>${formatMoney(row.commission)}</strong>`],
     }));
   }
   if (page === "users-access") {
@@ -403,14 +565,14 @@ function getCmsPageMeta(page) {
     staff: { subtitle: "Petugas beserta cabang penempatan yang dapat ditugaskan ke aktivitas jasa di POS.", headers: ["Kode", "Nama", "Nomor HP", "Cabang Petugas", "Keahlian", "Transaksi", "Nilai Jasa", "Status"], add: "Tambah Petugas", search: "Cari petugas, cabang, atau keahlian..." },
     sales: { subtitle: "Seluruh transaksi kasir dengan cabang salon dan cabang membership yang digunakan.", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas Utama", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Total", "Status"], search: "Cari no. nota, pelanggan, petugas, atau cabang..." },
     pending: { subtitle: "Draft transaksi kasir dengan cabang salon dan cabang membership yang dipakai.", headers: ["No. Draft", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Isi", "Cabang Membership", "DP", "Total", "Status"], search: "Cari draft, pelanggan, atau cabang..." },
-    reminders: { subtitle: "Pelanggan yang perlu dihubungi tujuh hari setelah jasa terakhir dan status follow-up WhatsApp.", headers: ["Pelanggan", "Nomor HP", "Jasa Terakhir", "Jadwal Reminder", "Keanggotaan", "Status Kontak"], search: "Cari pelanggan atau nomor HP..." },
+    reminders: { subtitle: "Pelanggan yang perlu dihubungi tujuh hari setelah jasa terakhir, lengkap dengan cabang kunjungan terakhir.", headers: ["Pelanggan", "Nomor HP", "Jasa Terakhir", "Terakhir Berkunjung", "Jadwal Reminder", "Keanggotaan", "Status Kontak"], search: "Cari pelanggan, jasa, nomor HP, atau cabang..." },
     members: { subtitle: "Daftar pelanggan dengan paket member aktif dari satu atau beberapa cabang.", headers: ["Pelanggan", "Nomor HP", "Cabang Membership", "Paket Aktif", "Sisa Kuota", "Total Kunjungan", "Status"], search: "Cari pelanggan, cabang, atau paket member..." },
     "member-visits": { subtitle: "Riwayat penggunaan kuota membership per pelanggan, treatment, dan cabang.", headers: ["Tanggal & Waktu", "Pelanggan", "Membership", "Cabang Membership", "Pemakaian", "Status"], search: "Cari pelanggan, cabang, atau membership..." },
     "sales-report": { subtitle: "Rekap transaksi selesai per cabang salon beserta cabang membership yang digunakan.", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Total", "Status"], search: "Cari transaksi laporan atau cabang..." },
     "revenue-report": { subtitle: "Rincian pendapatan kasir per cabang setelah DP dan pemakaian kuota member.", headers: ["Tanggal", "No. Nota", "Pelanggan", "Metode", "Cabang Transaksi", "Cabang Membership", "DP", "Member", "Pendapatan"], search: "Cari transaksi, metode, atau cabang..." },
     "stock-report": { subtitle: "Laporan posisi stok produk dan peringatan produk di bawah batas minimum.", headers: ["Kode", "Produk", "Kategori", "Supplier", "Harga Pokok", "Harga Jual", "Stok", "Status"], search: "Cari produk pada laporan stok..." },
     "staff-commission": { subtitle: "Konfigurasi treatment dan tarif komisi petugas sebagai bagian dari Master Data.", headers: ["Petugas", "Keahlian", "Transaksi", "Nilai Jasa", "Tarif", "Komisi"], search: "Cari petugas..." },
-    "commission-report": { subtitle: "Rekap komisi petugas berdasarkan jasa selesai dan cabang tempat transaksi berlangsung.", headers: ["Petugas", "Cabang Petugas", "Cabang Transaksi", "Transaksi", "Nilai Jasa", "Rata-rata Tarif", "Komisi"], search: "Cari petugas atau cabang..." },
+    "commission-report": { subtitle: "Rekap komisi treatment dan aktivitas yang dikerjakan petugas berdasarkan waktu serta cabang transaksi.", headers: ["Petugas", "Cabang Petugas", "Cabang Transaksi", "Hari Kerja", "Transaksi", "Dasar Komisi", "Rata-rata Tarif", "Komisi"], search: "Cari petugas atau cabang..." },
     "users-access": { subtitle: "Akun pengguna CMS dan batas akses ke fungsi kasir, operasional, serta laporan.", headers: ["ID", "Nama", "Username", "Peran", "Hak Akses", "Status"], add: "Tambah Pengguna", search: "Cari nama, username, atau peran..." },
   };
   return meta[page] || { subtitle: "", headers: [], search: "Cari data..." };
@@ -437,6 +599,41 @@ function getCmsSummary(page, rows) {
 function renderCmsSummary(summary) {
   if (!summary.length) return "";
   return `<div class="cms-dashboard-grid cms-summary-grid">${summary.map(([label, value]) => `<div class="cms-card"><h4>${label}</h4><strong>${value}</strong></div>`).join("")}</div>`;
+}
+
+function renderCmsCommissionFilters() {
+  ensureCommissionReportFilters();
+  return `
+    <section class="cms-report-filters" aria-label="Filter laporan komisi">
+      <div class="cms-report-filter-copy">
+        <strong>Periode Laporan</strong>
+        <span>Pilih rentang tanggal, jam, dan cabang tempat transaksi berlangsung.</span>
+      </div>
+      <label class="cms-report-filter">
+        <span>Dari Tanggal</span>
+        <input id="commission-date-from" type="date" value="${commissionReportDateFrom}" max="${commissionReportDateTo || ""}" />
+      </label>
+      <label class="cms-report-filter">
+        <span>Sampai Tanggal</span>
+        <input id="commission-date-to" type="date" value="${commissionReportDateTo}" min="${commissionReportDateFrom || ""}" />
+      </label>
+      <label class="cms-report-filter">
+        <span>Dari Jam</span>
+        <input id="commission-time-from" type="time" value="${commissionReportTimeFrom}" max="${commissionReportTimeTo || ""}" />
+      </label>
+      <label class="cms-report-filter">
+        <span>Sampai Jam</span>
+        <input id="commission-time-to" type="time" value="${commissionReportTimeTo}" min="${commissionReportTimeFrom || ""}" />
+      </label>
+      <label class="cms-report-filter cms-report-branch-filter">
+        <span>Cabang Transaksi</span>
+        <select id="commission-branch-filter">
+          <option value="">Semua Cabang</option>
+          ${salonBranches.map((branch) => `<option value="${branch.name}" ${commissionReportBranch === branch.name ? "selected" : ""}>${branch.name}</option>`).join("")}
+        </select>
+      </label>
+      <button class="cms-secondary-button" type="button" data-cms-action="reset-commission-filters">Reset</button>
+    </section>`;
 }
 
 function renderCmsRowActions(page, row) {
@@ -470,6 +667,7 @@ function renderCmsListPage(page) {
       <div><h3>${CMS_PAGE_LABELS[page]}</h3><p>${meta.subtitle}</p></div>
       ${meta.add ? `<button class="cms-primary-button" type="button" data-cms-action="add">+ ${meta.add}</button>` : ""}
     </section>
+    ${page === "commission-report" ? renderCmsCommissionFilters() : ""}
     ${renderCmsSummary(summary)}
     <section class="cms-data-panel">
       <div class="cms-list-toolbar">
@@ -599,7 +797,7 @@ function renderCmsMembershipBonusSection(record) {
 
 function cmsDetailFields(page, record) {
   if (!record) return [];
-  if (["customers", "reminders", "members"].includes(page)) return [["Kode Pelanggan", record.code], ["Nama Pelanggan", record.name], ["Nomor HP", record.phone], ["Status", record.status], ["Sering Berkunjung", getCustomerFrequentBranch(record) || "—"], ["Cabang Membership", getCustomerMembershipBranches(record).join(" · ") || "—"], ["Total Kunjungan", `${record.totalVisits} kali`], ["Kunjungan Terakhir", record.lastVisit], ["Jadwal Reminder", record.reminderDate], ["DP Tersimpan", formatMoney(record.dp || 0)]];
+  if (["customers", "reminders", "members"].includes(page)) return [["Kode Pelanggan", record.code], ["Nama Pelanggan", record.name], ["Nomor HP", record.phone], ["Status", record.status], ["Sering Berkunjung", getCustomerFrequentBranch(record) || "—"], ["Cabang Membership", getCustomerMembershipBranches(record).join(" · ") || "—"], ["Total Kunjungan", `${record.totalVisits} kali`], ["Kunjungan Terakhir", record.lastVisit], ["Terakhir Berkunjung", getCustomerLastVisitBranch(record) || "—"], ["Jasa Terakhir", record.lastService || "—"], ["Jadwal Reminder", record.reminderDate], ["DP Tersimpan", formatMoney(record.dp || 0)]];
   if (["services", "service-activities"].includes(page)) return [["Kode Jasa", record.code], ["Nama Jasa", record.name], ["Kategori", record.category], ["Harga Normal", formatMoney(record.price)], ["Promo Treatment", getCmsServicePromotionLabel(record)], ["Opsi Upgrade", getCmsServiceUpgradeNames(record).join(" · ") || "—"], ["Aktivitas", record.actions.join(" → ")], ["Status", record.status]];
   if (["products-stock", "stock-report"].includes(page)) return [["Kode Produk", record.code], ["Nama Produk", record.name], ["Kategori", record.category], ["Supplier", record.supplier], ["Harga Pokok", formatMoney(record.cost)], ["Harga Jual", formatMoney(record.price)], ["Stok", `${record.stock} ${record.unit}`], ["Stok Minimum", `${record.minimum} ${record.unit}`]];
   if (page === "membership-plans") return [["Nama Paket", record.name], ["Jasa", record.serviceName], ["Jumlah Kuota", `${record.target} kali`], ["Bonus Paket", getMembershipBonusSummary(record.bonuses) || "—"], ["Harga Paket", formatMoney(record.price)], ["Harga per Kuota", formatMoney(Math.round(record.price / record.target))], ["Status", record.status || "Aktif"]];
@@ -630,7 +828,158 @@ function renderCmsMemberPackages(customer) {
   return `<section class="cms-detail-section"><h4>Membership Dimiliki</h4><div class="cms-package-list">${rewards.map((reward) => `<div><span><strong>${getRewardName(reward, { withMember: true })}</strong><small>${getRewardBranch(reward, customer)} · ${reward.progress} dari ${reward.target} kuota tersisa</small></span><b>${reward.progress}/${reward.target}</b></div>`).join("")}</div></section>`;
 }
 
+function formatCommissionReportDate(dateRaw, fallback = "") {
+  if (!dateRaw) return fallback || "Tanggal tidak tersedia";
+  return new Date(`${dateRaw}T00:00:00`).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function renderCmsCommissionPrintReport(record, sortedDays, periodLabel) {
+  const printedAt = new Date().toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  const daySections = sortedDays.map((day) => `
+    <section class="cms-commission-print-day">
+      <div class="cms-commission-print-day-head">
+        <div><strong>${formatCommissionReportDate(day.dateRaw, day.date)}</strong><span>${day.transactions.size} transaksi / ${day.entries.length} komponen</span></div>
+        <div><span>Dasar: <b>${formatMoney(Math.round(day.serviceValue))}</b></span><span>Komisi: <b>${formatMoney(Math.round(day.commission))}</b></span></div>
+      </div>
+      <table>
+        <thead><tr><th>Waktu / Nota</th><th>Pelanggan / Treatment</th><th>Komponen</th><th>Dasar</th><th>Tarif</th><th>Komisi</th></tr></thead>
+        <tbody>${day.entries.map((entry) => `
+          <tr>
+            <td><strong>${entry.time}</strong><span>${entry.transactionId}</span></td>
+            <td><strong>${entry.customer}</strong><span>${entry.qty}x ${entry.serviceName}</span></td>
+            <td><strong>${entry.activityName}</strong><span>${entry.componentType === "treatment" ? "Treatment" : "Aktivitas"}</span></td>
+            <td>${formatMoney(Math.round(entry.serviceValue))}</td>
+            <td>${entry.rate.toFixed(1).replace(".0", "")}%</td>
+            <td><strong>${formatMoney(Math.round(entry.commission))}</strong></td>
+          </tr>`).join("")}</tbody>
+        <tfoot><tr><td colspan="3">Total harian</td><td>${formatMoney(Math.round(day.serviceValue))}</td><td>-</td><td>${formatMoney(Math.round(day.commission))}</td></tr></tfoot>
+      </table>
+    </section>`).join("");
+
+  return `
+    <article class="cms-commission-print-report" aria-hidden="true">
+      <header class="cms-commission-print-header">
+        <div class="cms-commission-print-brand">
+          <img src="assets/images/JMMSALON2Transparant.png" alt="" />
+          <div><strong>JMM SALON</strong><span>Professional Hair Salon</span></div>
+        </div>
+        <div class="cms-commission-print-title"><span>Dokumen Internal</span><h1>Laporan Komisi Petugas</h1><p>Rincian komisi treatment dan aktivitas jasa</p></div>
+      </header>
+      <section class="cms-commission-print-meta">
+        <dl><div><dt>Nama Petugas</dt><dd>${record.staff}</dd></div><div><dt>Cabang Petugas</dt><dd>${record.staffBranch}</dd></div></dl>
+        <dl><div><dt>Periode</dt><dd>${periodLabel.replaceAll("–", "-")}</dd></div><div><dt>Cabang Transaksi</dt><dd>${record.transactionBranch}</dd></div></dl>
+      </section>
+      <section class="cms-commission-print-summary">
+        <div><span>Total Komisi</span><strong>${formatMoney(record.commission)}</strong></div>
+        <div><span>Hari Kerja</span><strong>${record.dayCount}</strong></div>
+        <div><span>Transaksi</span><strong>${record.transactionCount}</strong></div>
+        <div><span>Dasar Komisi</span><strong>${formatMoney(record.serviceValue)}</strong></div>
+        <div><span>Rata-rata Tarif</span><strong>${record.averageRate.toFixed(1).replace(".0", "")}%</strong></div>
+      </section>
+      <section class="cms-commission-print-days">${daySections || "<p>Tidak ada pekerjaan pada periode ini.</p>"}</section>
+      <section class="cms-commission-print-signatures">
+        <div><span>Disiapkan oleh</span><b>Petugas Administrasi</b></div>
+        <div><span>Diperiksa oleh</span><b>Manajer Cabang</b></div>
+      </section>
+      <footer><span>JMM Salon - Laporan internal</span><span>Dicetak ${printedAt}</span></footer>
+    </article>`;
+}
+
+function setCmsCommissionDaysExpanded(expanded) {
+  document.querySelectorAll(".cms-commission-day").forEach((day) => {
+    day.open = expanded;
+  });
+}
+
+function exportCmsCommissionPdf() {
+  const record = getCmsRecord("commission-report", cmsSelectedRecordId);
+  if (!record) {
+    showToast("Data komisi tidak ditemukan");
+    return;
+  }
+  const previousTitle = document.title;
+  const safeStaffName = record.staff.replaceAll(/[\\/:*?"<>|]/g, " ");
+  document.title = `Laporan Komisi ${safeStaffName}`.trim();
+  const restoreTitle = () => {
+    document.title = previousTitle;
+    window.removeEventListener("afterprint", restoreTitle);
+  };
+  window.addEventListener("afterprint", restoreTitle);
+  window.print();
+  window.setTimeout(restoreTitle, 60000);
+}
+
+function renderCmsCommissionDetail(record) {
+  if (!record) return renderCmsListPage("commission-report");
+  const days = new Map();
+  record.entries.forEach((entry) => {
+    const day = days.get(entry.dateRaw) || {
+      dateRaw: entry.dateRaw,
+      date: entry.date,
+      entries: [],
+      transactions: new Set(),
+      serviceValue: 0,
+      commission: 0,
+    };
+    day.entries.push(entry);
+    day.transactions.add(entry.transactionId);
+    day.serviceValue += entry.serviceValue;
+    day.commission += entry.commission;
+    days.set(entry.dateRaw, day);
+  });
+  const periodLabel = commissionReportDateFrom && commissionReportDateTo
+    ? `${formatCommissionReportDate(commissionReportDateFrom)} – ${formatCommissionReportDate(commissionReportDateTo)} · ${commissionReportTimeFrom}–${commissionReportTimeTo}`
+    : "Semua periode";
+  const sortedDays = [...days.values()].sort((a, b) => b.dateRaw.localeCompare(a.dateRaw));
+  const daySections = sortedDays.map((day, index) => `
+    <details class="cms-commission-day" ${index === 0 ? "open" : ""}>
+      <summary class="cms-commission-day-head">
+        <div><strong>${formatCommissionReportDate(day.dateRaw, day.date)}</strong><span>${day.transactions.size} transaksi · ${day.entries.length} komponen komisi</span></div>
+        <div class="cms-commission-day-totals"><span>Dasar komisi <b>${formatMoney(Math.round(day.serviceValue))}</b></span><span>Komisi harian <b>${formatMoney(Math.round(day.commission))}</b></span><i aria-hidden="true"></i></div>
+      </summary>
+      <div class="cms-table-scroll">
+        <table class="cms-table cms-commission-detail-table">
+          <thead><tr><th>Waktu</th><th>No. Nota</th><th>Pelanggan</th><th>Treatment</th><th>Komponen Komisi</th><th>Cabang Transaksi</th><th>Dasar Komisi</th><th>Tarif</th><th>Komisi</th></tr></thead>
+          <tbody>${day.entries.map((entry) => `<tr><td>${entry.time}</td><td>${entry.transactionId}</td><td><strong>${entry.customer}</strong></td><td>${entry.qty}x ${entry.serviceName}</td><td><strong>${entry.activityName}</strong><small>${entry.componentType === "treatment" ? "Treatment" : "Aktivitas"}</small></td><td>${entry.transactionBranch}</td><td>${formatMoney(Math.round(entry.serviceValue))}</td><td>${entry.rate.toFixed(1).replace(".0", "")}%</td><td><strong>${formatMoney(Math.round(entry.commission))}</strong></td></tr>`).join("")}</tbody>
+          <tfoot><tr><td colspan="6">Total ${formatCommissionReportDate(day.dateRaw, day.date)}</td><td>${formatMoney(Math.round(day.serviceValue))}</td><td>—</td><td>${formatMoney(Math.round(day.commission))}</td></tr></tfoot>
+        </table>
+      </div>
+    </details>`).join("");
+
+  return `
+    <section class="cms-page-head">
+      <div><span class="cms-breadcrumb">Laporan Komisi Petugas / Detail Harian</span><h3>${record.staff}</h3><p>${periodLabel} · ${record.transactionBranch}</p></div>
+      <div class="cms-head-actions">
+        <button class="cms-primary-button" type="button" data-cms-action="export-commission-pdf">${cmsActionIcon("print")} Export PDF</button>
+        <button class="cms-secondary-button" type="button" data-cms-action="back-list">‹ Kembali ke Laporan</button>
+      </div>
+    </section>
+    ${renderCmsSummary([
+      ["Total komisi", formatMoney(record.commission)],
+      ["Hari kerja", record.dayCount],
+      ["Transaksi", record.transactionCount],
+      ["Dasar komisi", formatMoney(record.serviceValue)],
+    ])}
+    <section class="cms-commission-detail-intro"><div><strong>${record.staff}</strong><span>${record.staffBranch} · ${record.transactionBranch}</span></div><span>Rata-rata tarif <b>${record.averageRate.toFixed(1).replace(".0", "")}%</b></span></section>
+    <section class="cms-commission-day-toolbar">
+      <div><strong>Rincian per hari</strong><span>Buka hanya hari yang ingin diperiksa agar laporan tetap ringkas.</span></div>
+      <div><button class="cms-secondary-button" type="button" data-cms-action="expand-commission-days">Buka Semua</button><button class="cms-secondary-button" type="button" data-cms-action="collapse-commission-days">Tutup Semua</button></div>
+    </section>
+    <div class="cms-commission-days">${daySections || '<div class="cms-empty-cell">Tidak ada pekerjaan pada periode ini.</div>'}</div>
+    ${renderCmsCommissionPrintReport(record, sortedDays, periodLabel)}`;
+}
+
 function renderCmsDetailPage(page, record) {
+  if (page === "commission-report") return renderCmsCommissionDetail(record);
   const fields = cmsDetailFields(page, record);
   const title = record?.name || record?.staff || record?.customer || record?.id || "Detail Data";
   const isTransaction = ["sales", "pending", "sales-report", "revenue-report"].includes(page);
@@ -812,6 +1161,8 @@ function saveCmsRecord() {
       code: `CUST.${String(customers.length).padStart(4, "0")}`,
       totalVisits: 0,
       lastVisit: "-",
+      lastService: "-",
+      lastVisitBranch: "",
       rewards: null,
     };
     Object.assign(target, {
@@ -1034,6 +1385,30 @@ function renderCmsCurrentView() {
 }
 
 function handleCmsAction(action, id) {
+  if (action === "expand-commission-days") {
+    setCmsCommissionDaysExpanded(true);
+    return;
+  }
+  if (action === "collapse-commission-days") {
+    setCmsCommissionDaysExpanded(false);
+    return;
+  }
+  if (action === "export-commission-pdf") {
+    exportCmsCommissionPdf();
+    return;
+  }
+  if (action === "reset-commission-filters") {
+    commissionReportDateFrom = "";
+    commissionReportDateTo = "";
+    commissionReportTimeFrom = "00:00";
+    commissionReportTimeTo = "23:59";
+    commissionReportBranch = "";
+    commissionReportFiltersInitialized = false;
+    cmsSearchTerm = "";
+    cmsPageNumbers["commission-report"] = 1;
+    renderCmsCurrentView();
+    return;
+  }
   if (action === "add-membership-bonus") {
     if (getCmsMembershipTarget() < 10) {
       showToast("Bonus tersedia untuk paket dengan kuota minimal 10x");
@@ -1099,7 +1474,7 @@ function handleCmsAction(action, id) {
   }
   if (action === "save-commissions") {
     const staff = getCmsStaff().find((person) => person.id === activeCommissionStaffId);
-    showToast(`Komisi ${staff?.name || "petugas"} tersimpan`);
+    showToast(`Tarif aktivitas ${staff?.name || "petugas"} tersimpan`);
     return;
   }
   if (action === "delete") {
@@ -1172,8 +1547,14 @@ document.addEventListener("input", (event) => {
   const commissionRateInput = event.target.closest("[data-commission-rate]");
   if (commissionRateInput) {
     const serviceId = commissionRateInput.dataset.commissionRate;
+    const service = getCmsServices().find((entry) => entry.id === serviceId);
+    const activity = service?.actions[Number(commissionRateInput.dataset.commissionActivity)];
     const profile = getStaffCommissionProfile(activeCommissionStaffId);
-    profile[serviceId].rate = Math.min(100, Math.max(0, Number(commissionRateInput.value) || 0));
+    if (!commissionRateInput.hasAttribute("data-commission-activity") && profile[serviceId]) {
+      profile[serviceId].rate = Math.min(100, Math.max(0, Number(commissionRateInput.value) || 0));
+    } else if (activity && profile[serviceId]?.activities?.[activity]) {
+      profile[serviceId].activities[activity].rate = Math.min(100, Math.max(0, Number(commissionRateInput.value) || 0));
+    }
     return;
   }
 
@@ -1350,8 +1731,14 @@ document.addEventListener("change", (event) => {
   const commissionToggle = event.target.closest("[data-commission-toggle]");
   if (commissionToggle) {
     const serviceId = commissionToggle.dataset.commissionToggle;
+    const service = getCmsServices().find((entry) => entry.id === serviceId);
+    const activity = service?.actions[Number(commissionToggle.dataset.commissionActivity)];
     const profile = getStaffCommissionProfile(activeCommissionStaffId);
-    profile[serviceId].enabled = commissionToggle.checked;
+    if (!commissionToggle.hasAttribute("data-commission-activity") && profile[serviceId]) {
+      profile[serviceId].enabled = commissionToggle.checked;
+    } else if (activity && profile[serviceId]?.activities?.[activity]) {
+      profile[serviceId].activities[activity].enabled = commissionToggle.checked;
+    }
     renderCmsCurrentView();
   }
 });

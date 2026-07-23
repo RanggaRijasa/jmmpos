@@ -213,6 +213,40 @@ function renderCustomerList() {
     .join("");
 }
 
+function renderReminderList() {
+  const list = document.querySelector("#reminder-list");
+  if (!list) return;
+  const reminderCustomers = customers.filter((customer) => customer.id !== "umum");
+  const contactedCount = reminderCustomers.filter((_, index) => index % 3 === 0).length;
+  const totalCount = document.querySelector("#reminder-total-count");
+  const doneCount = document.querySelector("#reminder-done-count");
+
+  if (totalCount) totalCount.textContent = `${reminderCustomers.length} pelanggan`;
+  if (doneCount) doneCount.textContent = `${contactedCount} pelanggan`;
+
+  list.innerHTML = reminderCustomers
+    .map((customer, index) => {
+      const contacted = index % 3 === 0;
+      return `
+        <div class="reminder-row">
+          <div class="reminder-info"><strong>${customer.name}</strong><small>${customer.phone}</small></div>
+          <div class="reminder-last">
+            <span>Terakhir: ${customer.lastService || "Jasa tidak tersedia"} · ${customer.lastVisit}</span>
+            <small>Terakhir berkunjung: ${getCustomerLastVisitBranch(customer) || "Cabang tidak tersedia"}</small>
+          </div>
+          <b>${customer.reminderDate}</b>
+          <button class="reminder-action${contacted ? " done" : ""}" type="button">${contacted ? "Sudah Kontak" : "Kontak"}</button>
+        </div>`;
+    })
+    .join("");
+}
+
+function updateReminderDoneCount() {
+  const doneCount = document.querySelector("#reminder-done-count");
+  if (!doneCount) return;
+  doneCount.textContent = `${document.querySelectorAll("#reminder-list .reminder-action.done").length} pelanggan`;
+}
+
 function renderCustomerMemberSummary(customer) {
   const rewards = getCustomerRewards(customer);
   if (!rewards.length) {

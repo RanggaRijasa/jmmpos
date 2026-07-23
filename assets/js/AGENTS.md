@@ -55,7 +55,14 @@ DOM IDs and `data-*` attributes form the contract with `partials/` and `core/eve
 - `staffDirectory` is the source of truth for petugas identity, assigned `branch`, specialty, phone, and status. Keep `staffOptions` synchronized because POS controls still use staff names as values.
 - `activeSalonBranch` is the branch where the cashier transaction occurs. A saved draft, completed transaction, and receipt snapshot must copy it to `transaction.branch`/`receipt.branch`.
 - `transaction.branch` (Cabang Transaksi), `reward.branch` (Cabang Membership), `customer.frequentBranch` (Sering Berkunjung), and `staff.branch` (Cabang Petugas) are different business concepts. Never substitute one for another in history or reports.
-- `staff-commission` is the Master Data configuration screen for per-treatment rates. `commission-report` is the read-only operational report calculated from completed service transactions, assigned staff, transaction branch, and the configured rate.
+- `customer.lastVisitBranch` is the historical branch snapshot paired with `customer.lastVisit` and `customer.lastService`. Reminder views in cashier and CMS must read this field, never infer it from `frequentBranch` or a membership branch.
+- `staff-commission` configures both the treatment rate and additional per-activity rates. Store the treatment setting at `staffCommissionProfiles[staffId][serviceId].{ enabled, rate }` and activity settings at `.activities[activity] = { enabled, rate }`.
+- `commission-report` is read-only and calculates both components from completed service transactions, `item.actionStaffs`, transaction branch, and configured rates. Legacy lines without `actionStaffs` assign every service activity to `item.staff`.
+- Split the treatment-level commission base evenly across all staff involved in that service. Separately, allocate the service value evenly across its configured activities, then evenly across multiple staff assigned to the same activity. The report must label treatment and activity components separately because both can contribute commission.
+- Commission report filters are inclusive snapshots over `transaction.dateRaw`, `transaction.time`, and `transaction.branch`. Changing a filter resets report pagination but must not mutate transactions or commission profiles.
+- Commission report details group each staff member's service lines by work date. Preserve transaction ID, customer, treatment, branch, service value, configured rate, and commission on every detail line so daily totals remain auditable.
+- Daily commission detail uses native `<details>` accordions with only the newest day open initially. The expand/collapse controls change presentation only and must not mutate report data.
+- Commission PDF export uses the browser print dialog and a dedicated A4 portrait report derived from the same filtered detail entries. Keep the print table compact and formal; do not print or repurpose the wide CMS screen table.
 
 ## Daily staff presence contract
 
