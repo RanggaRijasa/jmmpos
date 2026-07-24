@@ -139,8 +139,8 @@ function getMemberUnitPrice(reward) {
   return Math.round(plan.price / plan.target);
 }
 
-function getServiceUpgradeOptions(item) {
-  if (item.type !== "service" || !item.memberUsageRewardId) return [];
+function getConfiguredServiceUpgradeOptions(item) {
+  if (item.type !== "service") return [];
   const sourceId = item.itemId || item.id;
   const source = items.find((entry) => entry.type === "service" && entry.id === sourceId);
   const basePrice = item.baseServicePrice || source?.price || item.price;
@@ -148,6 +148,20 @@ function getServiceUpgradeOptions(item) {
     .map((serviceId) => items.find((entry) => entry.type === "service" && entry.id === serviceId))
     .filter(Boolean)
     .map((service) => ({ id: service.id, itemId: service.id, name: service.name, price: service.price, topUp: Math.max(0, service.price - basePrice) }));
+}
+
+function getServiceUpgradeReward(item, customer = selectedCustomer) {
+  if (item.type !== "service" || !customer) return null;
+  const sourceId = item.itemId || item.id;
+  const reward = getMemberRewardForService(sourceId, customer);
+  if (!reward) return null;
+  if (item.memberUsageRewardId === getRewardId(reward)) return reward;
+  return getMemberRemaining(reward) > 0 ? reward : null;
+}
+
+function getServiceUpgradeOptions(item, customer = selectedCustomer) {
+  if (!getServiceUpgradeReward(item, customer)) return [];
+  return getConfiguredServiceUpgradeOptions(item);
 }
 
 function releaseMemberUsage(line) {
@@ -170,12 +184,13 @@ function releaseMemberUsage(line) {
 
 function applyServiceLevel(line, levelId) {
   const baseLevel = getServiceLevels(line)[0];
-  const level = levelId === "normal" ? baseLevel : getServiceUpgradeOptions(line).find((entry) => entry.id === levelId);
+  const level = levelId === "normal" ? baseLevel : getConfiguredServiceUpgradeOptions(line).find((entry) => entry.id === levelId);
   if (!level) return false;
   const basePrice = line.baseServicePrice || baseLevel.price || line.price;
   const baseName = line.baseServiceName || line.name;
 
   if (level.id === "normal") {
+    if (!line.memberUsageRewardId) return false;
     line.memberUpgrade = false;
     line.memberFree = true;
     line.serviceLevel = level;
@@ -186,6 +201,19 @@ function applyServiceLevel(line, levelId) {
     line.actionStaffs = createActionStaffs(line);
     syncServiceStaffSummary(line);
     return true;
+  }
+
+  if (!line.memberUsageRewardId) {
+    const reward = getServiceUpgradeReward(line);
+    if (!reward) {
+      showToast(selectedCustomer ? "Kuota member untuk jasa ini tidak tersedia" : "Pilih pelanggan member terlebih dahulu");
+      return false;
+    }
+    const rewardId = getRewardId(reward);
+    memberUsage[rewardId] = getMemberUsed(rewardId) + 1;
+    line.memberUsageRewardId = rewardId;
+    line.memberBranch = getRewardBranch(reward, selectedCustomer);
+    line.memberUseAmount = basePrice;
   }
 
   line.memberUpgrade = true;
@@ -263,6 +291,7 @@ function getCartItems() {
 
 function clearMemberUsage() {
   serviceCartLines.forEach((line) => {
+    const hadMemberBenefit = Boolean(line.memberUsageRewardId || line.memberFree || line.memberUpgrade);
     delete line.memberFree;
     delete line.memberUsageRewardId;
     delete line.memberBranch;
@@ -274,7 +303,7 @@ function clearMemberUsage() {
     line.name = line.baseServiceName || line.name;
     line.actionStaffs = createActionStaffs(line);
     syncServiceStaffSummary(line);
-    applyDefaultServicePromotion(line);
+    if (hadMemberBenefit) applyDefaultServicePromotion(line);
   });
   Object.keys(memberUsage).forEach((key) => {
     delete memberUsage[key];

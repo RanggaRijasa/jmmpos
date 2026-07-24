@@ -152,6 +152,7 @@ document.addEventListener("click", (event) => {
   const staffButton = event.target.closest("[data-staff-for]");
   if (staffButton) {
     activeDiscountMenu = null;
+    activeServiceLevelMenu = null;
     const nextStaffMenu = activeStaffMenu === staffButton.dataset.staffFor ? null : staffButton.dataset.staffFor;
     activeStaffMenu = nextStaffMenu;
     activeStaffAction = null;
@@ -161,11 +162,11 @@ document.addEventListener("click", (event) => {
 
   const serviceLevelButton = event.target.closest("[data-service-level-for]");
   if (serviceLevelButton) {
+    const nextServiceLevelMenu = activeServiceLevelMenu === serviceLevelButton.dataset.serviceLevelFor ? null : serviceLevelButton.dataset.serviceLevelFor;
     activeStaffMenu = null;
     activeStaffAction = null;
     activeDiscountMenu = null;
-    activeServiceLevelMenu = null;
-    activeServiceLevelMenu = activeServiceLevelMenu === serviceLevelButton.dataset.serviceLevelFor ? null : serviceLevelButton.dataset.serviceLevelFor;
+    activeServiceLevelMenu = nextServiceLevelMenu;
     renderCart();
     return;
   }
@@ -270,6 +271,7 @@ document.addEventListener("click", (event) => {
     if (!item || item.memberFree || item.memberUpgrade) return;
     activeStaffMenu = null;
     activeStaffAction = null;
+    activeServiceLevelMenu = null;
     activeDiscountMenu = activeDiscountMenu === discountButton.dataset.discountFor ? null : discountButton.dataset.discountFor;
     renderCart();
     if (activeDiscountMenu) {

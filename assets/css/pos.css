@@ -535,6 +535,18 @@
   font-size: 10px;
 }
 
+.service-level-empty {
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 7px;
+  background: var(--card);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .service-level-option {
   display: flex;
   align-items: center;
@@ -1030,6 +1042,13 @@
   grid-template-columns: 1fr;
   gap: 8px;
   width: 160px;
+}
+
+.discount-input-label {
+  color: var(--muted) !important;
+  font-size: 9px !important;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .discount-locked-note {

@@ -78,11 +78,13 @@ function renderSimpleStaffMenu(item) {
 function renderDiscountMenu(item) {
   const fixedRate = getLineFixedDiscountRate(item);
   const flexibleRate = getLineFlexibleDiscountRate(item);
+  const inputLabel = fixedRate ? "Diskon tambahan" : "Diskon manual";
   return `
     <div class="discount-menu discount-input-menu">
       ${fixedRate ? `<div class="discount-locked-note"><strong>${fixedRate}% pasti</strong><span>Otomatis dan tidak dapat diubah kasir</span></div>` : ""}
+      <span class="discount-input-label">${inputLabel}</span>
       <label class="discount-number">
-        <input type="number" inputmode="numeric" min="0" max="${100 - fixedRate}" value="${flexibleRate}" placeholder="Diskon tambahan %" data-discount-input="${item.id}" />
+        <input type="number" inputmode="numeric" min="0" max="${100 - fixedRate}" value="${flexibleRate}" placeholder="${inputLabel} %" data-discount-input="${item.id}" />
         <span>%</span>
       </label>
       <div class="discount-actions">
@@ -145,29 +147,41 @@ function renderServiceStaffMenu(item) {
 }
 
 function renderServiceLevelMenu(item) {
-  const options = getServiceUpgradeOptions(item);
+  const options = getConfiguredServiceUpgradeOptions(item);
   if (!options.length) return "";
+  const reward = getServiceUpgradeReward(item);
+  const matchingReward = selectedCustomer ? getMemberRewardForService(item.itemId || item.id, selectedCustomer) : null;
+  const hasActiveUsage = Boolean(item.memberUsageRewardId);
   const currentLevel = item.serviceLevel?.id || "normal";
+  const availabilityCopy = hasActiveUsage
+    ? `Kuota ${getRewardName(reward || matchingReward)} sedang dipakai`
+    : reward
+      ? `${getRewardName(reward)} · ${getRewardBranch(reward, selectedCustomer)} · 1 kuota dipakai saat upgrade dipilih`
+      : selectedCustomer && matchingReward
+        ? `Kuota ${getRewardName(matchingReward)} sudah habis`
+        : selectedCustomer
+          ? "Pelanggan ini tidak memiliki membership untuk treatment tersebut"
+          : "Pilih pelanggan member untuk memakai upgrade";
   return `
     <div class="service-level-menu">
       <div class="service-level-menu-head">
         <strong>Upgrade treatment</strong>
-        <small>Pakai 1 kuota member untuk jasa ini</small>
+        <small>${availabilityCopy}</small>
       </div>
-      <button type="button" class="service-level-option${currentLevel === "normal" ? " active" : ""}" data-service-level="normal" data-id="${item.id}">
-        <span>Normal</span>
-        <small>${formatMoney(item.baseServicePrice || item.price)}</small>
-      </button>
-      ${options
-        .map(
-          (level) => `
+      ${hasActiveUsage ? `<button type="button" class="service-level-option${currentLevel === "normal" ? " active" : ""}" data-service-level="normal" data-id="${item.id}">
+        <span>Gunakan treatment asli</span>
+        <small>Tanpa selisih</small>
+      </button>` : ""}
+      ${reward || hasActiveUsage
+        ? options.map(
+            (level) => `
             <button type="button" class="service-level-option${currentLevel === level.id ? " active" : ""}" data-service-level="${level.id}" data-id="${item.id}">
               <span>${level.name}</span>
               <small>${formatMoney(level.price)} · bayar ${formatMoney(level.topUp)}</small>
             </button>
           `,
-        )
-        .join("")}
+          ).join("")
+        : '<div class="service-level-empty">Upgrade belum dapat dipilih.</div>'}
     </div>
   `;
 }
@@ -186,8 +200,8 @@ function renderCart() {
   } else {
     list.innerHTML = selected
       .map((item) => {
-        const canDiscount = item.type === "service" && !item.memberFree && !item.memberUpgrade && getServiceFlexibleDiscountRate(item) > 0;
-        const canUpgrade = item.type === "service" && getServiceUpgradeOptions(item).length > 0;
+        const canDiscount = item.type === "service" && !item.memberFree && !item.memberUpgrade;
+        const canUpgrade = item.type === "service" && getConfiguredServiceUpgradeOptions(item).length > 0;
         const lineBaseTotal = getLineBaseTotal(item);
         const lineTotal = getLinePayable(item);
         const discountMenu = canDiscount && activeDiscountMenu === item.id ? renderDiscountMenu(item) : "";
@@ -205,7 +219,7 @@ function renderCart() {
                   ? ""
                   : `<button class="discount-select${getLineDiscountRate(item) ? " active" : ""}" type="button" data-discount-for="${item.id}">
                     <span aria-hidden="true">+</span>
-                    Ubah Diskon
+                    ${getLineDiscountRate(item) ? "Ubah Diskon" : "Diskon"}
                   </button>`
               }
               ${canUpgrade ? `<button class="service-level-select${item.memberUpgrade ? " active" : ""}" type="button" data-service-level-for="${item.id}">${item.memberUpgrade ? item.serviceLevel.name : "Upgrade"}</button>` : ""}

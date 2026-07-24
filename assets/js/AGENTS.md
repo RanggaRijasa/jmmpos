@@ -41,13 +41,14 @@ DOM IDs and `data-*` attributes form the contract with `partials/` and `core/eve
 
 - `service.promotion.fixedRate` is the mandatory treatment discount automatically applied by POS. Cashiers cannot edit or remove this portion.
 - `service.promotion.flexibleRate` is the default additional discount. Cashiers may replace this portion, including with zero, while the fixed portion remains applied.
-- A service without either promotion rate must not expose the treatment-promotion editor in POS. Keep the combined rate at or below 100%.
+- Every normal paid service exposes the manual discount editor in POS. Services without promotion defaults begin at zero; services with a fixed promotion keep that portion locked while the cashier edits only the flexible portion. Keep the combined rate at or below 100%.
 - Persist `discountRate`, `fixedDiscountRate`, and `flexibleDiscountRate` on draft, completed transaction, and receipt lines so later master-data changes do not alter history.
 
 ## Treatment upgrade contract
 
 - `service.upgradeServiceIds` lists concrete destination treatment IDs; do not recreate the removed generic Premium price level.
-- Upgrade choices appear only while a matching membership quota is being used. The customer pays the non-negative difference between the destination treatment price and the membership treatment's normal price.
+- A configured service keeps its Upgrade control visible in the POS cart. Without an eligible member it explains what is missing; with a matching remaining quota, choosing an upgrade consumes that quota directly. Existing member usage can also switch between the original treatment and configured upgrades.
+- The customer pays the non-negative difference between the destination treatment price and the membership treatment's normal price.
 - Store both the membership source `itemId` and chosen `activeServiceId` in transaction snapshots. Staff activities and receipt labels must follow `activeServiceId` after an upgrade.
 
 ## Multi-branch salon contract
