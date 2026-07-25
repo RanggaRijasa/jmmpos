@@ -1137,6 +1137,75 @@
   border-top: 1px solid var(--border);
 }
 
+.cms-member-purchase-summary {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 20px;
+  background: var(--gold-soft);
+  border: 1px solid var(--gold);
+  border-radius: 12px;
+}
+
+.cms-member-purchase-plan-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.cms-member-purchase-plan-info:last-child {
+  border-bottom: none;
+}
+
+.cms-member-purchase-plan-info span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.cms-member-purchase-plan-info strong {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cms-member-purchase-plan-info.total {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 2px solid var(--gold);
+  border-bottom: none;
+}
+
+.cms-member-purchase-plan-info.total span {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cms-member-purchase-plan-info.total strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--gold-dark);
+}
+
+.cms-member-purchase-summary-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+.cms-field-required {
+  color: var(--danger, #dc3545);
+  font-style: normal;
+}
+
 .cms-membership-bonus-section {
   display: grid;
   gap: 12px;

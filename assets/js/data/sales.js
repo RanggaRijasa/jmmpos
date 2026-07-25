@@ -2,7 +2,7 @@ const salesTransactions = [
   {
     id: "POS-088046", time: "11:42", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Dewi Anggraini", staff: "Wira", amount: 760000, payment: "Tunai",
     items: [
-      { name: "Hair Cut", qty: 1, price: 160000, staff: "Wira", type: "service", memberFree: true, memberBranch: "Cabang Mulyosari" },
+      { name: "Hair Cut", qty: 1, price: 160000, staff: "Wira", type: "service", memberFree: true, memberBranch: "Cabang Mulyosari", memberUnitPrice: 135000 },
       { name: "Creambath", qty: 1, price: 230000, staff: "Kartini", type: "service" },
       { name: "Vitamin Rambut", qty: 1, price: 80000, type: "product" },
       { name: "Hair Colour", qty: 1, price: 450000, staff: "Siska", type: "service" },
@@ -70,7 +70,7 @@ const salesTransactions = [
   {
     id: "POS-088038", time: "15:10", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Dewi Anggraini", staff: "Kartini", amount: 0, payment: "Tunai",
     items: [
-      { name: "Gunting Rambut", qty: 1, price: 160000, staff: "Kartini", type: "service", memberFree: true, memberBranch: "Cabang Mulyosari" },
+      { name: "Gunting Rambut", qty: 1, price: 160000, staff: "Kartini", type: "service", memberFree: true, memberBranch: "Cabang Mulyosari", memberUnitPrice: 135000 },
     ],
     status: "Selesai", dp: 0, reward: 160000, memberBranch: "Cabang Mulyosari",
   },
@@ -102,7 +102,7 @@ const salesTransactions = [
     id: "POS-088034", time: "11:40", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Siti Rahma", staff: "Wira", amount: 730000, payment: "Tunai",
     items: [
       { name: "Hair Colour", qty: 1, price: 450000, staff: "Wira", type: "service" },
-      { name: "Creambath", qty: 1, price: 230000, staff: "Kartini", type: "service", memberFree: true, memberBranch: "Cabang Mulyosari" },
+      { name: "Creambath", qty: 1, price: 230000, staff: "Kartini", type: "service", memberFree: true, memberBranch: "Cabang Mulyosari", memberUnitPrice: 210833 },
       { name: "Hair Spa", qty: 1, price: 280000, staff: "Nadya", type: "service" },
     ],
     status: "Pending", dp: 0, reward: 230000, memberBranch: "Cabang Mulyosari",
@@ -118,7 +118,7 @@ const salesTransactions = [
   {
     id: "POS-088032", time: "09:45", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Dewi Anggraini", staff: "Kartini", amount: 150000, payment: "Tunai",
     items: [
-      { name: "Hair Colour", qty: 1, price: 600000, staff: "Kartini", type: "service", memberUpgrade: true, memberUseAmount: 450000, memberBranch: "Cabang Citraland" },
+      { name: "Hair Colour", qty: 1, price: 600000, staff: "Kartini", type: "service", memberUpgrade: true, memberUseAmount: 450000, memberBranch: "Cabang Citraland", memberUnitPrice: 405000 },
     ],
     status: "Pending", dp: 0, reward: 450000, memberBranch: "Cabang Citraland",
   },

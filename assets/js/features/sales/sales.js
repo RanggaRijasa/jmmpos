@@ -168,6 +168,10 @@ function renderTransactionDetailItem(line, index) {
   const promotionLine = receiptItem.discountRate
     ? `<span>${receiptItem.fixedDiscountRate ? `Promo pasti ${receiptItem.fixedDiscountRate}%` : "Diskon"}${receiptItem.flexibleDiscountRate ? ` + tambahan ${receiptItem.flexibleDiscountRate}%` : ""} · total ${receiptItem.discountRate}%</span>`
     : "";
+  const unitPrice = receiptItem.memberUnitPrice || getLineMemberUnitPrice(line);
+  const unitPriceLine = unitPrice > 0
+    ? `<span>Harga Satuan: ${formatMoney(unitPrice)}</span>`
+    : "";
 
   return `
     <div class="detail-item-row">
@@ -175,7 +179,7 @@ function renderTransactionDetailItem(line, index) {
         <span>${receiptItem.qty}x ${receiptItem.name}</span>
         <strong>${formatReceiptAmount(receiptItem.baseTotal)}</strong>
       </div>
-      ${actionLines || memberLine || membershipBranchLine || bonusLine || promotionLine ? `<div class="detail-item-sublines">${actionLines}${memberLine}${membershipBranchLine}${bonusLine}${promotionLine}</div>` : ""}
+      ${actionLines || memberLine || membershipBranchLine || bonusLine || promotionLine || unitPriceLine ? `<div class="detail-item-sublines">${actionLines}${unitPriceLine}${memberLine}${membershipBranchLine}${bonusLine}${promotionLine}</div>` : ""}
     </div>
   `;
 }

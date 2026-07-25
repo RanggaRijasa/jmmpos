@@ -133,10 +133,37 @@ function getMemberRewardForService(serviceId, customer = selectedCustomer) {
   return getCustomerRewards(customer).find((reward) => getRewardServiceId(reward) === serviceId) || null;
 }
 
+function getPlanTotalQty(plan) {
+  if (!plan || !plan.target) return 0;
+  const bonusQty = (plan.bonuses || []).reduce((sum, bonus) => sum + (Math.max(1, Number(bonus.qty) || 1)), 0);
+  return plan.target + bonusQty;
+}
+
+function getPlanUnitPrice(plan) {
+  if (!plan || !plan.target) return 0;
+  return Math.round(plan.price / getPlanTotalQty(plan));
+}
+
 function getMemberUnitPrice(reward) {
   const plan = getRewardPlan(reward);
-  if (!plan || !plan.target) return 0;
-  return Math.round(plan.price / plan.target);
+  return getPlanUnitPrice(plan);
+}
+
+function getLineMemberUnitPrice(line) {
+  if (line.type === "member") {
+    const plan = getMembershipPlan(line.itemId || line.id);
+    return getPlanUnitPrice(plan);
+  }
+  if (line.type === "service" && (line.memberFree || line.memberUpgrade)) {
+    const sourceId = line.itemId || line.id;
+    const reward = line.memberUsageRewardId
+      ? null
+      : null;
+    const plan = membershipPlans.find((entry) => entry.serviceId === sourceId) || null;
+    if (plan) return getPlanUnitPrice(plan);
+    if (line.memberUseAmount) return line.memberUseAmount;
+  }
+  return 0;
 }
 
 function getConfiguredServiceUpgradeOptions(item) {
@@ -378,6 +405,24 @@ function transactionUsesMember(transaction) {
     transaction?.reward > 0 ||
       transaction?.items?.some((item) => item.memberFree || item.memberUpgrade || item.memberUsageRewardId),
   );
+}
+
+function getTransactionMemberUnitPrice(transaction) {
+  if (!transaction?.items) return 0;
+  const memberItem = transaction.items.find((item) => item.memberUnitPrice > 0);
+  if (memberItem) return memberItem.memberUnitPrice;
+  if (!transactionUsesMember(transaction)) return 0;
+  const memberService = transaction.items.find((item) => item.memberFree || item.memberUpgrade);
+  if (memberService) {
+    const plan = membershipPlans.find((entry) => entry.serviceId === (memberService.itemId || memberService.id));
+    if (plan) return getPlanUnitPrice(plan);
+  }
+  const memberPackage = transaction.items.find((item) => item.type === "member");
+  if (memberPackage) {
+    const plan = getMembershipPlan(memberPackage.itemId || memberPackage.id);
+    if (plan) return getPlanUnitPrice(plan);
+  }
+  return 0;
 }
 
 function getTransactionMemberBranch(transaction) {
@@ -674,6 +719,7 @@ function cloneReceiptItem(item) {
     memberBranch: item.memberBranch || getMemberUsageBranch(item.memberUsageRewardId) || "",
     serviceLevel: item.serviceLevel?.name || "Normal",
     memberUseAmount: item.memberUseAmount || 0,
+    memberUnitPrice: getLineMemberUnitPrice(item),
     actionStaffs,
     staff: item.staff,
     bonuses: cloneMembershipBonuses(item.bonuses),
@@ -749,6 +795,7 @@ function saveDraftTransaction() {
       memberUsageRewardId: item.memberUsageRewardId || "",
       memberUseAmount: item.memberUseAmount || 0,
       memberBranch: item.memberBranch || getMemberUsageBranch(item.memberUsageRewardId) || "",
+      memberUnitPrice: getLineMemberUnitPrice(item),
       bonuses: cloneMembershipBonuses(item.bonuses),
       discountRate: getLineDiscountRate(item),
       fixedDiscountRate: getLineFixedDiscountRate(item),
@@ -793,6 +840,7 @@ function saveCompletedTransaction(receipt) {
       memberUpgrade: Boolean(item.memberUpgrade),
       memberUseAmount: item.memberUseAmount || 0,
       memberBranch: item.memberBranch || "",
+      memberUnitPrice: item.memberUnitPrice || 0,
       bonuses: cloneMembershipBonuses(item.bonuses),
       discountRate: item.discountRate || 0,
       fixedDiscountRate: item.fixedDiscountRate || 0,
@@ -857,6 +905,7 @@ function transactionLineToReceiptItem(line, index) {
     memberUpgrade: Boolean(line.memberUpgrade),
     memberUseAmount: line.memberUseAmount || 0,
     memberBranch: line.memberBranch || "",
+    memberUnitPrice: line.memberUnitPrice || getLineMemberUnitPrice(line),
     staff: line.staff || "",
     actionStaffs: line.actionStaffs || {},
     bonuses: cloneMembershipBonuses(line.bonuses),
