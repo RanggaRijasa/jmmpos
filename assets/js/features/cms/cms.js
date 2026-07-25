@@ -116,7 +116,8 @@ function getCommissionActivityLines(item) {
     activity,
     normalizeStaffValue(item.actionStaffs?.[activity], item.staff || ""),
   ]));
-  const lineValue = (item.price || 0) * (item.qty || 1);
+  const effectivePrice = (item.memberFree || item.memberUpgrade) && item.memberUnitPrice > 0 ? item.memberUnitPrice : (item.price || 0);
+  const lineValue = effectivePrice * (item.qty || 1);
   const activityValue = lineValue / Math.max(1, activities.length);
 
   return activities.flatMap((activity, activityIndex) => {
@@ -130,6 +131,7 @@ function getCommissionActivityLines(item) {
       activityIndex,
       staffName,
       staffValue,
+      unitPrice: effectivePrice,
     }));
   });
 }
@@ -142,7 +144,8 @@ function getCommissionTreatmentLines(item) {
   const service = getCmsServices().find((entry) => entry.id === serviceId) || catalogItem;
   const staffNames = [...new Set(activityLines.map((line) => line.staffName).filter(Boolean))];
   if (!staffNames.length) staffNames.push(...getItemAssignedStaffNames(item));
-  const lineValue = (item.price || 0) * (item.qty || 1);
+  const effectivePrice = (item.memberFree || item.memberUpgrade) && item.memberUnitPrice > 0 ? item.memberUnitPrice : (item.price || 0);
+  const lineValue = effectivePrice * (item.qty || 1);
   const staffValue = lineValue / Math.max(1, staffNames.length);
   return staffNames.map((staffName) => ({
     serviceId,
@@ -152,6 +155,7 @@ function getCommissionTreatmentLines(item) {
     componentType: "treatment",
     staffName,
     staffValue,
+    unitPrice: effectivePrice,
   }));
 }
 
@@ -288,6 +292,7 @@ function getCmsCommissionReport() {
           componentType: commissionLine.componentType,
           qty: item.qty || 1,
           serviceValue: commissionLine.staffValue,
+          unitPrice: commissionLine.unitPrice || 0,
           rate,
           commission,
         });
@@ -485,12 +490,22 @@ function getCmsPageRows(page) {
       cells: [staff.id, `<strong>${staff.name}</strong>`, staff.phone, staff.branch, staff.specialty, staff.transactions, formatMoney(staff.revenue), cmsBadge(staff.status, staff.status === "Aktif" ? "success" : "warning")],
     }));
   }
-  if (page === "sales" || page === "sales-report") {
-    return salesTransactions.filter((transaction) => page === "sales" || transaction.status !== "Pending").map((transaction) => ({
+  if (page === "sales") {
+    return salesTransactions.map((transaction) => ({
       id: transaction.id,
       search: `${transaction.id} ${transaction.customer} ${transaction.staff} ${transaction.payment} ${getTransactionBranch(transaction)} ${getTransactionMemberBranch(transaction)}`,
       cells: [transaction.id, `${transaction.date}<small>${transaction.time}</small>`, `<strong>${transaction.customer}</strong>`, transaction.staff, getTransactionBranch(transaction), cmsBadge(transaction.payment, "gold"), getTransactionMemberBranch(transaction) || "—", formatMoney(transaction.amount), cmsBadge(transaction.status, transaction.status === "Pending" ? "warning" : "success")],
     }));
+  }
+  if (page === "sales-report") {
+    return salesTransactions.filter((transaction) => transaction.status !== "Pending").map((transaction) => {
+      const unitPrice = getTransactionMemberUnitPrice(transaction);
+      return {
+        id: transaction.id,
+        search: `${transaction.id} ${transaction.customer} ${transaction.staff} ${transaction.payment} ${getTransactionBranch(transaction)} ${getTransactionMemberBranch(transaction)}`,
+        cells: [transaction.id, `${transaction.date}<small>${transaction.time}</small>`, `<strong>${transaction.customer}</strong>`, transaction.staff, getTransactionBranch(transaction), cmsBadge(transaction.payment, "gold"), getTransactionMemberBranch(transaction) || "—", unitPrice ? formatMoney(unitPrice) : "—", formatMoney(transaction.amount), cmsBadge(transaction.status, transaction.status === "Pending" ? "warning" : "success")],
+      };
+    });
   }
   if (page === "pending") {
     return getPendingTransactions().map((transaction) => ({
@@ -524,11 +539,14 @@ function getCmsPageRows(page) {
     }));
   }
   if (page === "revenue-report") {
-    return salesTransactions.filter((transaction) => transaction.status !== "Pending").map((transaction) => ({
-      id: transaction.id,
-      search: `${transaction.id} ${transaction.customer} ${transaction.payment} ${getTransactionBranch(transaction)} ${getTransactionMemberBranch(transaction)}`,
-      cells: [transaction.date, transaction.id, transaction.customer, transaction.payment, getTransactionBranch(transaction), getTransactionMemberBranch(transaction) || "—", formatMoney(transaction.dp || 0), formatMoney(transaction.reward || 0), formatMoney(transaction.amount)],
-    }));
+    return salesTransactions.filter((transaction) => transaction.status !== "Pending").map((transaction) => {
+      const unitPrice = getTransactionMemberUnitPrice(transaction);
+      return {
+        id: transaction.id,
+        search: `${transaction.id} ${transaction.customer} ${transaction.payment} ${getTransactionBranch(transaction)} ${getTransactionMemberBranch(transaction)}`,
+        cells: [transaction.date, transaction.id, transaction.customer, transaction.payment, getTransactionBranch(transaction), getTransactionMemberBranch(transaction) || "—", unitPrice ? formatMoney(unitPrice) : "—", formatMoney(transaction.dp || 0), formatMoney(transaction.reward || 0), formatMoney(transaction.amount)],
+      };
+    });
   }
   if (page === "staff-commission") {
     return getCmsStaff().filter((staff) => staff.transactions).map((staff) => ({
@@ -538,11 +556,17 @@ function getCmsPageRows(page) {
     }));
   }
   if (page === "commission-report") {
-    return getCmsCommissionReport().map((row) => ({
-      id: row.id,
-      search: `${row.staff} ${row.staffBranch} ${row.transactionBranch}`,
-      cells: [`<strong>${row.staff}</strong>`, row.staffBranch, row.transactionBranch, `${row.dayCount} hari`, row.transactionCount, formatMoney(row.serviceValue), `${row.averageRate.toFixed(1).replace(".0", "")}%`, `<strong>${formatMoney(row.commission)}</strong>`],
-    }));
+    return getCmsCommissionReport().map((row) => {
+      const memberEntries = row.entries.filter((entry) => entry.unitPrice > 0);
+      const avgUnitPrice = memberEntries.length > 0
+        ? Math.round(memberEntries.reduce((sum, entry) => sum + entry.unitPrice, 0) / memberEntries.length)
+        : 0;
+      return {
+        id: row.id,
+        search: `${row.staff} ${row.staffBranch} ${row.transactionBranch}`,
+        cells: [`<strong>${row.staff}</strong>`, row.staffBranch, row.transactionBranch, `${row.dayCount} hari`, row.transactionCount, avgUnitPrice ? formatMoney(avgUnitPrice) : "—", formatMoney(row.serviceValue), `${row.averageRate.toFixed(1).replace(".0", "")}%`, `<strong>${formatMoney(row.commission)}</strong>`],
+      };
+    });
   }
   if (page === "users-access") {
     return CMS_USERS.map((user) => ({
@@ -566,13 +590,13 @@ function getCmsPageMeta(page) {
     sales: { subtitle: "Seluruh transaksi kasir dengan cabang salon dan cabang membership yang digunakan.", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas Utama", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Total", "Status"], search: "Cari no. nota, pelanggan, petugas, atau cabang..." },
     pending: { subtitle: "Draft transaksi kasir dengan cabang salon dan cabang membership yang dipakai.", headers: ["No. Draft", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Isi", "Cabang Membership", "DP", "Total", "Status"], search: "Cari draft, pelanggan, atau cabang..." },
     reminders: { subtitle: "Pelanggan yang perlu dihubungi tujuh hari setelah jasa terakhir, lengkap dengan cabang kunjungan terakhir.", headers: ["Pelanggan", "Nomor HP", "Jasa Terakhir", "Terakhir Berkunjung", "Jadwal Reminder", "Keanggotaan", "Status Kontak"], search: "Cari pelanggan, jasa, nomor HP, atau cabang..." },
-    members: { subtitle: "Daftar pelanggan dengan paket member aktif dari satu atau beberapa cabang.", headers: ["Pelanggan", "Nomor HP", "Cabang Membership", "Paket Aktif", "Sisa Kuota", "Total Kunjungan", "Status"], search: "Cari pelanggan, cabang, atau paket member..." },
+    members: { subtitle: "Daftar pelanggan dengan paket member aktif dari satu atau beberapa cabang.", headers: ["Pelanggan", "Nomor HP", "Cabang Membership", "Paket Aktif", "Sisa Kuota", "Total Kunjungan", "Status"], add: "Tambah Member", search: "Cari pelanggan, cabang, atau paket member..." },
     "member-visits": { subtitle: "Riwayat penggunaan kuota membership per pelanggan, treatment, dan cabang.", headers: ["Tanggal & Waktu", "Pelanggan", "Membership", "Cabang Membership", "Pemakaian", "Status"], search: "Cari pelanggan, cabang, atau membership..." },
-    "sales-report": { subtitle: "Rekap transaksi selesai per cabang salon beserta cabang membership yang digunakan.", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Total", "Status"], search: "Cari transaksi laporan atau cabang..." },
-    "revenue-report": { subtitle: "Rincian pendapatan kasir per cabang setelah DP dan pemakaian kuota member.", headers: ["Tanggal", "No. Nota", "Pelanggan", "Metode", "Cabang Transaksi", "Cabang Membership", "DP", "Member", "Pendapatan"], search: "Cari transaksi, metode, atau cabang..." },
+    "sales-report": { subtitle: "Rekap transaksi selesai per cabang salon beserta cabang membership yang digunakan.", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Harga Satuan", "Total", "Status"], search: "Cari transaksi laporan atau cabang..." },
+    "revenue-report": { subtitle: "Rincian pendapatan kasir per cabang setelah DP dan pemakaian kuota member.", headers: ["Tanggal", "No. Nota", "Pelanggan", "Metode", "Cabang Transaksi", "Cabang Membership", "Harga Satuan", "DP", "Member", "Pendapatan"], search: "Cari transaksi, metode, atau cabang..." },
     "stock-report": { subtitle: "Laporan posisi stok produk dan peringatan produk di bawah batas minimum.", headers: ["Kode", "Produk", "Kategori", "Supplier", "Harga Pokok", "Harga Jual", "Stok", "Status"], search: "Cari produk pada laporan stok..." },
     "staff-commission": { subtitle: "Konfigurasi treatment dan tarif komisi petugas sebagai bagian dari Master Data.", headers: ["Petugas", "Keahlian", "Transaksi", "Nilai Jasa", "Tarif", "Komisi"], search: "Cari petugas..." },
-    "commission-report": { subtitle: "Rekap komisi treatment dan aktivitas yang dikerjakan petugas berdasarkan waktu serta cabang transaksi.", headers: ["Petugas", "Cabang Petugas", "Cabang Transaksi", "Hari Kerja", "Transaksi", "Dasar Komisi", "Rata-rata Tarif", "Komisi"], search: "Cari petugas atau cabang..." },
+    "commission-report": { subtitle: "Rekap komisi treatment dan aktivitas yang dikerjakan petugas berdasarkan waktu serta cabang transaksi.", headers: ["Petugas", "Cabang Petugas", "Cabang Transaksi", "Hari Kerja", "Transaksi", "Harga Satuan", "Dasar Komisi", "Rata-rata Tarif", "Komisi"], search: "Cari petugas atau cabang..." },
     "users-access": { subtitle: "Akun pengguna CMS dan batas akses ke fungsi kasir, operasional, serta laporan.", headers: ["ID", "Nama", "Username", "Peran", "Hak Akses", "Status"], add: "Tambah Pengguna", search: "Cari nama, username, atau peran..." },
   };
   return meta[page] || { subtitle: "", headers: [], search: "Cari data..." };
@@ -818,7 +842,9 @@ function renderCmsTransactionItems(transaction) {
     const packageBranch = line.type === "member" && line.memberBranch ? `<small>Cabang Membership · ${line.memberBranch}</small>` : "";
     const packageBonus = line.type === "member" && line.bonuses?.length ? `<small>Bonus: ${getMembershipBonusSummary(line.bonuses)}</small>` : "";
     const promotion = line.type === "service" && (line.fixedDiscountRate || line.flexibleDiscountRate) ? `<small>Promo ${line.fixedDiscountRate ? `${line.fixedDiscountRate}% pasti` : ""}${line.flexibleDiscountRate ? ` + ${line.flexibleDiscountRate}% tambahan` : ""}</small>` : "";
-    return `<div class="cms-transaction-line"><div><strong>${line.qty || 1}x ${line.name}</strong>${line.type === "service" ? actions.map((action) => `<small>${action} By : ${line.staff || "Belum dipilih"}</small>`).join("") : line.type === "product" ? `<small>Produk retail</small>` : `<small>Paket membership</small>`}${promotion}${packageBranch}${packageBonus}${memberUsage}</div><strong>${formatMoney((line.price || 0) * (line.qty || 1))}</strong></div>`;
+    const unitPrice = line.memberUnitPrice || getLineMemberUnitPrice(line);
+    const unitPriceLine = unitPrice > 0 ? `<small>Harga Satuan: ${formatMoney(unitPrice)}</small>` : "";
+    return `<div class="cms-transaction-line"><div><strong>${line.qty || 1}x ${line.name}</strong>${line.type === "service" ? actions.map((action) => `<small>${action} By : ${line.staff || "Belum dipilih"}</small>`).join("") : line.type === "product" ? `<small>Produk retail</small>` : `<small>Paket membership</small>`}${unitPriceLine}${promotion}${packageBranch}${packageBonus}${memberUsage}</div><strong>${formatMoney((line.price || 0) * (line.qty || 1))}</strong></div>`;
   }).join("")}</div></section>`;
 }
 
@@ -851,17 +877,18 @@ function renderCmsCommissionPrintReport(record, sortedDays, periodLabel) {
         <div><span>Dasar: <b>${formatMoney(Math.round(day.serviceValue))}</b></span><span>Komisi: <b>${formatMoney(Math.round(day.commission))}</b></span></div>
       </div>
       <table>
-        <thead><tr><th>Waktu / Nota</th><th>Pelanggan / Treatment</th><th>Komponen</th><th>Dasar</th><th>Tarif</th><th>Komisi</th></tr></thead>
+        <thead><tr><th>Waktu / Nota</th><th>Pelanggan / Treatment</th><th>Komponen</th><th>Harga Satuan</th><th>Dasar</th><th>Tarif</th><th>Komisi</th></tr></thead>
         <tbody>${day.entries.map((entry) => `
           <tr>
             <td><strong>${entry.time}</strong><span>${entry.transactionId}</span></td>
             <td><strong>${entry.customer}</strong><span>${entry.qty}x ${entry.serviceName}</span></td>
             <td><strong>${entry.activityName}</strong><span>${entry.componentType === "treatment" ? "Treatment" : "Aktivitas"}</span></td>
+            <td>${entry.unitPrice ? formatMoney(Math.round(entry.unitPrice)) : "—"}</td>
             <td>${formatMoney(Math.round(entry.serviceValue))}</td>
             <td>${entry.rate.toFixed(1).replace(".0", "")}%</td>
             <td><strong>${formatMoney(Math.round(entry.commission))}</strong></td>
           </tr>`).join("")}</tbody>
-        <tfoot><tr><td colspan="3">Total harian</td><td>${formatMoney(Math.round(day.serviceValue))}</td><td>-</td><td>${formatMoney(Math.round(day.commission))}</td></tr></tfoot>
+        <tfoot><tr><td colspan="4">Total harian</td><td>${formatMoney(Math.round(day.serviceValue))}</td><td>-</td><td>${formatMoney(Math.round(day.commission))}</td></tr></tfoot>
       </table>
     </section>`).join("");
 
@@ -948,9 +975,9 @@ function renderCmsCommissionDetail(record) {
       </summary>
       <div class="cms-table-scroll">
         <table class="cms-table cms-commission-detail-table">
-          <thead><tr><th>Waktu</th><th>No. Nota</th><th>Pelanggan</th><th>Treatment</th><th>Komponen Komisi</th><th>Cabang Transaksi</th><th>Dasar Komisi</th><th>Tarif</th><th>Komisi</th></tr></thead>
-          <tbody>${day.entries.map((entry) => `<tr><td>${entry.time}</td><td>${entry.transactionId}</td><td><strong>${entry.customer}</strong></td><td>${entry.qty}x ${entry.serviceName}</td><td><strong>${entry.activityName}</strong><small>${entry.componentType === "treatment" ? "Treatment" : "Aktivitas"}</small></td><td>${entry.transactionBranch}</td><td>${formatMoney(Math.round(entry.serviceValue))}</td><td>${entry.rate.toFixed(1).replace(".0", "")}%</td><td><strong>${formatMoney(Math.round(entry.commission))}</strong></td></tr>`).join("")}</tbody>
-          <tfoot><tr><td colspan="6">Total ${formatCommissionReportDate(day.dateRaw, day.date)}</td><td>${formatMoney(Math.round(day.serviceValue))}</td><td>—</td><td>${formatMoney(Math.round(day.commission))}</td></tr></tfoot>
+          <thead><tr><th>Waktu</th><th>No. Nota</th><th>Pelanggan</th><th>Treatment</th><th>Komponen Komisi</th><th>Cabang Transaksi</th><th>Harga Satuan</th><th>Dasar Komisi</th><th>Tarif</th><th>Komisi</th></tr></thead>
+          <tbody>${day.entries.map((entry) => `<tr><td>${entry.time}</td><td>${entry.transactionId}</td><td><strong>${entry.customer}</strong></td><td>${entry.qty}x ${entry.serviceName}</td><td><strong>${entry.activityName}</strong><small>${entry.componentType === "treatment" ? "Treatment" : "Aktivitas"}</small></td><td>${entry.transactionBranch}</td><td>${entry.unitPrice ? formatMoney(Math.round(entry.unitPrice)) : "—"}</td><td>${formatMoney(Math.round(entry.serviceValue))}</td><td>${entry.rate.toFixed(1).replace(".0", "")}%</td><td><strong>${formatMoney(Math.round(entry.commission))}</strong></td></tr>`).join("")}</tbody>
+          <tfoot><tr><td colspan="7">Total ${formatCommissionReportDate(day.dateRaw, day.date)}</td><td>${formatMoney(Math.round(day.serviceValue))}</td><td>—</td><td>${formatMoney(Math.round(day.commission))}</td></tr></tfoot>
         </table>
       </div>
     </details>`).join("");
@@ -1081,6 +1108,13 @@ function getCmsFormFields(page, record = {}) {
       { key: "access", label: "Hak Akses", value: record.access || "POS, pelanggan, transaksi", required: true },
       { key: "status", label: "Status", value: record.status || "Aktif", type: "select", options: ["Aktif", "Nonaktif"], required: true },
     ],
+    members: [
+      { key: "customerId", label: "Pelanggan", value: record.id || "", type: "select", options: [cmsOption("", "Pilih pelanggan..."), ...customers.filter((c) => c.id !== "umum").map((c) => cmsOption(c.id, `${c.name} · ${c.phone}`))], required: true },
+      { key: "planId", label: "Paket Membership", value: "", type: "select", options: [cmsOption("", "Pilih paket..."), ...membershipPlans.map((p) => cmsOption(p.id, `${p.name} · ${p.target}x · ${formatMoney(p.price)}`))], required: true },
+      { key: "branch", label: "Cabang Membership", value: activeSalonBranch, type: "select", options: salonBranches.map((b) => b.name), required: true },
+      { key: "staff", label: "Petugas", value: "", type: "select", options: [cmsOption("", "Pilih petugas..."), ...staffOptions.map((s) => cmsOption(s, s))] },
+      { key: "payment", label: "Metode Pembayaran", value: "Tunai", type: "select", options: ["Tunai", "QRIS", "Kartu"], required: true },
+    ],
   };
   return fields[page] || [];
 }
@@ -1105,14 +1139,15 @@ function renderCmsFormPage(page, record) {
   const fields = getCmsFormFields(page, record);
   return `
     <section class="cms-page-head">
-      <div><span class="cms-breadcrumb">${CMS_PAGE_LABELS[page]} / ${isEdit ? "Edit" : "Tambah"}</span><h3>${isEdit ? `Edit ${record.name || record.id}` : `Tambah ${CMS_PAGE_LABELS[page]}`}</h3><p>${isEdit ? "Perbarui data yang dipilih." : "Masukkan data baru untuk operasional salon."}</p></div>
+      <div><span class="cms-breadcrumb">${CMS_PAGE_LABELS[page]} / ${isEdit ? "Edit" : "Tambah"}</span><h3>${isEdit ? `Edit ${record.name || record.id}` : `Tambah ${CMS_PAGE_LABELS[page]}`}</h3><p>${isEdit ? "Perbarui data yang dipilih." : page === "members" ? "Proses pembelian paket membership untuk pelanggan. Paket akan aktif setelah pembayaran berhasil." : "Masukkan data baru untuk operasional salon."}</p></div>
       <button class="cms-secondary-button" type="button" data-cms-action="back-list">‹ Kembali</button>
     </section>
     <form class="cms-form-panel" id="cms-record-form" novalidate>
       <div class="cms-form-grid">${fields.map(renderCmsField).join("")}</div>
       ${page === "services" ? renderCmsServiceUpgradeSection(record) : ""}
       ${page === "membership-plans" ? renderCmsMembershipBonusSection(record) : ""}
-      <div class="cms-form-actions"><button class="cms-secondary-button" type="button" data-cms-action="back-list">Batal</button><button class="cms-primary-button" type="button" data-cms-action="save">Simpan</button></div>
+      ${page === "members" ? `<div class="cms-form-section" id="cms-member-purchase-summary">${renderCmsMemberPurchaseSummary()}</div>` : ""}
+      <div class="cms-form-actions"><button class="cms-secondary-button" type="button" data-cms-action="back-list">Batal</button><button class="cms-primary-button" type="button" data-cms-action="save">${page === "members" ? "Proses Pembelian" : "Simpan"}</button></div>
     </form>`;
 }
 
@@ -1296,6 +1331,73 @@ function saveCmsRecord() {
     if (!record) CMS_USERS.push(target);
   }
 
+  if (page === "members") {
+    const customer = customers.find((c) => c.id === values.customerId);
+    const plan = membershipPlans.find((p) => p.id === values.planId);
+    if (!customer || !plan) {
+      showToast("Data pelanggan atau paket tidak ditemukan");
+      return false;
+    }
+    const branch = values.branch || activeSalonBranch;
+    const staff = values.staff || "";
+    const payment = values.payment || "Tunai";
+    if (!Array.isArray(customer.rewards)) customer.rewards = [];
+    const existingReward = customer.rewards.find((r) => getRewardId(r) === plan.id);
+    if (existingReward) {
+      existingReward.progress = plan.target;
+      existingReward.target = plan.target;
+      existingReward.branch = branch;
+    } else {
+      customer.rewards.push({
+        membershipId: plan.id,
+        serviceId: plan.serviceId,
+        serviceName: plan.serviceName,
+        branch,
+        progress: plan.target,
+        target: plan.target,
+      });
+    }
+    customer.status = "Member";
+    customer.type = "member";
+    if (!customer.frequentBranch) customer.frequentBranch = branch;
+    const now = new Date();
+    const dateRaw = now.toISOString().split("T")[0];
+    const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const date = formatIndonesianDate(now);
+    salesTransactions.unshift({
+      id: getNextInvoiceId(),
+      time,
+      date,
+      dateRaw,
+      customer: customer.name,
+      staff: staff || customer.name,
+      amount: plan.price,
+      payment,
+      items: [{
+        name: plan.name,
+        itemId: plan.id,
+        qty: 1,
+        price: plan.price,
+        staff,
+        type: "member",
+        memberBranch: branch,
+        memberUnitPrice: getPlanUnitPrice(plan),
+        bonuses: cloneMembershipBonuses(plan.bonuses),
+      }],
+      status: "Selesai",
+      branch,
+      dp: 0,
+      reward: 0,
+      memberBranch: branch,
+    });
+    cmsViewMode = "list";
+    cmsSelectedRecordId = null;
+    cmsPageNumbers[page] = 1;
+    renderCmsCurrentView();
+    showToast(`Paket ${plan.name} berhasil dibeli untuk ${customer.name}`);
+    return true;
+  }
+
   cmsViewMode = "list";
   cmsSelectedRecordId = null;
   cmsPageNumbers[page] = 1;
@@ -1353,6 +1455,33 @@ function renderCmsDashboard() {
       </table>
     </div>
   `;
+}
+
+function renderCmsMemberPurchaseSummary() {
+  const form = document.querySelector("#cms-record-form");
+  if (!form) return "";
+  const planId = form.querySelector('[data-field-key="planId"]')?.value || "";
+  if (!planId) return '<div class="cms-member-purchase-summary cms-member-purchase-summary-empty"><span>Pilih paket membership untuk melihat ringkasan.</span></div>';
+
+  const plan = membershipPlans.find((p) => p.id === planId);
+  if (!plan) return "";
+
+  return `
+    <div class="cms-member-purchase-summary">
+      <div class="cms-member-purchase-plan-info"><span>Nama Paket</span><strong>${cmsEscape(plan.name)}</strong></div>
+      <div class="cms-member-purchase-plan-info"><span>Jasa</span><strong>${cmsEscape(plan.serviceName)}</strong></div>
+      <div class="cms-member-purchase-plan-info"><span>Kuota</span><strong>${plan.target} kali</strong></div>
+      <div class="cms-member-purchase-plan-info"><span>Harga Satuan</span><strong>${formatMoney(getPlanUnitPrice(plan))}</strong></div>
+      <div class="cms-member-purchase-plan-info"><span>Bonus</span><strong>${getMembershipBonusSummary(plan.bonuses) || "Tidak ada bonus"}</strong></div>
+      <div class="cms-member-purchase-plan-info total"><span>Total Pembayaran</span><strong>${formatMoney(plan.price)}</strong></div>
+    </div>
+  `;
+}
+
+function updateCmsMemberPurchaseSummary() {
+  const container = document.querySelector("#cms-member-purchase-summary");
+  if (!container) return;
+  container.innerHTML = renderCmsMemberPurchaseSummary();
 }
 
 function renderCmsPage(page) {
@@ -1687,6 +1816,12 @@ document.addEventListener("input", (event) => {
 });
 
 document.addEventListener("change", (event) => {
+  const memberPurchasePlan = event.target.closest('#cms-record-form [data-field-key="planId"]');
+  if (memberPurchasePlan && activeCmsPage === "members") {
+    updateCmsMemberPurchaseSummary();
+    return;
+  }
+
   const serviceUpgradeCheckbox = event.target.closest("[data-service-upgrade-id]");
   if (serviceUpgradeCheckbox) {
     const serviceId = serviceUpgradeCheckbox.dataset.serviceUpgradeId;
