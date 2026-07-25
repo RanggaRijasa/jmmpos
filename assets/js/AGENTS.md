@@ -23,6 +23,13 @@ The application currently uses shared in-memory state. A mutating operation must
 
 DOM IDs and `data-*` attributes form the contract with `partials/` and `core/events.js`. Search for all consumers before renaming one.
 
+## CMS list filter contract
+
+- Every non-report CMS navigation page exposes a filter tailored to the data shown on that page. List pages place the filter immediately before search; dashboard, commission settings, and salon settings place it in the page header.
+- Non-report filter values live in `cmsListFilters[page]` and use delegated `data-cms-list-filter` controls. Changing a filter resets only that page's pagination and must not mutate source records.
+- Keep report filters (`sales-report`, `regular-report`, `revenue-report`, `stock-report`, and `commission-report`) independent. Do not route report state through `cmsListFilters` or change their established controls when adding operational filters.
+- Resetting a non-report filter clears that page's filter values and search term. Filter panels reuse the report filter button, badge, panel, and reset/close styling so interaction stays consistent throughout CMS.
+
 ## Membership branch contract
 
 - `customer.frequentBranch` is the branch the customer visits most often; it is not ownership of a membership.
