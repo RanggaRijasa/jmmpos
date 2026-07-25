@@ -634,6 +634,11 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (typeof cmsFilterPanelOpen !== "undefined" && cmsFilterPanelOpen && !event.target.closest(".cms-filter-wrapper")) {
+    cmsFilterPanelOpen = false;
+    if (typeof renderCmsCurrentView === "function") renderCmsCurrentView();
+  }
+
   const cmsAction = event.target.closest("[data-cms-action]");
   if (cmsAction) {
     handleCmsAction(cmsAction.dataset.cmsAction, cmsAction.dataset.cmsId || null);
