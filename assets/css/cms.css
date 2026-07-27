@@ -1930,7 +1930,7 @@ body.cms-mode .cms-form-actions {
   box-shadow: 0 2px 8px rgba(146, 94, 8, 0.08);
 }
 
-.cms-commission-list-item.expanded {
+.cms-commission-list-item[open] {
   border-color: #e3be63;
   background: #fffaf0;
 }
@@ -1942,6 +1942,17 @@ body.cms-mode .cms-form-actions {
   gap: 12px;
   padding: 12px 16px;
   min-height: 56px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.cms-commission-list-header::-webkit-details-marker {
+  display: none;
+}
+
+.cms-commission-list-header:focus-visible {
+  outline: 2px solid #1668c7;
+  outline-offset: -2px;
 }
 
 .cms-commission-service-info {
@@ -1983,6 +1994,24 @@ body.cms-mode .cms-form-actions {
   font-weight: 600;
 }
 
+.cms-commission-list-item:not(.enabled) .cms-commission-badge {
+  background: #eee9df;
+  color: var(--muted);
+}
+
+.cms-commission-service-chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--gold-dark);
+  border-bottom: 2px solid var(--gold-dark);
+  transform: rotate(45deg);
+  transition: transform 150ms ease;
+}
+
+.cms-commission-list-item[open] .cms-commission-service-chevron {
+  transform: rotate(225deg);
+}
+
 .cms-commission-list-details {
   border-top: 1px solid var(--border);
   background: rgba(227, 190, 99, 0.05);
@@ -1990,46 +2019,6 @@ body.cms-mode .cms-form-actions {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.cms-commission-treatment-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  background: rgba(227, 190, 99, 0.1);
-  border: 1px solid transparent;
-}
-
-.cms-commission-treatment-row.enabled {
-  border-color: #e3be63;
-  background: rgba(227, 190, 99, 0.15);
-}
-
-.cms-commission-treatment-name {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.cms-commission-treatment-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-  background: var(--gold);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.cms-commission-treatment-name strong {
-  font-size: 13px;
-  color: var(--ink);
 }
 
 .cms-commission-activity-row {
@@ -2180,18 +2169,6 @@ body.cms-mode .cms-form-actions {
 
 .cms-commission-activity.enabled {
   background: #fffaf0;
-}
-
-.cms-commission-treatment {
-  background: #f7f2e9;
-}
-
-.cms-commission-treatment.enabled {
-  background: var(--gold-soft);
-}
-
-.cms-commission-treatment .cms-commission-activity-copy strong {
-  color: var(--gold-dark);
 }
 
 .cms-commission-activity-copy {

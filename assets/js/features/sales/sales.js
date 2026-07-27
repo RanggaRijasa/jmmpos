@@ -106,7 +106,6 @@ function renderSalesList() {
   list.innerHTML = pageItems
     .map((t) => {
       const selectedClass = selectedSalesId === t.id ? " selected" : "";
-      const memberBranch = getTransactionMemberBranch(t);
       return `
         <article class="sales-row${selectedClass}" data-sales-id="${t.id}">
           <div class="sales-row-time">
@@ -117,7 +116,6 @@ function renderSalesList() {
             <strong>${t.customer}</strong>
             <span>${t.staff} · ${t.id}</span>
             <small class="transaction-branch-tag">${getTransactionBranch(t)}</small>
-            ${memberBranch ? `<small class="member-branch-tag">Member · ${memberBranch}</small>` : ""}
           </div>
           <span class="payment-badge">${getPaymentIcon(t.payment)}${t.payment}</span>
           <span class="sales-row-amount">${formatMoney(t.amount)}</span>

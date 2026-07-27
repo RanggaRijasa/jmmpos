@@ -886,6 +886,9 @@ function transactionLineToReceiptItem(line, index) {
   const itemId = catalogItem?.id || `receipt-line-${index}`;
   const qty = line.qty || 1;
   const price = line.price || 0;
+  const baseTotal = qty * price;
+  const discountRate = Math.min(100, Math.max(0, Number(line.discountRate) || 0));
+  const discountAmount = Math.round((baseTotal * discountRate) / 100);
   const receiptItem = {
     id: `${itemId}-${index}`,
     itemId,
@@ -895,10 +898,10 @@ function transactionLineToReceiptItem(line, index) {
     name: line.name,
     qty,
     price,
-    baseTotal: qty * price,
-    payable: qty * price,
-    discountRate: line.discountRate || 0,
-    discountAmount: 0,
+    baseTotal,
+    payable: Math.max(0, baseTotal - discountAmount),
+    discountRate,
+    discountAmount,
     fixedDiscountRate: line.fixedDiscountRate || 0,
     flexibleDiscountRate: line.flexibleDiscountRate || 0,
     memberFree: Boolean(line.memberFree),
@@ -982,11 +985,15 @@ function renderReceiptItem(item) {
   const membershipBranchLine = item.type === "member" && item.memberBranch
     ? `<div class="receipt-subline">Cabang Membership: ${item.memberBranch}</div>`
     : "";
+  const hasDiscount = item.discountRate > 0 && item.discountAmount > 0;
+  const priceMarkup = hasDiscount
+    ? `<span class="receipt-item-price discounted"><s>${formatReceiptAmount(item.baseTotal)}</s><strong>${formatReceiptAmount(item.payable)}</strong></span>`
+    : `<strong class="receipt-item-price">${formatReceiptAmount(item.baseTotal)}</strong>`;
   return `
     <div class="receipt-item">
       <div class="receipt-item-main">
         <span>${item.qty}x ${item.name}${item.serviceLevel && item.serviceLevel !== "Normal" ? ` · ${item.serviceLevel}` : ""}</span>
-        <strong>${formatReceiptAmount(item.baseTotal)}</strong>
+        ${priceMarkup}
       </div>
       ${actionLines}
       ${discountLine}

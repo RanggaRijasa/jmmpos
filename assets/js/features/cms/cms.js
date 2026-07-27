@@ -102,12 +102,6 @@ function getCmsServices() {
   });
 }
 
-function getItemAssignedStaffNames(item) {
-  const actionStaff = Object.values(item.actionStaffs || {}).flat().filter((name) => staffOptions.includes(name));
-  if (actionStaff.length) return [...new Set(actionStaff)];
-  return staffOptions.includes(item.staff) ? [item.staff] : [];
-}
-
 function getCommissionActivityLines(item) {
   if (item.type !== "service") return [];
   const catalogItem = findCatalogItem(item);
@@ -136,29 +130,6 @@ function getCommissionActivityLines(item) {
       unitPrice: effectivePrice,
     }));
   });
-}
-
-function getCommissionTreatmentLines(item) {
-  if (item.type !== "service") return [];
-  const activityLines = getCommissionActivityLines(item);
-  const catalogItem = findCatalogItem(item);
-  const serviceId = activityLines[0]?.serviceId || item.activeServiceId || catalogItem?.id || item.itemId || item.id;
-  const service = getCmsServices().find((entry) => entry.id === serviceId) || catalogItem;
-  const staffNames = [...new Set(activityLines.map((line) => line.staffName).filter(Boolean))];
-  if (!staffNames.length) staffNames.push(...getItemAssignedStaffNames(item));
-  const effectivePrice = (item.memberFree || item.memberUpgrade) && item.memberUnitPrice > 0 ? item.memberUnitPrice : (item.price || 0);
-  const lineValue = effectivePrice * (item.qty || 1);
-  const staffValue = lineValue / Math.max(1, staffNames.length);
-  return staffNames.map((staffName) => ({
-    serviceId,
-    serviceName: service?.name || item.name,
-    activity: "Treatment Utama",
-    activityIndex: -1,
-    componentType: "treatment",
-    staffName,
-    staffValue,
-    unitPrice: effectivePrice,
-  }));
 }
 
 function getCmsStaff() {
@@ -193,10 +164,6 @@ function getStaffCommissionProfile(staffId) {
   getCmsServices().forEach((service, serviceIndex) => {
     const existing = profile[service.id] || {};
     const activitySettings = existing.activities || {};
-    const workedService = [...workedActivities].some((key) => key.startsWith(`${service.id}\u0000`));
-    const serviceEnabled = typeof existing.enabled === "boolean"
-      ? existing.enabled
-      : workedService || serviceIndex % 3 === staffIndex % 3 || (serviceIndex + staffIndex) % 7 === 0;
     service.actions.forEach((activity, activityIndex) => {
       if (activitySettings[activity]) return;
       const worked = workedActivities.has(`${service.id}\u0000${activity}`);
@@ -209,12 +176,9 @@ function getStaffCommissionProfile(staffId) {
       };
     });
     profile[service.id] = {
-      enabled: serviceEnabled,
-      type: existing.type || "percent",
-      rate: Number.isFinite(existing.rate)
-        ? existing.rate
-        : serviceEnabled ? [10, 12.5, 15, 17.5, 20][(serviceIndex + staffIndex) % 5] : 10,
-      nominal: existing.nominal || 0,
+      enabled: typeof existing.enabled === "boolean"
+        ? existing.enabled
+        : service.actions.some((activity) => activitySettings[activity]?.enabled),
       activities: activitySettings,
     };
   });
@@ -253,18 +217,14 @@ function getCmsCommissionReport() {
 
   completed.forEach((transaction) => {
     transaction.items.filter((item) => item.type === "service").forEach((item, itemIndex) => {
-      const commissionLines = [
-        ...getCommissionTreatmentLines(item),
-        ...getCommissionActivityLines(item).map((line) => ({ ...line, componentType: "activity" })),
-      ];
+      const commissionLines = getCommissionActivityLines(item);
       commissionLines.forEach((commissionLine) => {
         const staff = staffByName.get(commissionLine.staffName);
         if (!staff) return;
         const serviceSetting = getStaffCommissionProfile(staff.id)[commissionLine.serviceId];
-        const setting = commissionLine.componentType === "activity"
-          ? serviceSetting?.activities?.[commissionLine.activity]
-          : serviceSetting;
-        const rate = setting?.enabled ? setting.rate : 0;
+        const setting = serviceSetting?.activities?.[commissionLine.activity];
+        if (!serviceSetting?.enabled || !setting?.enabled) return;
+        const rate = setting.rate;
         const transactionBranch = getTransactionBranch(transaction);
         const key = `${staff.id}:${transactionBranch}`;
         const row = rows.get(key) || {
@@ -285,7 +245,7 @@ function getCmsCommissionReport() {
         row.weightedRate += commissionLine.staffValue * rate;
         row.commission += commission;
         row.entries.push({
-          id: `${transaction.id}-${itemIndex}-${commissionLine.componentType}-${commissionLine.activityIndex}-${staff.id}`,
+          id: `${transaction.id}-${itemIndex}-activity-${commissionLine.activityIndex}-${staff.id}`,
           transactionId: transaction.id,
           dateRaw: transaction.dateRaw || "",
           date: transaction.date,
@@ -295,7 +255,6 @@ function getCmsCommissionReport() {
           serviceId: commissionLine.serviceId,
           serviceName: commissionLine.serviceName,
           activityName: commissionLine.activity,
-          componentType: commissionLine.componentType,
           qty: item.qty || 1,
           serviceValue: commissionLine.staffValue,
           unitPrice: commissionLine.unitPrice || 0,
@@ -348,37 +307,26 @@ function renderCmsStaffCommission() {
   const services = getCmsServices().filter((service) => {
     if (filters.category && service.category !== filters.category) return false;
     const setting = profile[service.id];
-    const hasActiveCommission = Boolean(setting?.enabled || service.actions.some((activity) => setting?.activities?.[activity]?.enabled));
+    const hasActiveCommission = Boolean(setting?.enabled);
     if (filters.commissionState === "active" && !hasActiveCommission) return false;
     if (filters.commissionState === "inactive" && hasActiveCommission) return false;
     return true;
   });
   const activeTreatmentCount = services.filter((service) => profile[service.id]?.enabled).length;
-  const activeActivityCount = services.reduce((count, service) => count + service.actions.filter((activity) => profile[service.id]?.activities?.[activity]?.enabled).length, 0);
+  const activeActivityCount = services.reduce((count, service) => {
+    if (!profile[service.id]?.enabled) return count;
+    return count + service.actions.filter((activity) => profile[service.id]?.activities?.[activity]?.enabled).length;
+  }, 0);
 
   const serviceRows = services.map((service) => {
-    const treatmentSetting = profile[service.id] || { enabled: false, rate: 10, type: "percent", activities: {} };
-    const rateType = treatmentSetting.type || "percent";
-    const rateLabel = rateType === "percent" ? "%" : "Rp";
-    const rateValue = rateType === "percent" ? treatmentSetting.rate : treatmentSetting.nominal || 0;
-
-    const treatmentInput = treatmentSetting.enabled
-      ? `<div class="cms-commission-input-group">
-           <input type="number" min="0" step="${rateType === "percent" ? "0.5" : "1000"}" value="${rateValue}" data-commission-rate="${service.id}" aria-label="Komisi treatment ${cmsEscape(service.name)}" />
-           <select data-commission-type="${service.id}" aria-label="Tipe komisi">
-             <option value="percent" ${rateType === "percent" ? "selected" : ""}>%</option>
-             <option value="nominal" ${rateType === "nominal" ? "selected" : ""}>Rp</option>
-           </select>
-         </div>`
-      : `<span class="cms-commission-rate-empty">-</span>`;
-
+    const serviceEnabled = Boolean(profile[service.id]?.enabled);
     const activityRows = service.actions.map((activity, activityIndex) => {
       const setting = profile[service.id]?.activities?.[activity] || { enabled: false, rate: 5, type: "percent" };
+      const activityEnabled = serviceEnabled && setting.enabled;
       const actRateType = setting.type || "percent";
-      const actRateLabel = actRateType === "percent" ? "%" : "Rp";
       const actRateValue = actRateType === "percent" ? setting.rate : setting.nominal || 0;
 
-      const activityInput = setting.enabled
+      const activityInput = activityEnabled
         ? `<div class="cms-commission-input-group">
              <input type="number" min="0" step="${actRateType === "percent" ? "0.5" : "1000"}" value="${actRateValue}" data-commission-rate="${service.id}" data-commission-activity="${activityIndex}" aria-label="Komisi ${cmsEscape(activity)} pada ${cmsEscape(service.name)}" />
              <select data-commission-type="${service.id}" data-commission-activity="${activityIndex}" aria-label="Tipe komisi">
@@ -389,57 +337,48 @@ function renderCmsStaffCommission() {
         : `<span class="cms-commission-rate-empty">-</span>`;
 
       return `
-        <div class="cms-commission-activity-row ${setting.enabled ? "enabled" : ""}">
+        <div class="cms-commission-activity-row ${activityEnabled ? "enabled" : ""}">
           <div class="cms-commission-activity-name">
             <span class="cms-commission-activity-index">${String(activityIndex + 1).padStart(2, "0")}</span>
             <span>${cmsEscape(activity)}</span>
           </div>
           <label class="cms-commission-switch">
-            <input type="checkbox" data-commission-toggle="${service.id}" data-commission-activity="${activityIndex}" ${setting.enabled ? "checked" : ""} />
+            <input type="checkbox" data-commission-toggle="${service.id}" data-commission-activity="${activityIndex}" ${activityEnabled ? "checked" : ""} ${serviceEnabled ? "" : "disabled"} />
             <span aria-hidden="true"></span>
           </label>
           <div class="cms-commission-rate">${activityInput}</div>
         </div>`;
     }).join("");
 
-    const serviceActiveCount = Number(treatmentSetting.enabled) + service.actions.filter((activity) => profile[service.id]?.activities?.[activity]?.enabled).length;
-    const isExpanded = treatmentSetting.enabled || service.actions.some((activity) => profile[service.id]?.activities?.[activity]?.enabled);
+    const serviceActiveCount = service.actions.filter((activity) => profile[service.id]?.activities?.[activity]?.enabled).length;
 
     return `
-      <article class="cms-commission-list-item ${isExpanded ? "expanded" : ""}">
-        <div class="cms-commission-list-header">
+      <details class="cms-commission-list-item ${serviceEnabled ? "enabled" : ""}" ${serviceEnabled ? "open" : ""}>
+        <summary class="cms-commission-list-header">
           <div class="cms-commission-service-info">
             <strong>${service.name}</strong>
             <span>${service.category} · ${service.actions.length} aktivitas</span>
           </div>
           <div class="cms-commission-service-meta">
-            <span class="cms-commission-badge">${serviceActiveCount}/${service.actions.length + 1} aktif</span>
-            <label class="cms-commission-switch">
-              <input type="checkbox" data-commission-toggle="${service.id}" ${treatmentSetting.enabled ? "checked" : ""} />
+            <span class="cms-commission-badge">${serviceEnabled ? `${serviceActiveCount}/${service.actions.length} aktivitas aktif` : "Treatment nonaktif"}</span>
+            <label class="cms-commission-switch" title="${serviceEnabled ? "Nonaktifkan treatment" : "Aktifkan treatment"}">
+              <input type="checkbox" data-commission-service-toggle="${service.id}" aria-label="${serviceEnabled ? "Nonaktifkan" : "Aktifkan"} treatment ${cmsEscape(service.name)} untuk komisi aktivitas" ${serviceEnabled ? "checked" : ""} />
               <span aria-hidden="true"></span>
             </label>
+            <i class="cms-commission-service-chevron" aria-hidden="true"></i>
           </div>
+        </summary>
+        <div class="cms-commission-list-details">
+          ${activityRows || '<div class="cms-commission-rate-empty">Treatment ini belum memiliki aktivitas.</div>'}
         </div>
-        ${isExpanded ? `
-          <div class="cms-commission-list-details">
-            <div class="cms-commission-treatment-row ${treatmentSetting.enabled ? "enabled" : ""}">
-              <div class="cms-commission-treatment-name">
-                <span class="cms-commission-treatment-icon">T</span>
-                <strong>Komisi Treatment</strong>
-              </div>
-              <div class="cms-commission-rate">${treatmentInput}</div>
-            </div>
-            ${activityRows}
-          </div>
-        ` : ""}
-      </article>`;
+      </details>`;
   }).join("");
 
   return `
     <section class="cms-page-head cms-commission-page-head">
       <div>
         <h3>Komisi Petugas</h3>
-        <p>Master tarif komisi treatment dan setiap aktivitas di dalamnya untuk setiap petugas.</p>
+        <p>Master tarif komisi setiap aktivitas jasa untuk masing-masing petugas.</p>
       </div>
       <div class="cms-page-head-actions">
         ${renderCmsListFilters("staff-commission")}
@@ -903,8 +842,8 @@ function getCmsPageMeta(page) {
     "regular-report": { subtitle: "Laporan transaksi yang menggunakan harga satuan member (tidak termasuk pembelian paket member).", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Total Reguler", "Status"], search: "Cari transaksi reguler atau cabang..." },
     "revenue-report": { subtitle: "Rincian pendapatan kasir per cabang setelah DP dan pemakaian kuota member.", headers: ["Tanggal", "No. Nota", "Pelanggan", "Metode", "Cabang Transaksi", "Cabang Membership", "Harga Satuan", "DP", "Member", "Pendapatan"], search: "Cari transaksi, metode, atau cabang..." },
     "stock-report": { subtitle: "Laporan posisi stok produk dan peringatan produk di bawah batas minimum.", headers: ["Kode", "Produk", "Kategori", "Supplier", "Harga Pokok", "Harga Jual", "Stok", "Status"], search: "Cari produk pada laporan stok..." },
-    "staff-commission": { subtitle: "Konfigurasi treatment dan tarif komisi petugas sebagai bagian dari Master Data.", headers: ["Petugas", "Keahlian", "Transaksi", "Nilai Jasa", "Tarif", "Komisi"], search: "Cari petugas..." },
-    "commission-report": { subtitle: "Rekap komisi treatment dan aktivitas yang dikerjakan petugas berdasarkan waktu serta cabang transaksi.", headers: ["Petugas", "Cabang Petugas", "Cabang Transaksi", "Hari Kerja", "Transaksi", "Harga Satuan", "Dasar Komisi", "Rata-rata Tarif", "Komisi"], search: "Cari petugas atau cabang..." },
+    "staff-commission": { subtitle: "Konfigurasi tarif komisi aktivitas jasa untuk setiap petugas sebagai bagian dari Master Data.", headers: ["Petugas", "Keahlian", "Transaksi", "Nilai Jasa", "Tarif", "Komisi"], search: "Cari petugas..." },
+    "commission-report": { subtitle: "Rekap komisi aktivitas jasa yang dikerjakan petugas berdasarkan waktu serta cabang transaksi.", headers: ["Petugas", "Cabang Petugas", "Cabang Transaksi", "Hari Kerja", "Transaksi", "Harga Satuan", "Dasar Komisi", "Rata-rata Tarif", "Komisi"], search: "Cari petugas atau cabang..." },
     "users-access": { subtitle: "Akun pengguna CMS dan batas akses ke fungsi kasir, operasional, serta laporan.", headers: ["ID", "Nama", "Username", "Peran", "Hak Akses", "Status"], add: "Tambah Pengguna", search: "Cari nama, username, atau peran..." },
   };
   return meta[page] || { subtitle: "", headers: [], search: "Cari data..." };
@@ -1390,7 +1329,7 @@ function renderCmsCommissionPrintReport(record, sortedDays, periodLabel) {
           <tr>
             <td><strong>${entry.time}</strong><span>${entry.transactionId}</span></td>
             <td><strong>${entry.customer}</strong><span>${entry.qty}x ${entry.serviceName}</span></td>
-            <td><strong>${entry.activityName}</strong><span>${entry.componentType === "treatment" ? "Treatment" : "Aktivitas"}</span></td>
+            <td><strong>${entry.activityName}</strong><span>Aktivitas</span></td>
             <td>${entry.unitPrice ? formatMoney(Math.round(entry.unitPrice)) : "—"}</td>
             <td>${formatMoney(Math.round(entry.serviceValue))}</td>
             <td>${entry.rate.toFixed(1).replace(".0", "")}%</td>
@@ -1407,7 +1346,7 @@ function renderCmsCommissionPrintReport(record, sortedDays, periodLabel) {
           <img src="assets/images/JMMSALON2Transparant.png" alt="" />
           <div><strong>JMM SALON</strong><span>Professional Hair Salon</span></div>
         </div>
-        <div class="cms-commission-print-title"><span>Dokumen Internal</span><h1>Laporan Komisi Petugas</h1><p>Rincian komisi treatment dan aktivitas jasa</p></div>
+        <div class="cms-commission-print-title"><span>Dokumen Internal</span><h1>Laporan Komisi Petugas</h1><p>Rincian komisi aktivitas jasa</p></div>
       </header>
       <section class="cms-commission-print-meta">
         <dl><div><dt>Nama Petugas</dt><dd>${record.staff}</dd></div><div><dt>Cabang Petugas</dt><dd>${record.staffBranch}</dd></div></dl>
@@ -1484,7 +1423,7 @@ function renderCmsCommissionDetail(record) {
       <div class="cms-table-scroll">
         <table class="cms-table cms-commission-detail-table">
           <thead><tr><th>Waktu</th><th>No. Nota</th><th>Pelanggan</th><th>Treatment</th><th>Komponen Komisi</th><th>Cabang Transaksi</th><th>Harga Satuan</th><th>Dasar Komisi</th><th>Tarif</th><th>Komisi</th></tr></thead>
-          <tbody>${day.entries.map((entry) => `<tr><td>${entry.time}</td><td>${entry.transactionId}</td><td><strong>${entry.customer}</strong></td><td>${entry.qty}x ${entry.serviceName}</td><td><strong>${entry.activityName}</strong><small>${entry.componentType === "treatment" ? "Treatment" : "Aktivitas"}</small></td><td>${entry.transactionBranch}</td><td>${entry.unitPrice ? formatMoney(Math.round(entry.unitPrice)) : "—"}</td><td>${formatMoney(Math.round(entry.serviceValue))}</td><td>${entry.rate.toFixed(1).replace(".0", "")}%</td><td><strong>${formatMoney(Math.round(entry.commission))}</strong></td></tr>`).join("")}</tbody>
+          <tbody>${day.entries.map((entry) => `<tr><td>${entry.time}</td><td>${entry.transactionId}</td><td><strong>${entry.customer}</strong></td><td>${entry.qty}x ${entry.serviceName}</td><td><strong>${entry.activityName}</strong><small>Aktivitas</small></td><td>${entry.transactionBranch}</td><td>${entry.unitPrice ? formatMoney(Math.round(entry.unitPrice)) : "—"}</td><td>${formatMoney(Math.round(entry.serviceValue))}</td><td>${entry.rate.toFixed(1).replace(".0", "")}%</td><td><strong>${formatMoney(Math.round(entry.commission))}</strong></td></tr>`).join("")}</tbody>
           <tfoot><tr><td colspan="7">Total ${formatCommissionReportDate(day.dateRaw, day.date)}</td><td>${formatMoney(Math.round(day.serviceValue))}</td><td>—</td><td>${formatMoney(Math.round(day.commission))}</td></tr></tfoot>
         </table>
       </div>
@@ -2256,13 +2195,7 @@ document.addEventListener("input", (event) => {
     const activity = service?.actions[Number(commissionRateInput.dataset.commissionActivity)];
     const profile = getStaffCommissionProfile(activeCommissionStaffId);
     const value = Number(commissionRateInput.value) || 0;
-    if (!commissionRateInput.hasAttribute("data-commission-activity") && profile[serviceId]) {
-      if (profile[serviceId].type === "nominal") {
-        profile[serviceId].nominal = Math.max(0, value);
-      } else {
-        profile[serviceId].rate = Math.min(100, Math.max(0, value));
-      }
-    } else if (activity && profile[serviceId]?.activities?.[activity]) {
+    if (activity && profile[serviceId]?.activities?.[activity]) {
       if (profile[serviceId].activities[activity].type === "nominal") {
         profile[serviceId].activities[activity].nominal = Math.max(0, value);
       } else {
@@ -2279,9 +2212,7 @@ document.addEventListener("input", (event) => {
     const activity = service?.actions[Number(commissionTypeSelect.dataset.commissionActivity)];
     const profile = getStaffCommissionProfile(activeCommissionStaffId);
     const newType = commissionTypeSelect.value;
-    if (!commissionTypeSelect.hasAttribute("data-commission-activity") && profile[serviceId]) {
-      profile[serviceId].type = newType;
-    } else if (activity && profile[serviceId]?.activities?.[activity]) {
+    if (activity && profile[serviceId]?.activities?.[activity]) {
       profile[serviceId].activities[activity].type = newType;
     }
     renderCmsCurrentView();
@@ -2476,22 +2407,29 @@ document.addEventListener("change", (event) => {
     return;
   }
 
+  const commissionServiceToggle = event.target.closest("[data-commission-service-toggle]");
+  if (commissionServiceToggle) {
+    const serviceId = commissionServiceToggle.dataset.commissionServiceToggle;
+    const profile = getStaffCommissionProfile(activeCommissionStaffId);
+    if (profile[serviceId]) {
+      profile[serviceId].enabled = commissionServiceToggle.checked;
+      if (!commissionServiceToggle.checked) {
+        Object.values(profile[serviceId].activities || {}).forEach((setting) => {
+          setting.enabled = false;
+        });
+      }
+    }
+    renderCmsCurrentView();
+    return;
+  }
+
   const commissionToggle = event.target.closest("[data-commission-toggle]");
   if (commissionToggle) {
     const serviceId = commissionToggle.dataset.commissionToggle;
     const service = getCmsServices().find((entry) => entry.id === serviceId);
     const activity = service?.actions[Number(commissionToggle.dataset.commissionActivity)];
     const profile = getStaffCommissionProfile(activeCommissionStaffId);
-    if (!commissionToggle.hasAttribute("data-commission-activity") && profile[serviceId]) {
-      profile[serviceId].enabled = commissionToggle.checked;
-      if (!commissionToggle.checked) {
-        service.actions.forEach((act) => {
-          if (profile[serviceId]?.activities?.[act]) {
-            profile[serviceId].activities[act].enabled = false;
-          }
-        });
-      }
-    } else if (activity && profile[serviceId]?.activities?.[activity]) {
+    if (profile[serviceId]?.enabled && activity && profile[serviceId]?.activities?.[activity]) {
       profile[serviceId].activities[activity].enabled = commissionToggle.checked;
     }
     renderCmsCurrentView();

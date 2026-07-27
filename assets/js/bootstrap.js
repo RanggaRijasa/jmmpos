@@ -9,7 +9,7 @@ const PARTIAL_PATHS = [
   "partials/receipt.html",
 ];
 
-const APP_ASSET_VERSION = "20260726-03";
+const APP_ASSET_VERSION = "20260727-06";
 
 function getVersionedPath(path) {
   const separator = path.includes("?") ? "&" : "?";
