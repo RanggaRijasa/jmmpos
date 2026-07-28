@@ -1,0 +1,57 @@
+      <section class="tablet-screen view" id="cashier-revenue-view" aria-label="Laporan pendapatan kasir">
+        <header class="topbar cashier-revenue-topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Laporan Pendapatan</h1>
+          </div>
+          <div class="operator compact">
+            <span class="avatar">K</span>
+            <div class="operator-info">
+              <strong>Kasir JMM</strong>
+              <span id="cashier-revenue-branch-label">Semua Cabang</span>
+            </div>
+          </div>
+        </header>
+
+        <div class="cashier-revenue-content">
+          <section class="cashier-revenue-filters" aria-label="Filter laporan pendapatan">
+            <label>
+              <span>Dari Tanggal</span>
+              <input id="cashier-revenue-date-from" type="date" />
+            </label>
+            <label>
+              <span>Sampai Tanggal</span>
+              <input id="cashier-revenue-date-to" type="date" />
+            </label>
+            <label>
+              <span>Cabang Transaksi</span>
+              <select id="cashier-revenue-branch"></select>
+            </label>
+            <label class="cashier-revenue-search">
+              <span>Cari Transaksi</span>
+              <input id="cashier-revenue-search" type="search" placeholder="Nota atau pelanggan..." autocomplete="off" />
+            </label>
+            <button id="cashier-revenue-reset" type="button">Reset</button>
+          </section>
+
+          <section class="cashier-revenue-summary" id="cashier-revenue-summary" aria-label="Ringkasan laporan pendapatan"></section>
+
+          <section class="cashier-revenue-panel">
+            <header>
+              <div>
+                <h2>Transaksi</h2>
+                <p id="cashier-revenue-count">0 data</p>
+              </div>
+            </header>
+            <div class="cashier-revenue-list-head" aria-hidden="true">
+              <span>Nota / Waktu</span>
+              <span>Pelanggan / Cabang</span>
+              <span>Total Transaksi</span>
+              <span>Status</span>
+            </div>
+            <div class="cashier-revenue-list" id="cashier-revenue-list"></div>
+            <footer class="cashier-revenue-pagination" id="cashier-revenue-pagination"></footer>
+          </section>
+        </div>
+      </section>

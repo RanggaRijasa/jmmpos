@@ -1,6 +1,39 @@
       <section class="tablet-screen view active" id="home-view" aria-label="Homepage utama">
         <header class="topbar home-topbar">
           <div class="home-header-left">
+            <div class="home-menu-wrapper">
+              <button
+                class="home-menu-button"
+                id="home-menu-toggle"
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                aria-controls="home-operations-menu"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="7" x2="20" y2="7"></line>
+                  <line x1="4" y1="12" x2="20" y2="12"></line>
+                  <line x1="4" y1="17" x2="20" y2="17"></line>
+                </svg>
+                Menu
+                <span aria-hidden="true">⌄</span>
+              </button>
+              <div class="home-menu-dropdown" id="home-operations-menu" role="menu" hidden>
+                <button type="button" role="menuitem" disabled>
+                  <span>
+                    <strong>Pengeluaran Operasional</strong>
+                    <small>Segera tersedia</small>
+                  </span>
+                </button>
+                <button type="button" role="menuitem" data-home-menu-action="revenue">
+                  <span>
+                    <strong>Laporan Pendapatan</strong>
+                    <small>Ringkasan dan transaksi salon</small>
+                  </span>
+                  <b aria-hidden="true">›</b>
+                </button>
+              </div>
+            </div>
             <div class="home-title">
               <p class="eyebrow">Selamat datang kembali,</p>
               <h1>Kasir JMM Salon</h1>

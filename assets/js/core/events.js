@@ -6,6 +6,7 @@ function setView(id) {
     view.classList.toggle("active", view.id === id);
   });
   syncSalonBranchUi();
+  if (id !== "home-view") setHomeOperationsMenuOpen(false);
 
   if (id === "customer-list-view") {
     renderCustomerList();
@@ -31,7 +32,11 @@ function setView(id) {
     if (layout) layout.classList.toggle("collapsed", cmsSidebarCollapsed);
     window.scrollTo({ top: 0, left: 0 });
   }
-  if (id === "home-view") renderHomeOnlineStaff();
+  if (id === "cashier-revenue-view") renderCashierRevenueReport();
+  if (id === "home-view") {
+    setHomeOperationsMenuOpen(false);
+    renderHomeOnlineStaff();
+  }
 }
 
 document.addEventListener("click", (event) => {
@@ -41,6 +46,26 @@ document.addEventListener("click", (event) => {
   const shouldKeepMemberListOpen = Boolean(event.target.closest(".item-card, .cart-qty button"));
   if (!event.target.closest("#customer-picker")) {
     closeCustomerPopovers({ keepBenefits: shouldKeepMemberListOpen });
+  }
+
+  const homeMenuToggle = event.target.closest("#home-menu-toggle");
+  if (homeMenuToggle) {
+    setHomeOperationsMenuOpen(!homeOperationsMenuOpen);
+    return;
+  }
+
+  const homeMenuAction = event.target.closest("[data-home-menu-action]");
+  if (homeMenuAction) {
+    setHomeOperationsMenuOpen(false);
+    if (homeMenuAction.dataset.homeMenuAction === "revenue") {
+      cashierRevenuePage = 1;
+      setView("cashier-revenue-view");
+    }
+    return;
+  }
+
+  if (homeOperationsMenuOpen && !event.target.closest(".home-menu-wrapper")) {
+    setHomeOperationsMenuOpen(false);
   }
 
   if (event.target.closest("#manage-staff-presence")) {
@@ -593,6 +618,23 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const cashierRevenuePageButton = event.target.closest("[data-cashier-revenue-page]");
+  if (cashierRevenuePageButton) {
+    const transactions = getCashierRevenueTransactions();
+    const totalPages = Math.max(1, Math.ceil(transactions.length / cashierRevenueRowsPerPage));
+    const action = cashierRevenuePageButton.dataset.cashierRevenuePage;
+    if (action === "prev") cashierRevenuePage = Math.max(1, cashierRevenuePage - 1);
+    else if (action === "next") cashierRevenuePage = Math.min(totalPages, cashierRevenuePage + 1);
+    else cashierRevenuePage = Math.min(totalPages, Math.max(1, Number(action) || 1));
+    renderCashierRevenueReport();
+    return;
+  }
+
+  if (event.target.closest("#cashier-revenue-reset")) {
+    resetCashierRevenueReport();
+    return;
+  }
+
   const pendingRow = event.target.closest("[data-pending-id]");
   if (pendingRow) {
     loadPendingTransaction(pendingRow.dataset.pendingId);
@@ -648,6 +690,16 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("change", (event) => {
+  const cashierRevenueFilter = event.target.closest("#cashier-revenue-date-from, #cashier-revenue-date-to, #cashier-revenue-branch");
+  if (cashierRevenueFilter) {
+    cashierRevenueDateFrom = document.querySelector("#cashier-revenue-date-from")?.value || "";
+    cashierRevenueDateTo = document.querySelector("#cashier-revenue-date-to")?.value || "";
+    cashierRevenueBranch = document.querySelector("#cashier-revenue-branch")?.value || "";
+    cashierRevenuePage = 1;
+    renderCashierRevenueReport();
+    return;
+  }
+
   const commissionFilter = event.target.closest("#commission-date-from, #commission-date-to, #commission-time-from, #commission-time-to, #commission-branch-filter");
   if (commissionFilter) {
     updateCommissionReportFilter(commissionFilter);
@@ -679,8 +731,22 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  const cashierRevenueSearch = event.target.closest("#cashier-revenue-search");
+  if (cashierRevenueSearch) {
+    cashierRevenueSearchTerm = cashierRevenueSearch.value;
+    cashierRevenuePage = 1;
+    renderCashierRevenueReport();
+    return;
+  }
+
   const presenceSearch = event.target.closest("#staff-presence-search");
   if (!presenceSearch) return;
   staffPresenceSearchTerm = presenceSearch.value;
   renderStaffPresenceList();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && homeOperationsMenuOpen) {
+    setHomeOperationsMenuOpen(false);
+  }
 });

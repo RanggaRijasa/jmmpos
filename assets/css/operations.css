@@ -461,13 +461,112 @@
 }
 
 .home-header-left {
-  display: block;
+  position: relative;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 32px;
   min-width: 0;
-  padding-top: 80px;
+  padding-top: 0;
 }
 
 .home-title {
   position: static;
+}
+
+.home-menu-wrapper {
+  position: relative;
+}
+
+.home-menu-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--card);
+  color: var(--gold-dark);
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 8px 20px rgba(118, 83, 28, 0.08);
+}
+
+.home-menu-button:hover,
+.home-menu-button[aria-expanded="true"] {
+  border-color: var(--gold);
+  background: var(--gold-lift);
+}
+
+.home-menu-button svg {
+  width: 18px;
+  height: 18px;
+}
+
+.home-menu-button > span {
+  margin-left: 2px;
+  font-size: 14px;
+}
+
+.home-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  display: grid;
+  width: 286px;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--raised);
+  box-shadow: 0 20px 40px rgba(72, 48, 16, 0.18);
+}
+
+.home-menu-dropdown[hidden] {
+  display: none;
+}
+
+.home-menu-dropdown button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 58px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+
+.home-menu-dropdown button:not(:disabled):hover {
+  background: var(--gold-lift);
+}
+
+.home-menu-dropdown button:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.home-menu-dropdown button > span {
+  display: grid;
+  gap: 4px;
+}
+
+.home-menu-dropdown strong {
+  font-size: 13px;
+}
+
+.home-menu-dropdown small {
+  font-size: 11px;
+}
+
+.home-menu-dropdown b {
+  color: var(--gold-dark);
+  font-size: 19px;
 }
 
 .home-header-spacer {
@@ -511,6 +610,243 @@
   margin-top: 2px;
   color: var(--muted);
   font-size: 12px;
+}
+
+.cashier-revenue-content {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+  height: calc(100% - 126px);
+  padding: 0 48px 32px;
+  overflow: hidden;
+}
+
+.cashier-revenue-filters {
+  display: grid;
+  grid-template-columns: 150px 150px 210px minmax(220px, 1fr) 88px;
+  align-items: end;
+  gap: 12px;
+  min-height: 66px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.cashier-revenue-filters label {
+  display: grid;
+  gap: 5px;
+}
+
+.cashier-revenue-filters label > span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cashier-revenue-filters input,
+.cashier-revenue-filters select,
+.cashier-revenue-filters button {
+  width: 100%;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--raised);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.cashier-revenue-filters input,
+.cashier-revenue-filters select {
+  padding: 0 10px;
+}
+
+.cashier-revenue-filters button {
+  background: var(--gold-soft);
+  color: var(--gold-dark);
+  font-weight: 800;
+}
+
+.cashier-revenue-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cashier-revenue-summary article {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  min-height: 78px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 8px 20px rgba(118, 83, 28, 0.06);
+}
+
+.cashier-revenue-summary span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cashier-revenue-summary strong {
+  color: var(--gold-dark);
+  font-size: 18px;
+}
+
+.cashier-revenue-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.cashier-revenue-panel > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+}
+
+.cashier-revenue-panel h2 {
+  font-size: 17px;
+}
+
+.cashier-revenue-panel header p {
+  margin-top: 3px;
+  font-size: 11px;
+}
+
+.cashier-revenue-list-head,
+.cashier-revenue-row {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr) 190px 110px;
+  align-items: center;
+  gap: 16px;
+}
+
+.cashier-revenue-list-head {
+  min-height: 30px;
+  padding: 0 14px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cashier-revenue-list {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: 6px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cashier-revenue-row {
+  min-height: 52px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--raised);
+}
+
+.cashier-revenue-row > div {
+  display: grid;
+  gap: 3px;
+}
+
+.cashier-revenue-row strong {
+  font-size: 12px;
+}
+
+.cashier-revenue-row > strong {
+  color: var(--gold-dark);
+  font-size: 13px;
+}
+
+.cashier-revenue-row div span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.cashier-revenue-status {
+  display: inline-grid;
+  width: max-content;
+  min-width: 72px;
+  height: 25px;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.cashier-revenue-status.complete {
+  background: #dff4eb;
+  color: var(--success);
+}
+
+.cashier-revenue-status.pending {
+  background: var(--gold-soft);
+  color: var(--gold-dark);
+}
+
+.cashier-revenue-empty {
+  display: grid;
+  place-content: center;
+  gap: 5px;
+  min-height: 120px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.cashier-revenue-empty strong {
+  color: var(--ink);
+}
+
+.cashier-revenue-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 36px;
+  padding-top: 8px;
+}
+
+.cashier-revenue-pagination button {
+  display: grid;
+  min-width: 29px;
+  height: 29px;
+  place-items: center;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--raised);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cashier-revenue-pagination button.active {
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #fff;
+}
+
+.cashier-revenue-pagination button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .filter-header {

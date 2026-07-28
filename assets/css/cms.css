@@ -715,8 +715,87 @@
   color: var(--gold-dark);
 }
 
+.cms-card > small,
+.cms-member-sales-values small {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.cms-dashboard-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cms-dashboard-metrics .cms-card {
+  min-height: 96px;
+}
+
+.cms-member-sales-values {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(110px, 0.65fr);
+  gap: 16px;
+}
+
+.cms-member-sales-values > div + div {
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+.cms-member-sales-values strong {
+  font-size: 20px;
+}
+
+.cms-dashboard-table {
+  display: grid;
+  gap: 10px;
+}
+
+.cms-dashboard-table-panel {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.cms-dashboard-table .cms-dashboard-table-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  overscroll-behavior-y: auto;
+}
+
+.cms-dashboard-table-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 0 2px;
+}
+
+.cms-dashboard-table-head h4 {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.cms-dashboard-table-head p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.cms-empty-table-cell {
+  color: var(--muted);
+  text-align: center !important;
+}
+
 .cms-summary-grid .cms-card strong {
   font-size: 19px;
+}
+
+.cms-sales-report-summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .cms-report-filters {
@@ -1225,6 +1304,13 @@
   font-size: 16px;
 }
 
+.cms-detail-section-copy {
+  margin: -5px 0 12px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 .cms-transaction-lines,
 .cms-package-list,
 .cms-step-list {
@@ -1261,6 +1347,42 @@
 
 .cms-package-list b {
   color: var(--gold-dark);
+}
+
+.cms-member-quota-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cms-member-quota-actions b {
+  min-width: 42px;
+  text-align: center;
+}
+
+.cms-member-quota-actions input {
+  width: 68px;
+  min-height: 38px;
+  padding: 0 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
+}
+
+.cms-member-quota-actions .cms-secondary-button {
+  min-height: 38px;
+  padding: 0 12px;
+}
+
+.cms-member-quota-actions input:disabled,
+.cms-member-quota-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .cms-step-list > div {
@@ -1580,6 +1702,18 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
+  .cms-dashboard-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .cms-member-sales-card {
+    grid-column: span 2;
+  }
+
+  .cms-sales-report-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .cms-page-head,
   .cms-list-toolbar {
     align-items: stretch;
@@ -1747,9 +1881,17 @@ body.cms-mode .cms-dashboard-grid {
   margin-bottom: 10px;
 }
 
+body.cms-mode .cms-dashboard-metrics {
+  margin-bottom: 16px;
+}
+
 body.cms-mode .cms-card {
   min-height: 76px;
   padding: 12px 14px;
+}
+
+body.cms-mode .cms-dashboard-metrics .cms-card {
+  min-height: 90px;
 }
 
 body.cms-mode .cms-card h4 {

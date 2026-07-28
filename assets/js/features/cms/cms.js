@@ -12,9 +12,9 @@ const CMS_PAGE_LABELS = {
   reminders: "Reminder Pelanggan",
   members: "Member",
   "member-visits": "Kunjungan member",
-  "sales-report": "Laporan Penjualan",
+  "sales-report": "Laporan Pendapatan",
   "regular-report": "Laporan Reguler",
-  "revenue-report": "Laporan Pendapatan",
+  "revenue-report": "Laporan Kas Masuk",
   "stock-report": "Laporan Stok",
   "staff-commission": "Komisi Petugas",
   "commission-report": "Laporan Komisi Petugas",
@@ -61,6 +61,7 @@ function cmsActionIcon(name) {
     filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16l-6.5 7.5V18l-3 1.5v-7Z"></path></svg>',
     arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>',
     whatsapp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9 9 0 0 1-4-1l-5 2 2-5a9 9 0 1 1 16-4.5Z"></path><path d="M9 8c.5 3 2 4.5 5 5"></path></svg>',
+    download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>',
   };
   return icons[name] || icons.view;
 }
@@ -445,6 +446,53 @@ function getTransactionTotalReguler(transaction) {
   }, 0);
 }
 
+function getCmsDashboardLinePayable(item) {
+  const quantity = Math.max(1, Number(item.qty) || 1);
+  const baseTotal = Math.max(0, Number(item.price) || 0) * quantity;
+  const storedRate = Number(item.discountRate);
+  const combinedRate = (Number(item.fixedDiscountRate) || 0) + (Number(item.flexibleDiscountRate) || 0);
+  const discountRate = Math.min(100, Math.max(0, Number.isFinite(storedRate) ? storedRate : combinedRate));
+  return Math.max(0, Math.round(baseTotal * (100 - discountRate) / 100));
+}
+
+function getCmsTransactionMemberUsedValue(transaction) {
+  const items = Array.isArray(transaction.items) ? transaction.items : [];
+  return items
+    .filter((item) => item.memberFree || item.memberUpgrade)
+    .reduce((sum, item) => {
+      const quantity = Math.max(1, Number(item.qty) || 1);
+      const unitPrice = Number(item.memberUnitPrice) || Number(item.memberUseAmount) || getLineMemberUnitPrice(item) || Number(item.price) || 0;
+      return sum + (unitPrice * quantity);
+    }, 0);
+}
+
+function getCmsTransactionTotalValue(transaction) {
+  return Math.max(0, Number(transaction.amount) || 0) + getCmsTransactionMemberUsedValue(transaction);
+}
+
+function getCmsDashboardTransactionMetrics(transaction) {
+  const items = Array.isArray(transaction.items) ? transaction.items : [];
+  const cashIn = transaction.status === "Pending" ? 0 : Math.max(0, Number(transaction.amount) || 0);
+  const memberUsed = transaction.status === "Pending" ? 0 : getCmsTransactionMemberUsedValue(transaction);
+  const productRevenue = transaction.status === "Pending" ? 0 : items
+    .filter((item) => item.type === "product")
+    .reduce((sum, item) => sum + getCmsDashboardLinePayable(item), 0);
+  const memberItems = transaction.status === "Pending" ? [] : items.filter((item) => item.type === "member");
+  const memberSales = memberItems.reduce((sum, item) => sum + getCmsDashboardLinePayable(item), 0);
+  const membersSold = memberItems.reduce((sum, item) => sum + Math.max(1, Number(item.qty) || 1), 0);
+  const regularCash = Math.max(0, cashIn - memberSales - productRevenue);
+
+  return {
+    cashIn,
+    memberUsed,
+    regularRevenue: regularCash + memberUsed,
+    productRevenue,
+    memberSales,
+    membersSold,
+    transactionTotal: getCmsTransactionTotalValue(transaction),
+  };
+}
+
 function getCmsFilterOptions(values) {
   return [...new Set(values.filter(Boolean))]
     .sort((left, right) => String(left).localeCompare(String(right), "id"))
@@ -732,11 +780,10 @@ function getCmsPageRows(page) {
   }
   if (page === "sales-report") {
     return salesTransactions.filter((transaction) => transactionMatchesReportFilters(transaction, page)).map((transaction) => {
-      const unitPrice = getTransactionMemberUnitPrice(transaction);
       return {
         id: transaction.id,
         search: `${transaction.id} ${transaction.customer} ${transaction.staff} ${transaction.payment} ${getTransactionBranch(transaction)} ${getTransactionMemberBranch(transaction)}`,
-        cells: [transaction.id, `${transaction.date}<small>${transaction.time}</small>`, `<strong>${transaction.customer}</strong>`, transaction.staff, getTransactionBranch(transaction), cmsBadge(transaction.payment, "gold"), getTransactionMemberBranch(transaction) || "—", unitPrice ? formatMoney(unitPrice) : "—", formatMoney(transaction.amount), cmsBadge(transaction.status, transaction.status === "Pending" ? "warning" : "success")],
+        cells: [transaction.id, `${transaction.date}<small>${transaction.time}</small>`, `<strong>${transaction.customer}</strong>`, getTransactionBranch(transaction), formatMoney(getCmsTransactionTotalValue(transaction)), cmsBadge(transaction.status, transaction.status === "Pending" ? "warning" : "success")],
       };
     });
   }
@@ -838,7 +885,7 @@ function getCmsPageMeta(page) {
     reminders: { subtitle: "Pelanggan yang perlu dihubungi tujuh hari setelah jasa terakhir, lengkap dengan cabang kunjungan terakhir.", headers: ["Pelanggan", "Nomor HP", "Jasa Terakhir", "Terakhir Berkunjung", "Jadwal Reminder", "Keanggotaan", "Status Kontak"], search: "Cari pelanggan, jasa, nomor HP, atau cabang..." },
     members: { subtitle: "Daftar pelanggan dengan paket member aktif dari satu atau beberapa cabang.", headers: ["Pelanggan", "Nomor HP", "Cabang Membership", "Paket Aktif", "Sisa Kuota", "Total Kunjungan", "Status"], add: "Tambah Member", search: "Cari pelanggan, cabang, atau paket member..." },
     "member-visits": { subtitle: "Riwayat penggunaan kuota membership per pelanggan, treatment, dan cabang.", headers: ["Tanggal & Waktu", "Pelanggan", "Membership", "Cabang Membership", "Pemakaian", "Status"], search: "Cari pelanggan, cabang, atau membership..." },
-    "sales-report": { subtitle: "Rekap transaksi selesai per cabang salon beserta cabang membership yang digunakan.", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Harga Satuan", "Total", "Status"], search: "Cari transaksi laporan atau cabang..." },
+    "sales-report": { subtitle: "Rekap transaksi selesai dan pending per cabang salon. Informasi operasional lengkap tersedia pada detail transaksi.", headers: ["No. Nota", "Tanggal / Waktu", "Pelanggan", "Cabang Transaksi", "Total Transaksi", "Status"], search: "Cari no. nota, pelanggan, petugas, pembayaran, atau cabang..." },
     "regular-report": { subtitle: "Laporan transaksi yang menggunakan harga satuan member (tidak termasuk pembelian paket member).", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Total Reguler", "Status"], search: "Cari transaksi reguler atau cabang..." },
     "revenue-report": { subtitle: "Rincian pendapatan kasir per cabang setelah DP dan pemakaian kuota member.", headers: ["Tanggal", "No. Nota", "Pelanggan", "Metode", "Cabang Transaksi", "Cabang Membership", "Harga Satuan", "DP", "Member", "Pendapatan"], search: "Cari transaksi, metode, atau cabang..." },
     "stock-report": { subtitle: "Laporan posisi stok produk dan peringatan produk di bawah batas minimum.", headers: ["Kode", "Produk", "Kategori", "Supplier", "Harga Pokok", "Harga Jual", "Stok", "Status"], search: "Cari produk pada laporan stok..." },
@@ -854,7 +901,26 @@ function getCmsSummary(page, rows) {
   const revenue = completed.reduce((sum, transaction) => sum + transaction.amount, 0);
   const totalPenjualan = completed.reduce((sum, transaction) => sum + getTransactionTotalPenjualan(transaction), 0);
   const totalReguler = completed.reduce((sum, transaction) => sum + getTransactionTotalReguler(transaction), 0);
-  if (page === "sales" || page === "sales-report") return [["Transaksi selesai", completed.length], ["Pending", getPendingTransactions().length], ["Total penjualan", formatMoney(totalPenjualan)], ["Total reguler", formatMoney(totalReguler)]];
+  if (page === "sales") return [["Transaksi selesai", completed.length], ["Pending", getPendingTransactions().length], ["Total penjualan", formatMoney(totalPenjualan)], ["Total reguler", formatMoney(totalReguler)]];
+  if (page === "sales-report") {
+    const reportTransactions = salesTransactions.filter((transaction) => transactionMatchesReportFilters(transaction, page));
+    const reportCompleted = reportTransactions.filter((transaction) => transaction.status !== "Pending");
+    const reportPending = reportTransactions.filter((transaction) => transaction.status === "Pending");
+    const reportTotals = reportCompleted
+      .map(getCmsDashboardTransactionMetrics)
+      .reduce((summary, metrics) => ({
+        cashIn: summary.cashIn + metrics.cashIn,
+        regularRevenue: summary.regularRevenue + metrics.regularRevenue,
+        productRevenue: summary.productRevenue + metrics.productRevenue,
+      }), { cashIn: 0, regularRevenue: 0, productRevenue: 0 });
+    return [
+      ["Transaksi selesai", reportCompleted.length],
+      ["Pending", reportPending.length],
+      ["Kas masuk", formatMoney(reportTotals.cashIn)],
+      ["Pendapatan reguler", formatMoney(reportTotals.regularRevenue)],
+      ["Pendapatan produk", formatMoney(reportTotals.productRevenue)],
+    ];
+  }
   if (page === "regular-report") return [["Transaksi reguler", rows.length], ["Total reguler", formatMoney(totalReguler)], ["Rata-rata", formatMoney(Math.round(totalReguler / Math.max(1, rows.length)))], ["Cabang", new Set(rows.map((r) => r.cells[4])).size]];
   if (page === "revenue-report") return [["Pendapatan", formatMoney(revenue)], ["Tunai", formatMoney(completed.filter((t) => t.payment === "Tunai").reduce((s, t) => s + t.amount, 0))], ["QRIS", formatMoney(completed.filter((t) => t.payment === "QRIS").reduce((s, t) => s + t.amount, 0))], ["DP tercatat", formatMoney(completed.reduce((s, t) => s + (t.dp || 0), 0))]];
   if (page === "stock-report" || page === "products-stock") {
@@ -870,9 +936,9 @@ function getCmsSummary(page, rows) {
   return [];
 }
 
-function renderCmsSummary(summary) {
+function renderCmsSummary(summary, className = "") {
   if (!summary.length) return "";
-  return `<div class="cms-dashboard-grid cms-summary-grid">${summary.map(([label, value]) => `<div class="cms-card"><h4>${label}</h4><strong>${value}</strong></div>`).join("")}</div>`;
+  return `<div class="cms-dashboard-grid cms-summary-grid${className ? ` ${className}` : ""}">${summary.map(([label, value]) => `<div class="cms-card"><h4>${label}</h4><strong>${value}</strong></div>`).join("")}</div>`;
 }
 
 function renderCmsReportFilters(page) {
@@ -1050,7 +1116,7 @@ function updateReportFilter(control) {
 }
 
 function transactionMatchesReportFilters(transaction, page) {
-  if (transaction.status === "Pending") return false;
+  if (page !== "sales-report" && transaction.status === "Pending") return false;
   const date = transaction.dateRaw || "";
   const branch = getTransactionBranch(transaction);
   if (page === "sales-report") {
@@ -1116,6 +1182,232 @@ function renderCmsRowActions(page, row) {
   return `<div class="cms-row-actions">${actions}</div>`;
 }
 
+function cmsEscapeSpreadsheetXml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
+function cmsSpreadsheetBytes(parts) {
+  const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+  const bytes = new Uint8Array(totalLength);
+  let offset = 0;
+  parts.forEach((part) => {
+    bytes.set(part, offset);
+    offset += part.length;
+  });
+  return bytes;
+}
+
+function cmsSpreadsheetUint16(value) {
+  const bytes = new Uint8Array(2);
+  new DataView(bytes.buffer).setUint16(0, value, true);
+  return bytes;
+}
+
+function cmsSpreadsheetUint32(value) {
+  const bytes = new Uint8Array(4);
+  new DataView(bytes.buffer).setUint32(0, value >>> 0, true);
+  return bytes;
+}
+
+function cmsSpreadsheetCrc32(bytes) {
+  let crc = 0xffffffff;
+  bytes.forEach((byte) => {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) {
+      crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+    }
+  });
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function cmsCreateSpreadsheetArchive(files) {
+  const encoder = new TextEncoder();
+  const now = new Date();
+  const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
+  const dosDate = ((Math.max(1980, now.getFullYear()) - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const localParts = [];
+  const centralParts = [];
+  let localOffset = 0;
+
+  files.forEach(([filename, content]) => {
+    const nameBytes = encoder.encode(filename);
+    const contentBytes = encoder.encode(content);
+    const crc = cmsSpreadsheetCrc32(contentBytes);
+    const localHeader = cmsSpreadsheetBytes([
+      cmsSpreadsheetUint32(0x04034b50),
+      cmsSpreadsheetUint16(20),
+      cmsSpreadsheetUint16(0x0800),
+      cmsSpreadsheetUint16(0),
+      cmsSpreadsheetUint16(dosTime),
+      cmsSpreadsheetUint16(dosDate),
+      cmsSpreadsheetUint32(crc),
+      cmsSpreadsheetUint32(contentBytes.length),
+      cmsSpreadsheetUint32(contentBytes.length),
+      cmsSpreadsheetUint16(nameBytes.length),
+      cmsSpreadsheetUint16(0),
+      nameBytes,
+    ]);
+    const localEntry = cmsSpreadsheetBytes([localHeader, contentBytes]);
+    localParts.push(localEntry);
+
+    centralParts.push(cmsSpreadsheetBytes([
+      cmsSpreadsheetUint32(0x02014b50),
+      cmsSpreadsheetUint16(20),
+      cmsSpreadsheetUint16(20),
+      cmsSpreadsheetUint16(0x0800),
+      cmsSpreadsheetUint16(0),
+      cmsSpreadsheetUint16(dosTime),
+      cmsSpreadsheetUint16(dosDate),
+      cmsSpreadsheetUint32(crc),
+      cmsSpreadsheetUint32(contentBytes.length),
+      cmsSpreadsheetUint32(contentBytes.length),
+      cmsSpreadsheetUint16(nameBytes.length),
+      cmsSpreadsheetUint16(0),
+      cmsSpreadsheetUint16(0),
+      cmsSpreadsheetUint16(0),
+      cmsSpreadsheetUint16(0),
+      cmsSpreadsheetUint32(0),
+      cmsSpreadsheetUint32(localOffset),
+      nameBytes,
+    ]));
+    localOffset += localEntry.length;
+  });
+
+  const localData = cmsSpreadsheetBytes(localParts);
+  const centralDirectory = cmsSpreadsheetBytes(centralParts);
+  const endRecord = cmsSpreadsheetBytes([
+    cmsSpreadsheetUint32(0x06054b50),
+    cmsSpreadsheetUint16(0),
+    cmsSpreadsheetUint16(0),
+    cmsSpreadsheetUint16(files.length),
+    cmsSpreadsheetUint16(files.length),
+    cmsSpreadsheetUint32(centralDirectory.length),
+    cmsSpreadsheetUint32(localData.length),
+    cmsSpreadsheetUint16(0),
+  ]);
+  return cmsSpreadsheetBytes([localData, centralDirectory, endRecord]);
+}
+
+function exportCmsRemindersExcel() {
+  const query = cmsSearchTerm.trim().toLowerCase();
+  const reminderRows = getCmsPageRows("reminders");
+  const filteredRows = query
+    ? reminderRows.filter((row) => row.search.toLowerCase().includes(query))
+    : reminderRows;
+  const reminderCustomers = filteredRows
+    .map((row) => customers.find((customer) => customer.id === row.id))
+    .filter(Boolean);
+
+  if (!reminderCustomers.length) {
+    showToast("Tidak ada data reminder untuk diekspor");
+    return;
+  }
+
+  const headers = [
+    "Pelanggan",
+    "Nomor HP",
+    "Jasa Terakhir",
+    "Tanggal Kunjungan Terakhir",
+    "Cabang Kunjungan Terakhir",
+    "Jadwal Reminder",
+    "Keanggotaan",
+    "Status Kontak",
+  ];
+  const records = reminderCustomers.map((customer) => [
+    customer.name,
+    customer.phone,
+    customer.lastService || "—",
+    customer.lastVisit || "—",
+    getCustomerLastVisitBranch(customer) || "—",
+    customer.reminderDate || "—",
+    customer.status,
+    getCmsReminderContactStatus(customer) === "contacted" ? "Sudah dihubungi" : "Belum dihubungi",
+  ]);
+  const spreadsheetRows = [headers, ...records].map((cells, rowIndex) => {
+    const rowNumber = rowIndex + 1;
+    const cellXml = cells.map((cell, columnIndex) => {
+      const reference = `${String.fromCharCode(65 + columnIndex)}${rowNumber}`;
+      return `<c r="${reference}" t="inlineStr"${rowIndex === 0 ? ' s="1"' : ""}><is><t xml:space="preserve">${cmsEscapeSpreadsheetXml(cell)}</t></is></c>`;
+    }).join("");
+    return `<row r="${rowNumber}">${cellXml}</row>`;
+  }).join("");
+  const lastRow = records.length + 1;
+  const spreadsheetFiles = [
+    ["[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+  <Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>
+  <Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+</Types>`],
+    ["_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`],
+    ["xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <sheets><sheet name="Reminder Pelanggan" sheetId="1" r:id="rId1"/></sheets>
+</workbook>`],
+    ["xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/>
+  <Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`],
+    ["xl/styles.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <fonts count="2">
+    <font><sz val="11"/><name val="Calibri"/></font>
+    <font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font>
+  </fonts>
+  <fills count="3">
+    <fill><patternFill patternType="none"/></fill>
+    <fill><patternFill patternType="gray125"/></fill>
+    <fill><patternFill patternType="solid"><fgColor rgb="FFE0A11A"/><bgColor indexed="64"/></patternFill></fill>
+  </fills>
+  <borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+  <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+  <cellXfs count="2">
+    <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+    <xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>
+  </cellXfs>
+  <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>
+</styleSheet>`],
+    ["xl/worksheets/sheet1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <dimension ref="A1:H${lastRow}"/>
+  <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+  <sheetFormatPr defaultRowHeight="15"/>
+  <cols>
+    <col min="1" max="1" width="24" customWidth="1"/>
+    <col min="2" max="2" width="18" customWidth="1"/>
+    <col min="3" max="5" width="25" customWidth="1"/>
+    <col min="6" max="8" width="20" customWidth="1"/>
+  </cols>
+  <sheetData>${spreadsheetRows}</sheetData>
+  <autoFilter ref="A1:H${lastRow}"/>
+</worksheet>`],
+  ];
+  const workbook = cmsCreateSpreadsheetArchive(spreadsheetFiles);
+  const now = new Date();
+  const dateStamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const blob = new Blob([workbook], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const download = document.createElement("a");
+  download.href = url;
+  download.download = `reminder-pelanggan-${dateStamp}.xlsx`;
+  document.body.append(download);
+  download.click();
+  download.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  showToast(`${reminderCustomers.length} reminder berhasil diekspor`);
+}
+
 function renderCmsListPage(page) {
   const meta = getCmsPageMeta(page);
   const allRows = getCmsPageRows(page);
@@ -1133,10 +1425,13 @@ function renderCmsListPage(page) {
   return `
     <section class="cms-page-head">
       <div><h3>${CMS_PAGE_LABELS[page]}</h3><p>${meta.subtitle}</p></div>
-      ${meta.add ? `<button class="cms-primary-button" type="button" data-cms-action="add">+ ${meta.add}</button>` : ""}
+      ${meta.add || page === "reminders" ? `<div class="cms-page-head-actions">
+        ${page === "reminders" ? `<button class="cms-secondary-button" type="button" data-cms-action="export-reminders-excel">${cmsActionIcon("download")} Export Excel</button>` : ""}
+        ${meta.add ? `<button class="cms-primary-button" type="button" data-cms-action="add">+ ${meta.add}</button>` : ""}
+      </div>` : ""}
     </section>
     ${page === "commission-report" ? renderCmsCommissionFilters() : ""}
-    ${renderCmsSummary(summary)}
+    ${renderCmsSummary(summary, page === "sales-report" ? "cms-sales-report-summary" : "")}
     <section class="cms-data-panel">
       <div class="cms-list-toolbar">
         <div class="cms-list-meta"><strong>${CMS_PAGE_LABELS[page]}</strong><span>${allRows.length} data tersimpan</span></div>
@@ -1277,6 +1572,24 @@ function cmsDetailFields(page, record) {
   if (page === "commission-report") return [["Petugas", record.staff], ["Cabang Petugas", record.staffBranch], ["Cabang Transaksi", record.transactionBranch], ["Transaksi Selesai", record.transactionCount], ["Nilai Jasa", formatMoney(record.serviceValue)], ["Rata-rata Tarif", `${record.averageRate.toFixed(1).replace(".0", "")}%`], ["Total Komisi", formatMoney(record.commission)]];
   if (page === "users-access") return [["ID Pengguna", record.id], ["Nama", record.name], ["Username", record.username], ["Peran", record.role], ["Hak Akses", record.access], ["Status", record.status]];
   if (page === "member-visits") return [["Pelanggan", record.customer], ["Nomor HP", record.phone], ["Membership", record.service], ["Cabang Membership", record.branch], ["Waktu Pemakaian", record.dateTime], ["Kuota Dipakai", record.qty], ["Status", "Terpakai"]];
+  if (page === "sales-report") {
+    const unitPrice = getTransactionMemberUnitPrice(record);
+    return [
+      ["No. Nota", record.id],
+      ["Tanggal / Waktu", `${record.date} · ${record.time}`],
+      ["Pelanggan", record.customer],
+      ["Cabang Transaksi", getTransactionBranch(record)],
+      ["Total Transaksi", formatMoney(getCmsTransactionTotalValue(record))],
+      ["Status", record.status],
+      ["Petugas", record.staff],
+      ["Pembayaran", record.payment],
+      ["Cabang Membership", getTransactionMemberBranch(record) || "—"],
+      ["Harga Satuan", unitPrice ? formatMoney(unitPrice) : "—"],
+      ["DP", formatMoney(record.dp || 0)],
+      ["Pemakaian Member", formatMoney(getCmsTransactionMemberUsedValue(record))],
+      ["Kas Masuk", record.status === "Pending" ? "Belum masuk" : formatMoney(record.amount)],
+    ];
+  }
   if (["sales", "pending", "sales-report", "revenue-report"].includes(page)) return [["No. Dokumen", record.id], ["Tanggal", `${record.date} · ${record.time}`], ["Pelanggan", record.customer], ["Petugas Utama", record.staff], ["Cabang Transaksi", getTransactionBranch(record)], ["Pembayaran", record.payment], ["Cabang Membership", getTransactionMemberBranch(record) || "—"], ["Status", record.status], ["DP", formatMoney(record.dp || 0)], ["Pemakaian Member", formatMoney(record.reward || 0)], ["Total", formatMoney(record.amount)]];
   return [];
 }
@@ -1295,10 +1608,25 @@ function renderCmsTransactionItems(transaction) {
   }).join("")}</div></section>`;
 }
 
-function renderCmsMemberPackages(customer) {
+function renderCmsMemberPackages(customer, canAdjustQuota = false) {
   const rewards = getCustomerRewards(customer);
   if (!rewards.length) return "";
-  return `<section class="cms-detail-section"><h4>Membership Dimiliki</h4><div class="cms-package-list">${rewards.map((reward) => `<div><span><strong>${getRewardName(reward, { withMember: true })}</strong><small>${getRewardBranch(reward, customer)} · ${reward.progress} dari ${reward.target} kuota tersisa</small></span><b>${reward.progress}/${reward.target}</b></div>`).join("")}</div></section>`;
+  return `<section class="cms-detail-section">
+    <h4>Membership Dimiliki</h4>
+    ${canAdjustQuota ? '<p class="cms-detail-section-copy">Kurangi kuota secara manual pada paket yang dipilih. Perubahan langsung berlaku pada saldo member.</p>' : ""}
+    <div class="cms-package-list">${rewards.map((reward) => {
+      const remaining = Math.max(0, Number(reward.progress) || 0);
+      const rewardId = `${customer.id}::${getRewardId(reward)}`;
+      const quotaAction = canAdjustQuota
+        ? `<div class="cms-member-quota-actions">
+            <b>${remaining}/${reward.target}</b>
+            <input type="number" min="1" max="${Math.max(1, remaining)}" value="1" data-cms-member-quota-input="${cmsEscape(rewardId)}" aria-label="Jumlah kuota ${cmsEscape(getRewardName(reward, { withMember: true }))} yang dikurangi" ${remaining ? "" : "disabled"} />
+            <button class="cms-secondary-button" type="button" data-cms-action="decrease-member-quota" data-cms-id="${cmsEscape(rewardId)}" ${remaining ? "" : "disabled"}>Kurangi Kuota</button>
+          </div>`
+        : `<b>${remaining}/${reward.target}</b>`;
+      return `<div><span><strong>${getRewardName(reward, { withMember: true })}</strong><small>${getRewardBranch(reward, customer)} · ${remaining} dari ${reward.target} kuota tersisa</small></span>${quotaAction}</div>`;
+    }).join("")}</div>
+  </section>`;
 }
 
 function formatCommissionReportDate(dateRaw, fallback = "") {
@@ -1466,7 +1794,7 @@ function renderCmsDetailPage(page, record) {
     <section class="cms-detail-panel">
       <div class="cms-detail-grid">${fields.map(([label, value]) => `<div class="cms-detail-field"><span>${label}</span><strong>${value}</strong></div>`).join("")}</div>
       ${isTransaction ? renderCmsTransactionItems(record) : ""}
-      ${isCustomer ? renderCmsMemberPackages(record) : ""}
+      ${isCustomer ? renderCmsMemberPackages(record, page === "members") : ""}
       ${page === "services" || page === "service-activities" ? `<section class="cms-detail-section"><h4>Alur Aktivitas</h4><div class="cms-step-list">${record.actions.map((action, index) => `<div><b>${index + 1}</b><span><strong>${action}</strong><small>Dapat diisi satu atau beberapa petugas dari POS</small></span></div>`).join("")}</div></section>` : ""}
     </section>`;
 }
@@ -1886,38 +2214,93 @@ function renderCmsDashboard() {
   const filteredTransactions = dashboardBranchFilter
     ? completedTransactions.filter((t) => getTransactionBranch(t) === dashboardBranchFilter)
     : completedTransactions;
-  const latestTransactionDate = filteredTransactions.map((transaction) => transaction.dateRaw).sort().at(-1);
-  const todayTransactions = filteredTransactions.filter((transaction) => transaction.dateRaw === latestTransactionDate);
-  const totalRevenue = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const totalPenjualan = filteredTransactions.reduce((sum, t) => sum + getTransactionTotalPenjualan(t), 0);
-  const totalReguler = filteredTransactions.reduce((sum, t) => sum + getTransactionTotalReguler(t), 0);
+  const totals = filteredTransactions
+    .map(getCmsDashboardTransactionMetrics)
+    .reduce((summary, metrics) => ({
+      cashIn: summary.cashIn + metrics.cashIn,
+      memberUsed: summary.memberUsed + metrics.memberUsed,
+      regularRevenue: summary.regularRevenue + metrics.regularRevenue,
+      productRevenue: summary.productRevenue + metrics.productRevenue,
+      memberSales: summary.memberSales + metrics.memberSales,
+      membersSold: summary.membersSold + metrics.membersSold,
+    }), { cashIn: 0, memberUsed: 0, regularRevenue: 0, productRevenue: 0, memberSales: 0, membersSold: 0 });
   const totalPending = dashboardBranchFilter
     ? salesTransactions.filter((t) => t.status === "Pending" && getTransactionBranch(t) === dashboardBranchFilter).length
     : getPendingTransactions().length;
-  const totalMembers = customers.filter((c) => c.status === "Member").length;
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / cmsRowsPerPage));
+  const currentPage = Math.min(Math.max(1, cmsPageNumbers.dashboard || 1), totalPages);
+  cmsPageNumbers.dashboard = currentPage;
+  const pageStart = (currentPage - 1) * cmsRowsPerPage;
+  const visibleTransactions = filteredTransactions.slice(pageStart, pageStart + cmsRowsPerPage);
+  const pagination = Array.from({ length: totalPages }, (_, index) => index + 1)
+    .map((pageNumber) => `<button class="${pageNumber === currentPage ? "active" : ""}" type="button" data-cms-action="paginate" data-cms-id="${pageNumber}" aria-label="Halaman ${pageNumber}">${pageNumber}</button>`)
+    .join("");
 
   return `
     <section class="cms-page-head">
-      <div><h3>Ringkasan Operasional</h3><p>Pantau aktivitas kasir, pelanggan, membership, dan transaksi salon.</p></div>
+      <div><h3>Ringkasan Operasional</h3><p>Ringkasan transaksi selesai, pemakaian member, produk, dan penjualan paket membership.</p></div>
       <div class="cms-page-head-actions">${renderCmsListFilters("dashboard")}</div>
     </section>
-    <div class="cms-dashboard-grid">
-      <div class="cms-card"><h4>Total penjualan</h4><strong>${formatMoney(totalPenjualan)}</strong><small>Semua uang masuk (exc. pemakaian member)</small></div>
-      <div class="cms-card"><h4>Total reguler</h4><strong>${formatMoney(totalReguler)}</strong><small>Harga satuan member (exc. beli member)</small></div>
-      <div class="cms-card"><h4>Total pendapatan</h4><strong>${formatMoney(totalRevenue)}</strong><small>Semua transaksi selesai</small></div>
-      <div class="cms-card"><h4>Transaksi hari ini</h4><strong>${todayTransactions.length}</strong></div>
-      <div class="cms-card"><h4>Pending</h4><strong>${totalPending}</strong></div>
-      <div class="cms-card"><h4>Member</h4><strong>${totalMembers}</strong></div>
+    <div class="cms-dashboard-grid cms-dashboard-metrics">
+      <div class="cms-card">
+        <h4>Kas Masuk</h4>
+        <strong>${formatMoney(totals.cashIn)}</strong>
+      </div>
+      <div class="cms-card">
+        <h4>Member Digunakan</h4>
+        <strong>${formatMoney(totals.memberUsed)}</strong>
+      </div>
+      <div class="cms-card">
+        <h4>Pendapatan Reguler</h4>
+        <strong>${formatMoney(totals.regularRevenue)}</strong>
+      </div>
+      <div class="cms-card">
+        <h4>Pendapatan Produk</h4>
+        <strong>${formatMoney(totals.productRevenue)}</strong>
+      </div>
+      <div class="cms-card cms-member-sales-card">
+        <h4>Penjualan Member</h4>
+        <div class="cms-member-sales-values">
+          <div><strong>${formatMoney(totals.memberSales)}</strong><small>Penjualan member (Rp)</small></div>
+          <div><strong>${totals.membersSold} pcs</strong><small>Member terjual</small></div>
+        </div>
+      </div>
+      <div class="cms-card">
+        <h4>Pending</h4>
+        <strong>${totalPending}</strong>
+      </div>
+      <div class="cms-card">
+        <h4>Total Transaksi</h4>
+        <strong>${filteredTransactions.length}</strong>
+      </div>
     </div>
-    <div class="cms-table-wrap">
-      <table class="cms-table">
-        <thead><tr><th>ID</th><th>Waktu</th><th>Pelanggan</th><th>Cabang Transaksi</th><th>Cabang Membership</th><th>Metode</th><th>Total</th></tr></thead>
-        <tbody>
-          ${todayTransactions.length
-            ? todayTransactions.slice(0, 5).map((t) => `<tr><td>${t.id}</td><td>${t.time}</td><td>${t.customer}</td><td>${getTransactionBranch(t)}</td><td>${getTransactionMemberBranch(t) || "—"}</td><td>${t.payment}</td><td>${formatMoney(t.amount)}</td></tr>`).join("")
-            : `<tr><td colspan="7" style="text-align:center;color:var(--muted);">Belum ada transaksi${dashboardBranchFilter ? ` di ${dashboardBranchFilter}` : ""}</td></tr>`}
-        </tbody>
-      </table>
+    <div class="cms-dashboard-table">
+      <div class="cms-dashboard-table-head">
+        <div><h4>Transaksi Terkini</h4><p>Seluruh transaksi selesai, diurutkan dari yang terbaru${dashboardBranchFilter ? ` di ${cmsEscape(dashboardBranchFilter)}` : ""}.</p></div>
+      </div>
+      <div class="cms-dashboard-table-panel">
+        <div class="cms-table-scroll cms-dashboard-table-scroll">
+          <table class="cms-table">
+            <thead><tr><th>ID</th><th>Waktu</th><th>Pelanggan</th><th>Cabang</th><th>Total Transaksi</th><th>Member Digunakan</th><th>Kas Masuk</th></tr></thead>
+            <tbody>
+              ${visibleTransactions.length
+                ? visibleTransactions.map((transaction) => {
+                  const metrics = getCmsDashboardTransactionMetrics(transaction);
+                  return `<tr><td>${cmsEscape(transaction.id)}</td><td>${cmsEscape(transaction.date)}<small>${cmsEscape(transaction.time)}</small></td><td>${cmsEscape(transaction.customer)}</td><td>${cmsEscape(getTransactionBranch(transaction))}</td><td>${formatMoney(metrics.transactionTotal)}</td><td>${metrics.memberUsed ? formatMoney(metrics.memberUsed) : "—"}</td><td>${formatMoney(metrics.cashIn)}</td></tr>`;
+                }).join("")
+                : `<tr><td colspan="7" class="cms-empty-table-cell">Belum ada transaksi selesai${dashboardBranchFilter ? ` di ${cmsEscape(dashboardBranchFilter)}` : ""}</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+        <div class="cms-table-footer">
+          <span>Menampilkan ${filteredTransactions.length ? pageStart + 1 : 0}-${Math.min(pageStart + cmsRowsPerPage, filteredTransactions.length)} dari ${filteredTransactions.length} transaksi</span>
+          <div class="cms-pagination">
+            <button type="button" data-cms-action="paginate" data-cms-id="${Math.max(1, currentPage - 1)}" ${currentPage === 1 ? "disabled" : ""} aria-label="Halaman sebelumnya">‹</button>
+            ${pagination}
+            <button type="button" data-cms-action="paginate" data-cms-id="${Math.min(totalPages, currentPage + 1)}" ${currentPage === totalPages ? "disabled" : ""} aria-label="Halaman berikutnya">›</button>
+          </div>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -2041,6 +2424,37 @@ function handleCmsAction(action, id) {
     exportCmsCommissionPdf();
     return;
   }
+  if (action === "export-reminders-excel") {
+    exportCmsRemindersExcel();
+    return;
+  }
+  if (action === "decrease-member-quota") {
+    const [customerId, rewardId] = String(id || "").split("::");
+    const customer = customers.find((entry) => entry.id === customerId);
+    const reward = getCustomerRewards(customer).find((entry) => getRewardId(entry) === rewardId);
+    const quotaInput = [...document.querySelectorAll("[data-cms-member-quota-input]")]
+      .find((input) => input.dataset.cmsMemberQuotaInput === id);
+    const requestedQuota = Math.max(1, Math.floor(Number(quotaInput?.value) || 1));
+    const remaining = Math.max(0, Number(reward?.progress) || 0);
+
+    if (!customer || !reward) {
+      showToast("Data membership tidak ditemukan");
+      return;
+    }
+    if (!remaining) {
+      showToast("Kuota membership sudah habis");
+      return;
+    }
+    if (requestedQuota > remaining) {
+      showToast(`Maksimal pengurangan ${remaining} kuota`);
+      return;
+    }
+
+    reward.progress = remaining - requestedQuota;
+    renderCmsCurrentView();
+    showToast(`${requestedQuota} kuota ${getRewardName(reward, { withMember: true })} berhasil dikurangi`);
+    return;
+  }
   if (action === "reset-commission-filters") {
     commissionReportDateFrom = "";
     commissionReportDateTo = "";
@@ -2072,7 +2486,9 @@ function handleCmsAction(action, id) {
   if (action === "paginate") {
     cmsPageNumbers[activeCmsPage] = Number(id) || 1;
     renderCmsCurrentView();
-    window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    if (activeCmsPage !== "dashboard") {
+      window.scrollTo({ top: 0, left: 0, behavior: "smooth" });
+    }
     return;
   }
   if (action === "add") {
