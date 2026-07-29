@@ -1,0 +1,69 @@
+      <section class="tablet-screen view" id="cashier-expense-view" aria-label="Pengeluaran operasional kasir">
+        <header class="topbar cashier-expense-topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Pengeluaran Operasional</h1>
+          </div>
+          <div class="operator compact">
+            <span class="avatar">K</span>
+            <div class="operator-info">
+              <strong>Kasir JMM</strong>
+              <span id="cashier-expense-branch-label">Cabang Kartini</span>
+            </div>
+          </div>
+        </header>
+
+        <div class="cashier-expense-content">
+          <section class="cashier-expense-form-card">
+            <div class="cashier-expense-section-head">
+              <h2>Catat Pengeluaran</h2>
+              <p>Masukkan biaya operasional yang dikeluarkan oleh kasir.</p>
+            </div>
+            <form id="cashier-expense-form">
+              <label>
+                <span>Tanggal</span>
+                <input id="cashier-expense-date" type="date" required />
+              </label>
+              <label>
+                <span>Nominal</span>
+                <div class="cashier-expense-money-input">
+                  <b>Rp</b>
+                  <input id="cashier-expense-amount" type="number" min="1" step="1" inputmode="numeric" placeholder="0" required />
+                </div>
+              </label>
+              <label>
+                <span>Catatan</span>
+                <textarea id="cashier-expense-note" rows="5" maxlength="160" placeholder="Contoh: pembelian air minum atau biaya kebersihan" required></textarea>
+              </label>
+              <button class="cashier-expense-submit" type="submit">Simpan Pengeluaran</button>
+            </form>
+          </section>
+
+          <section class="cashier-expense-history">
+            <div class="cashier-expense-summary">
+              <article>
+                <span>Total Pengeluaran</span>
+                <strong id="cashier-expense-total">Rp 0</strong>
+              </article>
+              <article>
+                <span>Jumlah Catatan</span>
+                <strong id="cashier-expense-count">0</strong>
+              </article>
+            </div>
+            <div class="cashier-expense-list-panel">
+              <div class="cashier-expense-section-head">
+                <h2>Riwayat Pengeluaran</h2>
+                <p>Data tersimpan selama sesi aplikasi berjalan.</p>
+              </div>
+              <div class="cashier-expense-list-head" aria-hidden="true">
+                <span>Tanggal</span>
+                <span>Catatan</span>
+                <span>Cabang</span>
+                <span>Nominal</span>
+              </div>
+              <div class="cashier-expense-list" id="cashier-expense-list"></div>
+            </div>
+          </section>
+        </div>
+      </section>

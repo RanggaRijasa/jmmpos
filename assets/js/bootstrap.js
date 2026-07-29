@@ -7,10 +7,11 @@ const PARTIAL_PATHS = [
   "partials/sales.html",
   "partials/pending.html",
   "partials/cashier-revenue-report.html",
+  "partials/cashier-expenses.html",
   "partials/receipt.html",
 ];
 
-const APP_ASSET_VERSION = "20260728-12";
+const APP_ASSET_VERSION = "20260729-01";
 
 function getVersionedPath(path) {
   const separator = path.includes("?") ? "&" : "?";
@@ -29,6 +30,7 @@ const SCRIPT_PATHS = [
   "assets/js/features/sales/sales.js",
   "assets/js/features/cms/cms.js",
   "assets/js/features/reports/cashier-revenue.js",
+  "assets/js/features/operations/cashier-expenses.js",
   "assets/js/features/membership/membership.js",
   "assets/js/core/ui.js",
   "assets/js/core/events.js",

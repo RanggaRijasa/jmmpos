@@ -33,6 +33,7 @@ function setView(id) {
     window.scrollTo({ top: 0, left: 0 });
   }
   if (id === "cashier-revenue-view") renderCashierRevenueReport();
+  if (id === "cashier-expense-view") renderCashierExpenses();
   if (id === "home-view") {
     setHomeOperationsMenuOpen(false);
     renderHomeOnlineStaff();
@@ -60,6 +61,8 @@ document.addEventListener("click", (event) => {
     if (homeMenuAction.dataset.homeMenuAction === "revenue") {
       cashierRevenuePage = 1;
       setView("cashier-revenue-view");
+    } else if (homeMenuAction.dataset.homeMenuAction === "expense") {
+      setView("cashier-expense-view");
     }
     return;
   }
@@ -748,5 +751,12 @@ document.addEventListener("input", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && homeOperationsMenuOpen) {
     setHomeOperationsMenuOpen(false);
+  }
+});
+
+document.addEventListener("submit", (event) => {
+  if (event.target.matches("#cashier-expense-form")) {
+    event.preventDefault();
+    saveCashierExpense();
   }
 });

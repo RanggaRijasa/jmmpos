@@ -849,6 +849,236 @@
   opacity: 0.45;
 }
 
+.cashier-expense-content {
+  display: grid;
+  grid-template-columns: 410px minmax(0, 1fr);
+  gap: 22px;
+  height: calc(100% - 126px);
+  padding: 0 48px 42px;
+}
+
+.cashier-expense-form-card,
+.cashier-expense-list-panel,
+.cashier-expense-summary article {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: 0 10px 24px rgba(118, 83, 28, 0.06);
+}
+
+.cashier-expense-form-card {
+  padding: 24px;
+}
+
+.cashier-expense-section-head h2 {
+  font-size: 18px;
+}
+
+.cashier-expense-section-head p {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+#cashier-expense-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+}
+
+#cashier-expense-form > label {
+  display: grid;
+  gap: 8px;
+}
+
+#cashier-expense-form > label > span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+#cashier-expense-form input,
+#cashier-expense-form textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--raised);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+#cashier-expense-form input {
+  height: 46px;
+  padding: 0 12px;
+}
+
+#cashier-expense-form textarea {
+  min-height: 128px;
+  padding: 12px;
+  resize: none;
+  line-height: 1.45;
+}
+
+#cashier-expense-form input:focus,
+#cashier-expense-form textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212, 154, 35, 0.12);
+}
+
+.cashier-expense-money-input {
+  position: relative;
+}
+
+.cashier-expense-money-input b {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  z-index: 1;
+  transform: translateY(-50%);
+  color: var(--gold-dark);
+  font-size: 13px;
+}
+
+.cashier-expense-money-input input {
+  padding-left: 38px !important;
+}
+
+.cashier-expense-submit {
+  min-height: 46px;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  background: var(--gold);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.cashier-expense-submit:hover {
+  background: var(--gold-dark);
+}
+
+.cashier-expense-history {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  min-height: 0;
+}
+
+.cashier-expense-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.cashier-expense-summary article {
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  min-height: 92px;
+  padding: 16px 18px;
+}
+
+.cashier-expense-summary span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cashier-expense-summary strong {
+  color: var(--gold-dark);
+  font-size: 21px;
+}
+
+.cashier-expense-list-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.cashier-expense-list-head,
+.cashier-expense-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr) 150px 150px;
+  align-items: center;
+  gap: 14px;
+}
+
+.cashier-expense-list-head {
+  min-height: 38px;
+  margin-top: 14px;
+  padding: 0 13px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cashier-expense-list {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  scrollbar-color: #d8b46c transparent;
+}
+
+.cashier-expense-row {
+  min-height: 62px;
+  padding: 10px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--raised);
+}
+
+.cashier-expense-row > div {
+  display: grid;
+  gap: 3px;
+}
+
+.cashier-expense-row > div strong,
+.cashier-expense-row > strong {
+  font-size: 12px;
+}
+
+.cashier-expense-row > div span,
+.cashier-expense-row > span {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.cashier-expense-row p {
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.cashier-expense-row > strong {
+  color: var(--gold-dark);
+}
+
+.cashier-expense-empty {
+  display: grid;
+  place-content: center;
+  gap: 6px;
+  min-height: 190px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.cashier-expense-empty strong {
+  color: var(--ink);
+}
+
 .filter-header {
   display: flex;
   align-items: center;
