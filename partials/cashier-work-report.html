@@ -1,0 +1,66 @@
+      <section class="tablet-screen view" id="cashier-work-view" aria-label="Laporan kerjaan kasir">
+        <header class="topbar cashier-revenue-topbar cashier-work-topbar">
+          <button class="back-button" data-target="home-view">‹ Back</button>
+          <div>
+            <p class="eyebrow">JMM Salon Cashier System</p>
+            <h1>Laporan Kerjaan</h1>
+          </div>
+          <div class="operator compact">
+            <span class="avatar">K</span>
+            <div class="operator-info">
+              <strong>Kasir JMM</strong>
+              <span id="cashier-work-branch-label">Semua Cabang</span>
+            </div>
+          </div>
+        </header>
+
+        <div class="cashier-revenue-content cashier-work-content">
+          <section class="cashier-revenue-filters cashier-work-filters" aria-label="Filter laporan kerjaan">
+            <label>
+              <span>Dari Tanggal</span>
+              <input id="cashier-work-date-from" type="date" />
+            </label>
+            <label>
+              <span>Sampai Tanggal</span>
+              <input id="cashier-work-date-to" type="date" />
+            </label>
+            <label>
+              <span>Dari Jam</span>
+              <input id="cashier-work-time-from" type="time" />
+            </label>
+            <label>
+              <span>Sampai Jam</span>
+              <input id="cashier-work-time-to" type="time" />
+            </label>
+            <label>
+              <span>Cabang Transaksi</span>
+              <select id="cashier-work-branch"></select>
+            </label>
+            <label>
+              <span>Petugas</span>
+              <select id="cashier-work-staff"></select>
+            </label>
+            <button id="cashier-work-reset" type="button">Reset</button>
+          </section>
+
+          <section class="cashier-revenue-summary cashier-work-summary" id="cashier-work-summary" aria-label="Ringkasan laporan kerjaan"></section>
+
+          <section class="cashier-revenue-panel cashier-work-panel">
+            <header>
+              <div>
+                <h2>Aktivitas Petugas</h2>
+                <p id="cashier-work-count">0 aktivitas</p>
+              </div>
+            </header>
+            <div class="cashier-revenue-list-head cashier-work-list-head" aria-hidden="true">
+              <span>Waktu / Nota</span>
+              <span>Petugas / Pelanggan</span>
+              <span>Treatment</span>
+              <span>Aktivitas</span>
+              <span>Cabang</span>
+            </div>
+            <div class="cashier-revenue-list cashier-work-list" id="cashier-work-list"></div>
+            <footer class="cashier-revenue-pagination" id="cashier-work-pagination"></footer>
+          </section>
+        </div>
+      </section>

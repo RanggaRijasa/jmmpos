@@ -15,6 +15,7 @@ const CMS_PAGE_LABELS = {
   "sales-report": "Laporan Pendapatan",
   "regular-report": "Laporan Reguler",
   "revenue-report": "Laporan Kas Masuk",
+  "expense-report": "Laporan Pengeluaran Operasional",
   "stock-report": "Laporan Stok",
   "staff-commission": "Komisi Petugas",
   "commission-report": "Laporan Komisi Petugas",
@@ -97,6 +98,7 @@ function getCmsServices() {
       code: meta.code || `JSA-${String(index + 1).padStart(3, "0")}`,
       actions: meta.actions || getServiceActions(item),
       upgradeServiceIds: item.upgradeServiceIds || [],
+      reminderDays: getServiceReminderDays(item),
       category: meta.category || (index % 3 === 0 ? "Hair Cut & Styling" : index % 3 === 1 ? "Treatment" : "Beauty Care"),
       status: meta.status || "Aktif",
     };
@@ -503,9 +505,8 @@ function getCmsListFilterValues(page) {
   return cmsListFilters[page] || {};
 }
 
-function getCmsReminderContactStatus(customer) {
-  const reminderIndex = customers.filter((entry) => entry.id !== "umum").findIndex((entry) => entry.id === customer.id);
-  return reminderIndex >= 0 && reminderIndex % 3 === 0 ? "contacted" : "uncontacted";
+function getCmsReminderContactStatus(record) {
+  return getCustomerReminderContactState(record);
 }
 
 function getCmsListFilterDefinitions(page) {
@@ -590,9 +591,10 @@ function getCmsListFilterDefinitions(page) {
     ];
   }
   if (page === "reminders") {
+    const reminders = getCustomerReminderRecords();
     return [
-      { key: "branch", label: "Kunjungan Terakhir", options: getCmsFilterOptions(customers.map(getCustomerLastVisitBranch)) },
-      { key: "status", label: "Keanggotaan", options: getCmsFilterOptions(customers.filter((customer) => customer.id !== "umum").map((customer) => customer.status)) },
+      { key: "branch", label: "Cabang", options: getCmsFilterOptions(reminders.map((reminder) => reminder.branch)) },
+      { key: "type", label: "Tipe Reminder", options: [{ value: "Reguler", label: "Reguler" }, { value: "Member", label: "Member" }] },
       { key: "contactStatus", label: "Status Kontak", options: [{ value: "contacted", label: "Sudah Dihubungi" }, { value: "uncontacted", label: "Belum Dihubungi" }] },
     ];
   }
@@ -683,8 +685,8 @@ function getCmsListRecordFilterValues(page, record, index = 0) {
   }
   if (page === "reminders") {
     return {
-      branch: getCustomerLastVisitBranch(record),
-      status: record.status,
+      branch: record.branch,
+      type: record.type,
       contactStatus: getCmsReminderContactStatus(record),
     };
   }
@@ -724,8 +726,8 @@ function getCmsPageRows(page) {
   if (page === "services") {
     return getCmsServices().filter((service, index) => cmsListRecordMatchesFilters(page, service, index)).map((service) => ({
       id: service.id,
-      search: `${service.code} ${service.name} ${service.category} ${getCmsServicePromotionLabel(service)} ${getCmsServiceUpgradeNames(service).join(" ")}`,
-      cells: [service.code, `<strong>${service.name}</strong>`, service.category, service.actions.length, getCmsServicePromotionLabel(service), getCmsServiceUpgradeNames(service).join(" · ") || "—", formatMoney(service.price), cmsBadge(service.status, "success")],
+      search: `${service.code} ${service.name} ${service.category} ${getCmsServicePromotionLabel(service)} ${getCmsServiceUpgradeNames(service).join(" ")} ${service.reminderDays} hari`,
+      cells: [service.code, `<strong>${service.name}</strong>`, service.category, service.actions.length, getCmsServicePromotionLabel(service), getCmsServiceUpgradeNames(service).join(" · ") || "—", formatMoney(service.price), `${service.reminderDays} hari`, cmsBadge(service.status, "success")],
     }));
   }
   if (page === "service-activities") {
@@ -753,8 +755,8 @@ function getCmsPageRows(page) {
   if (page === "membership-plans") {
     return membershipPlans.filter((plan, index) => cmsListRecordMatchesFilters(page, plan, index)).map((plan) => ({
       id: plan.id,
-      search: `${plan.name} ${plan.serviceName} ${getMembershipBonusSummary(plan.bonuses)}`,
-      cells: [`MBR-${String(membershipPlans.indexOf(plan) + 1).padStart(3, "0")}`, `<strong>${plan.name}</strong>`, plan.serviceName, `${plan.target} kali`, getMembershipBonusSummary(plan.bonuses) || "—", formatMoney(plan.price), formatMoney(Math.round(plan.price / plan.target)), cmsBadge(plan.status || "Aktif", (plan.status || "Aktif") === "Aktif" ? "success" : "neutral")],
+      search: `${plan.name} ${plan.serviceName} ${getMembershipBonusSummary(plan.bonuses)} ${getMembershipReminderDays(plan)} hari`,
+      cells: [`MBR-${String(membershipPlans.indexOf(plan) + 1).padStart(3, "0")}`, `<strong>${plan.name}</strong>`, plan.serviceName, `${plan.target} kali`, getMembershipBonusSummary(plan.bonuses) || "—", formatMoney(plan.price), formatMoney(Math.round(plan.price / plan.target)), `Rutin ${getMembershipReminderDays(plan)} hari`, cmsBadge(plan.status || "Aktif", (plan.status || "Aktif") === "Aktif" ? "success" : "neutral")],
     }));
   }
   if (page === "promotions") {
@@ -805,12 +807,12 @@ function getCmsPageRows(page) {
     }));
   }
   if (page === "reminders") {
-    return customers.filter((customer) => customer.id !== "umum").filter((customer, index) => cmsListRecordMatchesFilters(page, customer, index)).map((customer) => {
-      const contacted = getCmsReminderContactStatus(customer) === "contacted";
+    return getCustomerReminderRecords().filter((reminder, index) => cmsListRecordMatchesFilters(page, reminder, index)).map((reminder) => {
+      const contacted = getCmsReminderContactStatus(reminder) === "contacted";
       return {
-        id: customer.id,
-        search: `${customer.name} ${customer.phone} ${customer.lastService} ${customer.lastVisit} ${getCustomerLastVisitBranch(customer)}`,
-        cells: [`<strong>${customer.name}</strong>`, customer.phone, `<strong>${customer.lastService || "—"}</strong><small>${customer.lastVisit}</small>`, getCustomerLastVisitBranch(customer) || "—", customer.reminderDate, customer.status, cmsBadge(contacted ? "Sudah dihubungi" : "Belum dihubungi", contacted ? "success" : "warning")],
+        id: reminder.id,
+        search: `${reminder.customer} ${reminder.phone} ${reminder.type} ${reminder.source} ${reminder.scheduleLabel} ${reminder.branch}`,
+        cells: [`<strong>${reminder.customer}</strong>`, reminder.phone, cmsBadge(reminder.type, reminder.type === "Member" ? "gold" : "neutral"), `<strong>${reminder.source}</strong><small>${reminder.scheduleLabel}</small>`, `<strong>${reminder.anchorDate}</strong><small>${reminder.anchorLabel} · ${reminder.branch || "—"}</small>`, reminder.dueDate, cmsBadge(contacted ? "Sudah dihubungi" : "Belum dihubungi", contacted ? "success" : "warning")],
       };
     });
   }
@@ -832,14 +834,32 @@ function getCmsPageRows(page) {
     }));
   }
   if (page === "revenue-report") {
-    return salesTransactions.filter((transaction) => transactionMatchesReportFilters(transaction, page)).map((transaction) => {
-      const unitPrice = getTransactionMemberUnitPrice(transaction);
-      return {
-        id: transaction.id,
-        search: `${transaction.id} ${transaction.customer} ${transaction.payment} ${getTransactionBranch(transaction)} ${getTransactionMemberBranch(transaction)}`,
-        cells: [transaction.date, transaction.id, transaction.customer, transaction.payment, getTransactionBranch(transaction), getTransactionMemberBranch(transaction) || "—", unitPrice ? formatMoney(unitPrice) : "—", formatMoney(transaction.dp || 0), formatMoney(transaction.reward || 0), formatMoney(transaction.amount)],
-      };
-    });
+    return salesTransactions.filter((transaction) => transactionMatchesReportFilters(transaction, page)).map((transaction) => ({
+      id: transaction.id,
+      search: `${transaction.id} ${transaction.customer} ${transaction.payment} ${getTransactionBranch(transaction)}`,
+      cells: [
+        `${transaction.date}<small>${transaction.time}</small>`,
+        transaction.id,
+        `<strong>${transaction.customer}</strong>`,
+        cmsBadge(transaction.payment, "gold"),
+        getTransactionBranch(transaction),
+        formatMoney(transaction.dp || 0),
+        `<strong>${formatMoney(Math.max(0, Number(transaction.amount) || 0))}</strong>`,
+      ],
+    }));
+  }
+  if (page === "expense-report") {
+    return cashierOperationalExpenses.filter(expenseMatchesReportFilters).map((expense) => ({
+      id: expense.id,
+      search: `${expense.id} ${expense.dateRaw} ${expense.note} ${expense.branch}`,
+      cells: [
+        formatCmsExpenseDate(expense.dateRaw),
+        expense.id,
+        `<strong>${cmsEscape(expense.note)}</strong>`,
+        cmsEscape(expense.branch),
+        `<strong>${formatMoney(Math.max(0, Number(expense.amount) || 0))}</strong>`,
+      ],
+    }));
   }
   if (page === "staff-commission") {
     return getCmsStaff().filter((staff) => staff.transactions).map((staff) => ({
@@ -874,20 +894,21 @@ function getCmsPageRows(page) {
 function getCmsPageMeta(page) {
   const meta = {
     customers: { subtitle: "Kelola profil, nomor HP, status member, cabang yang sering dikunjungi, dan reminder pelanggan.", headers: ["Kode", "Nama", "Nomor HP", "Status", "Sering Berkunjung", "Kunjungan", "Terakhir"], add: "Tambah Pelanggan", search: "Cari nama, nomor HP, cabang, atau kode..." },
-    services: { subtitle: "Daftar jasa beserta promo pasti, diskon fleksibel, dan treatment tujuan upgrade member.", headers: ["Kode", "Nama Jasa", "Kategori", "Aktivitas", "Promo", "Opsi Upgrade", "Harga Normal", "Status"], add: "Tambah Jasa", search: "Cari jasa, promo, atau opsi upgrade..." },
+    services: { subtitle: "Daftar jasa beserta promo, opsi upgrade, dan interval reminder pelanggan reguler.", headers: ["Kode", "Nama Jasa", "Kategori", "Aktivitas", "Promo", "Opsi Upgrade", "Harga Normal", "Reminder", "Status"], add: "Tambah Jasa", search: "Cari jasa, promo, reminder, atau opsi upgrade..." },
     "service-activities": { subtitle: "Atur langkah kerja setiap jasa agar kasir dapat memilih satu atau beberapa petugas per aktivitas.", headers: ["Jasa", "Urutan Aktivitas", "Jumlah", "Petugas Tersedia", "Status"], add: "Tambah Aktivitas", search: "Cari jasa atau aktivitas..." },
     "products-stock": { subtitle: "Produk retail yang tersedia di POS, harga jual, supplier, dan posisi stok.", headers: ["Kode", "Produk", "Kategori", "Supplier", "Harga Pokok", "Harga Jual", "Stok", "Status"], add: "Tambah Produk", search: "Cari produk, kategori, atau supplier..." },
-    "membership-plans": { subtitle: "Paket kuota treatment beserta bonus produk atau treatment yang dapat dibeli dari POS.", headers: ["Kode", "Paket", "Jasa", "Kuota", "Bonus", "Harga Paket", "Harga / Kuota", "Status"], add: "Tambah Paket", search: "Cari paket, jasa, atau bonus member..." },
+    "membership-plans": { subtitle: "Paket kuota treatment beserta bonus dan interval reminder rutin selama kuota masih tersedia.", headers: ["Kode", "Paket", "Jasa", "Kuota", "Bonus", "Harga Paket", "Harga / Kuota", "Reminder", "Status"], add: "Tambah Paket", search: "Cari paket, jasa, bonus, atau reminder member..." },
     promotions: { subtitle: "Konfigurasi diskon per item jasa yang dapat dipilih kasir setelah item masuk keranjang.", headers: ["Program", "Nilai", "Berlaku Untuk", "Bisa Digabung", "Status"], add: "Tambah Promo", search: "Cari promo atau cakupan..." },
     staff: { subtitle: "Petugas beserta cabang penempatan yang dapat ditugaskan ke aktivitas jasa di POS.", headers: ["Kode", "Nama", "Nomor HP", "Cabang Petugas", "Status"], add: "Tambah Petugas", search: "Cari petugas, cabang, atau nomor HP..." },
     sales: { subtitle: "Seluruh transaksi kasir dengan cabang salon dan cabang membership yang digunakan.", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas Utama", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Total", "Status"], search: "Cari no. nota, pelanggan, petugas, atau cabang..." },
     pending: { subtitle: "Draft transaksi kasir dengan cabang salon dan cabang membership yang dipakai.", headers: ["No. Draft", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Isi", "Cabang Membership", "DP", "Total", "Status"], search: "Cari draft, pelanggan, atau cabang..." },
-    reminders: { subtitle: "Pelanggan yang perlu dihubungi tujuh hari setelah jasa terakhir, lengkap dengan cabang kunjungan terakhir.", headers: ["Pelanggan", "Nomor HP", "Jasa Terakhir", "Terakhir Berkunjung", "Jadwal Reminder", "Keanggotaan", "Status Kontak"], search: "Cari pelanggan, jasa, nomor HP, atau cabang..." },
+    reminders: { subtitle: "Reminder reguler mengikuti Master Jasa; reminder member berjalan rutin selama paket aktif dan kuota tersedia.", headers: ["Pelanggan", "Nomor HP", "Tipe", "Sumber Reminder", "Aktivitas Terakhir", "Jadwal Reminder", "Status Kontak"], search: "Cari pelanggan, tipe, sumber reminder, nomor HP, atau cabang..." },
     members: { subtitle: "Daftar pelanggan dengan paket member aktif dari satu atau beberapa cabang.", headers: ["Pelanggan", "Nomor HP", "Cabang Membership", "Paket Aktif", "Sisa Kuota", "Total Kunjungan", "Status"], add: "Tambah Member", search: "Cari pelanggan, cabang, atau paket member..." },
     "member-visits": { subtitle: "Riwayat penggunaan kuota membership per pelanggan, treatment, dan cabang.", headers: ["Tanggal & Waktu", "Pelanggan", "Membership", "Cabang Membership", "Pemakaian", "Status"], search: "Cari pelanggan, cabang, atau membership..." },
-    "sales-report": { subtitle: "Rekap transaksi selesai dan pending per cabang salon. Informasi operasional lengkap tersedia pada detail transaksi.", headers: ["No. Nota", "Tanggal / Waktu", "Pelanggan", "Cabang Transaksi", "Total Transaksi", "Status"], search: "Cari no. nota, pelanggan, petugas, pembayaran, atau cabang..." },
-    "regular-report": { subtitle: "Laporan transaksi yang menggunakan harga satuan member (tidak termasuk pembelian paket member).", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Total Reguler", "Status"], search: "Cari transaksi reguler atau cabang..." },
-    "revenue-report": { subtitle: "Rincian pendapatan kasir per cabang setelah DP dan pemakaian kuota member.", headers: ["Tanggal", "No. Nota", "Pelanggan", "Metode", "Cabang Transaksi", "Cabang Membership", "Harga Satuan", "DP", "Member", "Pendapatan"], search: "Cari transaksi, metode, atau cabang..." },
+    "sales-report": { subtitle: "Ringkasan menyeluruh transaksi salon, mencakup transaksi selesai, pending, kas masuk, pendapatan reguler, dan pendapatan produk.", headers: ["No. Nota", "Tanggal / Waktu", "Pelanggan", "Cabang Transaksi", "Total Transaksi", "Status"], search: "Cari no. nota, pelanggan, petugas, pembayaran, atau cabang..." },
+    "regular-report": { subtitle: "Pendapatan reguler merupakan gabungan nilai pemakaian member dan kas masuk dari transaksi reguler, tanpa memasukkan penjualan paket member.", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Total Reguler", "Status"], search: "Cari transaksi reguler atau cabang..." },
+    "revenue-report": { subtitle: "Kas masuk merupakan pembayaran yang benar-benar diterima dari transaksi reguler dan penjualan paket member; pemakaian kuota member tidak dihitung.", headers: ["Tanggal / Waktu", "No. Nota", "Pelanggan", "Metode", "Cabang Transaksi", "DP", "Kas Masuk"], search: "Cari transaksi, metode, atau cabang..." },
+    "expense-report": { subtitle: "Rekap pengeluaran operasional yang dicatat oleh kasir atau CMS berdasarkan tanggal, nominal, catatan, dan cabang.", headers: ["Tanggal", "Kode", "Catatan", "Cabang", "Nominal"], add: "Tambah Pengeluaran", search: "Cari kode, catatan, tanggal, atau cabang..." },
     "stock-report": { subtitle: "Laporan posisi stok produk dan peringatan produk di bawah batas minimum.", headers: ["Kode", "Produk", "Kategori", "Supplier", "Harga Pokok", "Harga Jual", "Stok", "Status"], search: "Cari produk pada laporan stok..." },
     "staff-commission": { subtitle: "Konfigurasi tarif komisi aktivitas jasa untuk setiap petugas sebagai bagian dari Master Data.", headers: ["Petugas", "Keahlian", "Transaksi", "Nilai Jasa", "Tarif", "Komisi"], search: "Cari petugas..." },
     "commission-report": { subtitle: "Rekap komisi aktivitas jasa yang dikerjakan petugas berdasarkan waktu serta cabang transaksi.", headers: ["Petugas", "Cabang Petugas", "Cabang Transaksi", "Hari Kerja", "Transaksi", "Harga Satuan", "Dasar Komisi", "Rata-rata Tarif", "Komisi"], search: "Cari petugas atau cabang..." },
@@ -898,7 +919,6 @@ function getCmsPageMeta(page) {
 
 function getCmsSummary(page, rows) {
   const completed = salesTransactions.filter((transaction) => transaction.status !== "Pending");
-  const revenue = completed.reduce((sum, transaction) => sum + transaction.amount, 0);
   const totalPenjualan = completed.reduce((sum, transaction) => sum + getTransactionTotalPenjualan(transaction), 0);
   const totalReguler = completed.reduce((sum, transaction) => sum + getTransactionTotalReguler(transaction), 0);
   if (page === "sales") return [["Transaksi selesai", completed.length], ["Pending", getPendingTransactions().length], ["Total penjualan", formatMoney(totalPenjualan)], ["Total reguler", formatMoney(totalReguler)]];
@@ -922,13 +942,34 @@ function getCmsSummary(page, rows) {
     ];
   }
   if (page === "regular-report") return [["Transaksi reguler", rows.length], ["Total reguler", formatMoney(totalReguler)], ["Rata-rata", formatMoney(Math.round(totalReguler / Math.max(1, rows.length)))], ["Cabang", new Set(rows.map((r) => r.cells[4])).size]];
-  if (page === "revenue-report") return [["Pendapatan", formatMoney(revenue)], ["Tunai", formatMoney(completed.filter((t) => t.payment === "Tunai").reduce((s, t) => s + t.amount, 0))], ["QRIS", formatMoney(completed.filter((t) => t.payment === "QRIS").reduce((s, t) => s + t.amount, 0))], ["DP tercatat", formatMoney(completed.reduce((s, t) => s + (t.dp || 0), 0))]];
+  if (page === "revenue-report") {
+    const cashTransactions = salesTransactions.filter((transaction) => transactionMatchesReportFilters(transaction, page));
+    const getCashReceived = (transaction) => Math.max(0, Number(transaction.amount) || 0);
+    return [
+      ["Kas masuk", formatMoney(cashTransactions.reduce((sum, transaction) => sum + getCashReceived(transaction), 0))],
+      ["Tunai", formatMoney(cashTransactions.filter((transaction) => transaction.payment === "Tunai").reduce((sum, transaction) => sum + getCashReceived(transaction), 0))],
+      ["QRIS", formatMoney(cashTransactions.filter((transaction) => transaction.payment === "QRIS").reduce((sum, transaction) => sum + getCashReceived(transaction), 0))],
+      ["DP tercatat", formatMoney(cashTransactions.reduce((sum, transaction) => sum + Math.max(0, Number(transaction.dp) || 0), 0))],
+    ];
+  }
+  if (page === "expense-report") {
+    const expenses = cashierOperationalExpenses.filter(expenseMatchesReportFilters);
+    return [
+      ["Total pengeluaran", formatMoney(expenses.reduce((sum, expense) => sum + Math.max(0, Number(expense.amount) || 0), 0))],
+      ["Jumlah catatan", expenses.length],
+    ];
+  }
   if (page === "stock-report" || page === "products-stock") {
     const products = getCmsProducts();
     return [["Produk", products.length], ["Total stok", products.reduce((sum, product) => sum + product.stock, 0)], ["Stok rendah", products.filter((product) => product.stock <= product.minimum).length], ["Nilai stok", formatMoney(products.reduce((sum, product) => sum + product.cost * product.stock, 0))]];
   }
   if (page === "members") return [["Pelanggan member", rows.length], ["Paket aktif", customers.reduce((sum, customer) => sum + getCustomerRewards(customer).length, 0)], ["Kuota tersisa", customers.flatMap(getCustomerRewards).reduce((sum, reward) => sum + reward.progress, 0)], ["Kunjungan member", customers.filter((c) => getCustomerRewards(c).length).reduce((sum, c) => sum + c.totalVisits, 0)]];
-  if (page === "reminders") return [["Perlu dihubungi", rows.length], ["Belum dihubungi", Math.ceil(rows.length * 2 / 3)], ["Sudah dihubungi", Math.floor(rows.length / 3)], ["Member", customers.filter((c) => c.status === "Member").length]];
+  if (page === "reminders") {
+    const reminders = getCustomerReminderRecords()
+      .filter((reminder, index) => cmsListRecordMatchesFilters(page, reminder, index));
+    const contacted = reminders.filter((reminder) => getCmsReminderContactStatus(reminder) === "contacted").length;
+    return [["Perlu dihubungi", reminders.length], ["Reguler", reminders.filter((reminder) => reminder.type === "Reguler").length], ["Member", reminders.filter((reminder) => reminder.type === "Member").length], ["Sudah dihubungi", contacted]];
+  }
   if (page === "commission-report") {
     const report = getCmsCommissionReport();
     return [["Total komisi", formatMoney(report.reduce((sum, row) => sum + row.commission, 0))], ["Petugas", new Set(report.map((row) => row.staffId)).size], ["Transaksi", new Set(report.flatMap((row) => [...row.transactions])).size], ["Cabang transaksi", new Set(report.map((row) => row.transactionBranch)).size]];
@@ -942,7 +983,7 @@ function renderCmsSummary(summary, className = "") {
 }
 
 function renderCmsReportFilters(page) {
-  const prefix = page === "sales-report" ? "sales" : page === "regular-report" ? "regular" : page === "revenue-report" ? "revenue" : "stock";
+  const prefix = page === "sales-report" ? "sales" : page === "regular-report" ? "regular" : page === "revenue-report" ? "revenue" : page === "expense-report" ? "expense" : "stock";
   const isOpen = cmsFilterPanelOpen;
   const activeCount = getActiveFilterCount(page);
   let filterBody = "";
@@ -974,9 +1015,9 @@ function renderCmsReportFilters(page) {
         </select>
       </label>`;
   } else {
-    const dateFrom = page === "sales-report" ? salesReportDateFrom : page === "regular-report" ? regularReportDateFrom : revenueReportDateFrom;
-    const dateTo = page === "sales-report" ? salesReportDateTo : page === "regular-report" ? regularReportDateTo : revenueReportDateTo;
-    const branch = page === "sales-report" ? salesReportBranch : page === "regular-report" ? regularReportBranch : revenueReportBranch;
+    const dateFrom = page === "sales-report" ? salesReportDateFrom : page === "regular-report" ? regularReportDateFrom : page === "revenue-report" ? revenueReportDateFrom : expenseReportDateFrom;
+    const dateTo = page === "sales-report" ? salesReportDateTo : page === "regular-report" ? regularReportDateTo : page === "revenue-report" ? revenueReportDateTo : expenseReportDateTo;
+    const branch = page === "sales-report" ? salesReportBranch : page === "regular-report" ? regularReportBranch : page === "revenue-report" ? revenueReportBranch : expenseReportBranch;
     filterBody = `
       <label class="cms-inline-filter">
         <span>Dari</span>
@@ -1092,6 +1133,7 @@ function getActiveFilterCount(page) {
   if (page === "sales-report") return [salesReportDateFrom, salesReportDateTo, salesReportBranch].filter(Boolean).length;
   if (page === "regular-report") return [regularReportDateFrom, regularReportDateTo, regularReportBranch].filter(Boolean).length;
   if (page === "revenue-report") return [revenueReportDateFrom, revenueReportDateTo, revenueReportBranch].filter(Boolean).length;
+  if (page === "expense-report") return [expenseReportDateFrom, expenseReportDateTo, expenseReportBranch].filter(Boolean).length;
   return 0;
 }
 
@@ -1107,6 +1149,9 @@ function updateReportFilter(control) {
   if (id === "revenue-date-from") revenueReportDateFrom = value;
   if (id === "revenue-date-to") revenueReportDateTo = value;
   if (id === "revenue-branch-filter") revenueReportBranch = value;
+  if (id === "expense-date-from") expenseReportDateFrom = value;
+  if (id === "expense-date-to") expenseReportDateTo = value;
+  if (id === "expense-branch-filter") expenseReportBranch = value;
   if (id === "stock-category-filter") stockReportCategory = value;
   if (id === "stock-supplier-filter") stockReportSupplier = value;
   if (id === "stock-status-filter") stockReportStockStatus = value;
@@ -1133,6 +1178,23 @@ function transactionMatchesReportFilters(transaction, page) {
     if (revenueReportBranch && branch !== revenueReportBranch) return false;
   }
   return true;
+}
+
+function expenseMatchesReportFilters(expense) {
+  const date = expense.dateRaw || "";
+  if (expenseReportDateFrom && date < expenseReportDateFrom) return false;
+  if (expenseReportDateTo && date > expenseReportDateTo) return false;
+  if (expenseReportBranch && expense.branch !== expenseReportBranch) return false;
+  return true;
+}
+
+function formatCmsExpenseDate(dateRaw) {
+  if (!dateRaw) return "—";
+  return new Date(`${dateRaw}T00:00:00`).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function renderCmsCommissionFilters() {
@@ -1299,11 +1361,11 @@ function exportCmsRemindersExcel() {
   const filteredRows = query
     ? reminderRows.filter((row) => row.search.toLowerCase().includes(query))
     : reminderRows;
-  const reminderCustomers = filteredRows
-    .map((row) => customers.find((customer) => customer.id === row.id))
+  const reminders = filteredRows
+    .map((row) => getCustomerReminderRecords().find((reminder) => reminder.id === row.id))
     .filter(Boolean);
 
-  if (!reminderCustomers.length) {
+  if (!reminders.length) {
     showToast("Tidak ada data reminder untuk diekspor");
     return;
   }
@@ -1311,22 +1373,24 @@ function exportCmsRemindersExcel() {
   const headers = [
     "Pelanggan",
     "Nomor HP",
-    "Jasa Terakhir",
-    "Tanggal Kunjungan Terakhir",
-    "Cabang Kunjungan Terakhir",
+    "Tipe Reminder",
+    "Sumber Reminder",
+    "Pola Reminder",
+    "Aktivitas Terakhir",
+    "Cabang",
     "Jadwal Reminder",
-    "Keanggotaan",
     "Status Kontak",
   ];
-  const records = reminderCustomers.map((customer) => [
-    customer.name,
-    customer.phone,
-    customer.lastService || "—",
-    customer.lastVisit || "—",
-    getCustomerLastVisitBranch(customer) || "—",
-    customer.reminderDate || "—",
-    customer.status,
-    getCmsReminderContactStatus(customer) === "contacted" ? "Sudah dihubungi" : "Belum dihubungi",
+  const records = reminders.map((reminder) => [
+    reminder.customer,
+    reminder.phone,
+    reminder.type,
+    reminder.source,
+    reminder.scheduleLabel,
+    `${reminder.anchorLabel}: ${reminder.anchorDate}`,
+    reminder.branch || "—",
+    reminder.dueDate,
+    getCmsReminderContactStatus(reminder) === "contacted" ? "Sudah dihubungi" : "Belum dihubungi",
   ]);
   const spreadsheetRows = [headers, ...records].map((cells, rowIndex) => {
     const rowNumber = rowIndex + 1;
@@ -1380,17 +1444,17 @@ function exportCmsRemindersExcel() {
 </styleSheet>`],
     ["xl/worksheets/sheet1.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-  <dimension ref="A1:H${lastRow}"/>
+  <dimension ref="A1:I${lastRow}"/>
   <sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
   <sheetFormatPr defaultRowHeight="15"/>
   <cols>
     <col min="1" max="1" width="24" customWidth="1"/>
     <col min="2" max="2" width="18" customWidth="1"/>
-    <col min="3" max="5" width="25" customWidth="1"/>
-    <col min="6" max="8" width="20" customWidth="1"/>
+    <col min="3" max="6" width="25" customWidth="1"/>
+    <col min="7" max="9" width="20" customWidth="1"/>
   </cols>
   <sheetData>${spreadsheetRows}</sheetData>
-  <autoFilter ref="A1:H${lastRow}"/>
+  <autoFilter ref="A1:I${lastRow}"/>
 </worksheet>`],
   ];
   const workbook = cmsCreateSpreadsheetArchive(spreadsheetFiles);
@@ -1405,7 +1469,7 @@ function exportCmsRemindersExcel() {
   download.click();
   download.remove();
   setTimeout(() => URL.revokeObjectURL(url), 0);
-  showToast(`${reminderCustomers.length} reminder berhasil diekspor`);
+  showToast(`${reminders.length} reminder berhasil diekspor`);
 }
 
 function renderCmsListPage(page) {
@@ -1436,7 +1500,7 @@ function renderCmsListPage(page) {
       <div class="cms-list-toolbar">
         <div class="cms-list-meta"><strong>${CMS_PAGE_LABELS[page]}</strong><span>${allRows.length} data tersimpan</span></div>
         <div class="cms-toolbar-actions">
-          ${["sales-report", "regular-report", "revenue-report", "stock-report"].includes(page) ? renderCmsReportFilters(page) : renderCmsListFilters(page)}
+          ${["sales-report", "regular-report", "revenue-report", "expense-report", "stock-report"].includes(page) ? renderCmsReportFilters(page) : renderCmsListFilters(page)}
           <label class="cms-search"><span aria-hidden="true">⌕</span><input id="cms-search-input" type="search" value="${cmsSearchTerm}" placeholder="${meta.search}" autocomplete="off" /></label>
         </div>
       </div>
@@ -1460,13 +1524,15 @@ function renderCmsListPage(page) {
 }
 
 function getCmsRecord(page, id) {
-  if (page === "customers" || page === "reminders" || page === "members") return customers.find((item) => item.id === id);
+  if (page === "reminders") return getCustomerReminderRecords().find((item) => item.id === id);
+  if (page === "customers" || page === "members") return customers.find((item) => item.id === id);
   if (page === "services" || page === "service-activities") return getCmsServices().find((item) => item.id === id);
   if (page === "products-stock" || page === "stock-report") return getCmsProducts().find((item) => item.id === id);
   if (page === "membership-plans") return membershipPlans.find((item) => item.id === id);
   if (page === "promotions") return CMS_PROMOTIONS.find((item) => item.id === id);
   if (page === "staff" || page === "staff-commission") return getCmsStaff().find((item) => item.id === id);
   if (["sales", "pending", "sales-report", "revenue-report"].includes(page)) return salesTransactions.find((item) => item.id === id);
+  if (page === "expense-report") return cashierOperationalExpenses.find((item) => item.id === id);
   if (page === "commission-report") return getCmsCommissionReport().find((item) => item.id === id);
   if (page === "member-visits") return getCmsMemberVisits().find((item) => item.id === id);
   if (page === "users-access") return CMS_USERS.find((item) => item.id === id);
@@ -1563,10 +1629,11 @@ function renderCmsMembershipBonusSection(record) {
 
 function cmsDetailFields(page, record) {
   if (!record) return [];
-  if (["customers", "reminders", "members"].includes(page)) return [["Kode Pelanggan", record.code], ["Nama Pelanggan", record.name], ["Nomor HP", record.phone], ["Status", record.status], ["Sering Berkunjung", getCustomerFrequentBranch(record) || "—"], ["Cabang Membership", getCustomerMembershipBranches(record).join(" · ") || "—"], ["Total Kunjungan", `${record.totalVisits} kali`], ["Kunjungan Terakhir", record.lastVisit], ["Terakhir Berkunjung", getCustomerLastVisitBranch(record) || "—"], ["Jasa Terakhir", record.lastService || "—"], ["Jadwal Reminder", record.reminderDate], ["DP Tersimpan", formatMoney(record.dp || 0)]];
-  if (["services", "service-activities"].includes(page)) return [["Kode Jasa", record.code], ["Nama Jasa", record.name], ["Kategori", record.category], ["Harga Normal", formatMoney(record.price)], ["Promo Treatment", getCmsServicePromotionLabel(record)], ["Opsi Upgrade", getCmsServiceUpgradeNames(record).join(" · ") || "—"], ["Aktivitas", record.actions.join(" → ")], ["Status", record.status]];
+  if (page === "reminders") return [["Pelanggan", record.customer], ["Nomor HP", record.phone], ["Tipe Reminder", record.type], ["Sumber Reminder", record.source], ["Pola Reminder", record.scheduleLabel], [record.anchorLabel, record.anchorDate], ["Cabang", record.branch || "—"], ["Jadwal Reminder", record.dueDate], ["Status Kontak", getCmsReminderContactStatus(record) === "contacted" ? "Sudah dihubungi" : "Belum dihubungi"]];
+  if (["customers", "members"].includes(page)) return [["Kode Pelanggan", record.code], ["Nama Pelanggan", record.name], ["Nomor HP", record.phone], ["Status", record.status], ["Sering Berkunjung", getCustomerFrequentBranch(record) || "—"], ["Cabang Membership", getCustomerMembershipBranches(record).join(" · ") || "—"], ["Total Kunjungan", `${record.totalVisits} kali`], ["Kunjungan Terakhir", record.lastVisit], ["Terakhir Berkunjung", getCustomerLastVisitBranch(record) || "—"], ["Jasa Terakhir", record.lastService || "—"], ["DP Tersimpan", formatMoney(record.dp || 0)]];
+  if (["services", "service-activities"].includes(page)) return [["Kode Jasa", record.code], ["Nama Jasa", record.name], ["Kategori", record.category], ["Harga Normal", formatMoney(record.price)], ["Promo Treatment", getCmsServicePromotionLabel(record)], ["Opsi Upgrade", getCmsServiceUpgradeNames(record).join(" · ") || "—"], ["Aktivitas", record.actions.join(" → ")], ["Reminder Reguler", `${getServiceReminderDays(record)} hari setelah kunjungan`], ["Status", record.status]];
   if (["products-stock", "stock-report"].includes(page)) return [["Kode Produk", record.code], ["Nama Produk", record.name], ["Kategori", record.category], ["Supplier", record.supplier], ["Harga Pokok", formatMoney(record.cost)], ["Harga Jual", formatMoney(record.price)], ["Stok", `${record.stock} ${record.unit}`], ["Stok Minimum", `${record.minimum} ${record.unit}`]];
-  if (page === "membership-plans") return [["Nama Paket", record.name], ["Jasa", record.serviceName], ["Jumlah Kuota", `${record.target} kali`], ["Bonus Paket", getMembershipBonusSummary(record.bonuses) || "—"], ["Harga Paket", formatMoney(record.price)], ["Harga per Kuota", formatMoney(Math.round(record.price / record.target))], ["Status", record.status || "Aktif"]];
+  if (page === "membership-plans") return [["Nama Paket", record.name], ["Jasa", record.serviceName], ["Jumlah Kuota", `${record.target} kali`], ["Bonus Paket", getMembershipBonusSummary(record.bonuses) || "—"], ["Harga Paket", formatMoney(record.price)], ["Harga per Kuota", formatMoney(Math.round(record.price / record.target))], ["Reminder Member", `Rutin setiap ${getMembershipReminderDays(record)} hari`], ["Status", record.status || "Aktif"]];
   if (page === "promotions") return [["Nama Program", record.name], ["Nilai Diskon", record.value], ["Berlaku Untuk", record.scope], ["Bisa Digabung", record.combinable], ["Status", record.status]];
   if (["staff", "staff-commission"].includes(page)) return [["Kode Petugas", record.id], ["Nama Petugas", record.name], ["Nomor HP", record.phone], ["Cabang Petugas", record.branch], ["Status", record.status]];
   if (page === "commission-report") return [["Petugas", record.staff], ["Cabang Petugas", record.staffBranch], ["Cabang Transaksi", record.transactionBranch], ["Transaksi Selesai", record.transactionCount], ["Nilai Jasa", formatMoney(record.serviceValue)], ["Rata-rata Tarif", `${record.averageRate.toFixed(1).replace(".0", "")}%`], ["Total Komisi", formatMoney(record.commission)]];
@@ -1590,7 +1657,26 @@ function cmsDetailFields(page, record) {
       ["Kas Masuk", record.status === "Pending" ? "Belum masuk" : formatMoney(record.amount)],
     ];
   }
-  if (["sales", "pending", "sales-report", "revenue-report"].includes(page)) return [["No. Dokumen", record.id], ["Tanggal", `${record.date} · ${record.time}`], ["Pelanggan", record.customer], ["Petugas Utama", record.staff], ["Cabang Transaksi", getTransactionBranch(record)], ["Pembayaran", record.payment], ["Cabang Membership", getTransactionMemberBranch(record) || "—"], ["Status", record.status], ["DP", formatMoney(record.dp || 0)], ["Pemakaian Member", formatMoney(record.reward || 0)], ["Total", formatMoney(record.amount)]];
+  if (page === "revenue-report") {
+    return [
+      ["No. Nota", record.id],
+      ["Tanggal / Waktu", `${record.date} · ${record.time}`],
+      ["Pelanggan", record.customer],
+      ["Cabang Transaksi", getTransactionBranch(record)],
+      ["Status", record.status],
+      ["Metode Pembayaran", record.payment],
+      ["Kas Masuk", formatMoney(Math.max(0, Number(record.amount) || 0))],
+      ["DP", formatMoney(record.dp || 0)],
+    ];
+  }
+  if (page === "expense-report") return [
+    ["Kode Pengeluaran", cmsEscape(record.id)],
+    ["Tanggal", formatCmsExpenseDate(record.dateRaw)],
+    ["Cabang", cmsEscape(record.branch)],
+    ["Nominal", formatMoney(Math.max(0, Number(record.amount) || 0))],
+    ["Catatan", cmsEscape(record.note)],
+  ];
+  if (["sales", "pending", "sales-report"].includes(page)) return [["No. Dokumen", record.id], ["Tanggal", `${record.date} · ${record.time}`], ["Pelanggan", record.customer], ["Petugas Utama", record.staff], ["Cabang Transaksi", getTransactionBranch(record)], ["Pembayaran", record.payment], ["Cabang Membership", getTransactionMemberBranch(record) || "—"], ["Status", record.status], ["DP", formatMoney(record.dp || 0)], ["Pemakaian Member", formatMoney(record.reward || 0)], ["Total", formatMoney(record.amount)]];
   return [];
 }
 
@@ -1785,7 +1871,8 @@ function renderCmsDetailPage(page, record) {
   const fields = cmsDetailFields(page, record);
   const title = record?.name || record?.staff || record?.customer || record?.id || "Detail Data";
   const isTransaction = ["sales", "pending", "sales-report", "revenue-report"].includes(page);
-  const isCustomer = ["customers", "members", "reminders"].includes(page);
+  const showTransactionItems = isTransaction && page !== "revenue-report";
+  const isCustomer = ["customers", "members"].includes(page);
   return `
     <section class="cms-page-head">
       <div><span class="cms-breadcrumb">${CMS_PAGE_LABELS[page]} / Detail</span><h3>${title}</h3><p>Informasi lengkap yang digunakan oleh kasir dan operasional salon.</p></div>
@@ -1793,7 +1880,7 @@ function renderCmsDetailPage(page, record) {
     </section>
     <section class="cms-detail-panel">
       <div class="cms-detail-grid">${fields.map(([label, value]) => `<div class="cms-detail-field"><span>${label}</span><strong>${value}</strong></div>`).join("")}</div>
-      ${isTransaction ? renderCmsTransactionItems(record) : ""}
+      ${showTransactionItems ? renderCmsTransactionItems(record) : ""}
       ${isCustomer ? renderCmsMemberPackages(record, page === "members") : ""}
       ${page === "services" || page === "service-activities" ? `<section class="cms-detail-section"><h4>Alur Aktivitas</h4><div class="cms-step-list">${record.actions.map((action, index) => `<div><b>${index + 1}</b><span><strong>${action}</strong><small>Dapat diisi satu atau beberapa petugas dari POS</small></span></div>`).join("")}</div></section>` : ""}
     </section>`;
@@ -1823,7 +1910,6 @@ function getCmsFormFields(page, record = {}) {
       { key: "phone", label: "Nomor HP", value: record.phone || "", type: "tel", required: true },
       { key: "status", label: "Status", value: record.status || "Non Member", type: "select", options: ["Member", "Non Member"], required: true },
       { key: "frequentBranch", label: "Sering Berkunjung", value: record.frequentBranch || record.memberBranch || "", type: "select", options: [cmsOption("", "Belum ditentukan"), "Cabang Kartini", "Cabang Mulyosari", "Cabang Citraland"] },
-      { key: "reminderDate", label: "Jadwal Reminder", value: record.reminderDate === "-" ? "" : record.reminderDate || "", placeholder: "Contoh: 04 Jul 2026" },
       { key: "dp", label: "DP Tersimpan", value: record.dp || 0, type: "number", min: 0 },
     ],
     services: [
@@ -1831,6 +1917,7 @@ function getCmsFormFields(page, record = {}) {
       { key: "name", label: "Nama Jasa", value: record.name || "", required: true },
       { key: "category", label: "Kategori", value: record.category || "Treatment", type: "select", options: ["Hair Cut & Styling", "Treatment", "Beauty Care"], required: true },
       { key: "price", label: "Harga Normal", value: record.price || "", type: "number", min: 0, required: true },
+      { key: "reminderDays", label: "Reminder Reguler Setelah (Hari)", value: record.reminderDays || DEFAULT_SERVICE_REMINDER_DAYS, type: "number", min: 1, required: true },
       { key: "fixedDiscountRate", label: "Diskon Pasti (%)", value: record.promotion?.fixedRate || 0, type: "number", min: 0 },
       { key: "flexibleDiscountRate", label: "Diskon Tambahan Fleksibel (%)", value: record.promotion?.flexibleRate || 0, type: "number", min: 0 },
       { key: "status", label: "Status", value: record.status || "Aktif", type: "select", options: ["Aktif", "Nonaktif"], required: true },
@@ -1858,6 +1945,7 @@ function getCmsFormFields(page, record = {}) {
       { key: "serviceId", label: "Jasa", value: record.serviceId || serviceOptions[0]?.value || "", type: "select", options: serviceOptions, required: true },
       { key: "target", label: "Jumlah Kuota", value: record.target || 6, type: "number", min: 1, required: true },
       { key: "price", label: "Harga Paket", value: record.price || "", type: "number", min: 0, required: true },
+      { key: "reminderDays", label: "Reminder Member Rutin Setiap (Hari)", value: record.reminderDays || DEFAULT_MEMBERSHIP_REMINDER_DAYS, type: "number", min: 1, required: true },
       { key: "status", label: "Status", value: record.status || "Aktif", type: "select", options: ["Aktif", "Nonaktif"], required: true },
     ],
     promotions: [
@@ -1873,6 +1961,12 @@ function getCmsFormFields(page, record = {}) {
       { key: "phone", label: "Nomor HP", value: record.phone || "", type: "tel", required: true },
       { key: "branch", label: "Cabang Petugas", value: record.branch || DEFAULT_SALON_BRANCH, type: "select", options: salonBranches.map((branch) => branch.name), required: true },
       { key: "status", label: "Status", value: record.status || "Aktif", type: "select", options: ["Aktif", "Cuti", "Nonaktif"], required: true },
+    ],
+    "expense-report": [
+      { key: "dateRaw", label: "Tanggal", value: record.dateRaw || new Date().toISOString().split("T")[0], type: "date", required: true },
+      { key: "amount", label: "Nominal (Rp)", value: record.amount || "", type: "number", min: 1, required: true },
+      { key: "branch", label: "Cabang", value: record.branch || activeSalonBranch, type: "select", options: salonBranches.map((branch) => branch.name), required: true },
+      { key: "note", label: "Catatan", value: record.note || "", type: "textarea", maxLength: 160, placeholder: "Contoh: pembelian air minum atau biaya kebersihan", required: true },
     ],
     "users-access": [
       { key: "id", label: "ID Pengguna", value: record.id || "AUTO", disabled: true },
@@ -1900,20 +1994,26 @@ function renderCmsField(field) {
     field.required ? 'data-required="true" required' : "",
     field.disabled ? "disabled" : "",
     field.min !== undefined ? `min="${field.min}"` : "",
+    field.maxLength !== undefined ? `maxlength="${field.maxLength}"` : "",
     field.placeholder ? `placeholder="${cmsEscape(field.placeholder)}"` : "",
   ].filter(Boolean).join(" ");
-  const control = field.type === "select"
-    ? `<select ${attributes}>${options.map((option) => `<option value="${cmsEscape(option.value)}" ${String(option.value) === String(field.value) ? "selected" : ""}>${cmsEscape(option.label)}</option>`).join("")}</select>`
-    : `<input type="${field.type || "text"}" value="${cmsEscape(field.value)}" ${attributes} />`;
-  return `<label class="cms-field"><span>${cmsEscape(field.label)}${field.required ? " *" : ""}</span>${control}<small class="cms-field-error" aria-live="polite"></small></label>`;
+  let control = `<input type="${field.type || "text"}" value="${cmsEscape(field.value)}" ${attributes} />`;
+  if (field.type === "select") {
+    control = `<select ${attributes}>${options.map((option) => `<option value="${cmsEscape(option.value)}" ${String(option.value) === String(field.value) ? "selected" : ""}>${cmsEscape(option.label)}</option>`).join("")}</select>`;
+  }
+  if (field.type === "textarea") {
+    control = `<textarea rows="4" ${attributes}>${cmsEscape(field.value)}</textarea>`;
+  }
+  return `<label class="cms-field${field.type === "textarea" ? " cms-field-wide" : ""}"><span>${cmsEscape(field.label)}${field.required ? " *" : ""}</span>${control}<small class="cms-field-error" aria-live="polite"></small></label>`;
 }
 
 function renderCmsFormPage(page, record) {
   const isEdit = Boolean(record);
   const fields = getCmsFormFields(page, record);
+  const entityLabel = page === "expense-report" ? "Pengeluaran Operasional" : CMS_PAGE_LABELS[page];
   return `
     <section class="cms-page-head">
-      <div><span class="cms-breadcrumb">${CMS_PAGE_LABELS[page]} / ${isEdit ? "Edit" : "Tambah"}</span><h3>${isEdit ? `Edit ${record.name || record.id}` : `Tambah ${CMS_PAGE_LABELS[page]}`}</h3><p>${isEdit ? "Perbarui data yang dipilih." : page === "members" ? "Proses pembelian paket membership untuk pelanggan. Paket akan aktif setelah pembayaran berhasil." : "Masukkan data baru untuk operasional salon."}</p></div>
+      <div><span class="cms-breadcrumb">${CMS_PAGE_LABELS[page]} / ${isEdit ? "Edit" : "Tambah"}</span><h3>${isEdit ? `Edit ${record.name || record.id}` : `Tambah ${entityLabel}`}</h3><p>${isEdit ? "Perbarui data yang dipilih." : page === "members" ? "Proses pembelian paket membership untuk pelanggan. Paket akan aktif setelah pembayaran berhasil." : page === "expense-report" ? "Masukkan tanggal, nominal, cabang, dan catatan pengeluaran." : "Masukkan data baru untuk operasional salon."}</p></div>
       <button class="cms-secondary-button" type="button" data-cms-action="back-list">‹ Kembali</button>
     </section>
     <form class="cms-form-panel" id="cms-record-form" novalidate>
@@ -1921,7 +2021,7 @@ function renderCmsFormPage(page, record) {
       ${page === "services" ? renderCmsServiceUpgradeSection(record) : ""}
       ${page === "membership-plans" ? renderCmsMembershipBonusSection(record) : ""}
       ${page === "members" ? `<div class="cms-form-section" id="cms-member-purchase-summary">${renderCmsMemberPurchaseSummary()}</div>` : ""}
-      <div class="cms-form-actions"><button class="cms-secondary-button" type="button" data-cms-action="back-list">Batal</button><button class="cms-primary-button" type="button" data-cms-action="save">${page === "members" ? "Proses Pembelian" : "Simpan"}</button></div>
+      <div class="cms-form-actions"><button class="cms-secondary-button" type="button" data-cms-action="back-list">Batal</button><button class="cms-primary-button" type="button" data-cms-action="save">${page === "members" ? "Proses Pembelian" : page === "expense-report" ? "Simpan Pengeluaran" : "Simpan"}</button></div>
     </form>`;
 }
 
@@ -1941,7 +2041,7 @@ function readCmsFormValues() {
     if (invalid) valid = false;
   });
   if (!valid) {
-    form.querySelector(".cms-field.invalid input, .cms-field.invalid select")?.focus();
+    form.querySelector(".cms-field.invalid input, .cms-field.invalid select, .cms-field.invalid textarea")?.focus();
     showToast("Lengkapi field wajib terlebih dahulu");
     return null;
   }
@@ -1980,7 +2080,6 @@ function saveCmsRecord() {
       status: values.status,
       type: values.status === "Member" ? "member" : "non-member",
       frequentBranch: values.frequentBranch || "",
-      reminderDate: values.reminderDate || "-",
       dp: cmsNumber(values.dp),
     });
     if (!record) customers.push(target);
@@ -2003,6 +2102,7 @@ function saveCmsRecord() {
     Object.assign(target, {
       name: values.name,
       price: normalPrice,
+      reminderDays: Math.max(1, Math.floor(cmsNumber(values.reminderDays))),
       levels: [{ id: "normal", name: "Normal", price: normalPrice }],
       upgradeServiceIds: [...cmsServiceUpgradeDraft],
       promotion: fixedDiscountRate || flexibleDiscountRate ? { fixedRate: fixedDiscountRate, flexibleRate: flexibleDiscountRate } : null,
@@ -2056,6 +2156,7 @@ function saveCmsRecord() {
       serviceName: service?.name || "Jasa",
       target: membershipTarget,
       price: cmsNumber(values.price),
+      reminderDays: Math.max(1, Math.floor(cmsNumber(values.reminderDays))),
       status: values.status,
       bonuses: membershipTarget >= 10 ? cloneMembershipBonuses(cmsMembershipBonusDraft) : [],
     });
@@ -2099,6 +2200,22 @@ function saveCmsRecord() {
     };
   }
 
+  if (page === "expense-report") {
+    const amount = Math.floor(cmsNumber(values.amount));
+    if (amount <= 0) {
+      showToast("Nominal pengeluaran harus lebih dari Rp 0");
+      return false;
+    }
+    cashierOperationalExpenses.unshift({
+      id: `EXP-${String(cashierExpenseCounter).padStart(3, "0")}`,
+      dateRaw: values.dateRaw,
+      amount,
+      note: values.note.trim(),
+      branch: values.branch,
+    });
+    cashierExpenseCounter += 1;
+  }
+
   if (page === "users-access") {
     const target = record || { id: `USR-${String(CMS_USERS.length + 1).padStart(3, "0")}` };
     Object.assign(target, values, { id: target.id });
@@ -2115,12 +2232,18 @@ function saveCmsRecord() {
     const branch = values.branch || activeSalonBranch;
     const staff = values.staff || "";
     const payment = values.payment || "Tunai";
-    if (!Array.isArray(customer.rewards)) customer.rewards = [];
+    const now = new Date();
+    const dateRaw = getLocalDateRaw(now);
+    const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+    const date = formatIndonesianDate(now);
+    if (!Array.isArray(customer.rewards)) customer.rewards = customer.reward ? [customer.reward] : [];
     const existingReward = customer.rewards.find((r) => getRewardId(r) === plan.id);
     if (existingReward) {
       existingReward.progress = plan.target;
       existingReward.target = plan.target;
       existingReward.branch = branch;
+      existingReward.activatedDateRaw = dateRaw;
+      existingReward.lastUsedDateRaw = "";
     } else {
       customer.rewards.push({
         membershipId: plan.id,
@@ -2129,15 +2252,12 @@ function saveCmsRecord() {
         branch,
         progress: plan.target,
         target: plan.target,
+        activatedDateRaw: dateRaw,
       });
     }
     customer.status = "Member";
     customer.type = "member";
     if (!customer.frequentBranch) customer.frequentBranch = branch;
-    const now = new Date();
-    const dateRaw = now.toISOString().split("T")[0];
-    const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-    const date = formatIndonesianDate(now);
     salesTransactions.unshift({
       id: getNextInvoiceId(),
       time,
@@ -2186,7 +2306,7 @@ function renderCmsSettings() {
   const showCashier = !section || section === "cashier";
   return `
     <section class="cms-page-head">
-      <div><h3>Pengaturan Salon</h3><p>Identitas salon, informasi struk, metode pembayaran, dan aturan reminder kasir.</p></div>
+      <div><h3>Pengaturan Salon</h3><p>Identitas salon, informasi struk, dan metode operasional kasir.</p></div>
       <div class="cms-page-head-actions">${renderCmsListFilters("salon-settings")}</div>
     </section>
     <form class="cms-form-panel cms-settings-form">
@@ -2200,7 +2320,6 @@ function renderCmsSettings() {
       </div></div>` : ""}
       ${showCashier ? `<div class="cms-form-section"><h4>Aturan Kasir</h4><div class="cms-form-grid">
         <label class="cms-field"><span>Metode Pembayaran</span><input value="Tunai, QRIS" /></label>
-        <label class="cms-field"><span>Reminder Setelah Jasa</span><input type="number" value="7" /></label>
         <label class="cms-field"><span>Maksimum Item Jasa Sama</span><input type="number" value="2" /></label>
         <label class="cms-field"><span>Diskon Per Item</span><input value="5%, 10%, dapat digabung" /></label>
       </div></div>` : ""}
@@ -2412,6 +2531,15 @@ function handleCmsAction(action, id) {
     renderCmsCurrentView();
     return;
   }
+  if (action === "reset-expense-filters") {
+    expenseReportDateFrom = "";
+    expenseReportDateTo = "";
+    expenseReportBranch = "";
+    cmsSearchTerm = "";
+    cmsPageNumbers["expense-report"] = 1;
+    renderCmsCurrentView();
+    return;
+  }
   if (action === "expand-commission-days") {
     setCmsCommissionDaysExpanded(true);
     return;
@@ -2451,6 +2579,7 @@ function handleCmsAction(action, id) {
     }
 
     reward.progress = remaining - requestedQuota;
+    reward.lastUsedDateRaw = getLocalDateRaw();
     renderCmsCurrentView();
     showToast(`${requestedQuota} kuota ${getRewardName(reward, { withMember: true })} berhasil dikurangi`);
     return;
@@ -2547,8 +2676,8 @@ function handleCmsAction(action, id) {
     return;
   }
   if (action === "whatsapp") {
-    const customer = customers.find((item) => item.id === id);
-    showToast(`WhatsApp reminder untuk ${customer?.name || "pelanggan"} dibuka`);
+    const reminder = getCustomerReminderRecords().find((item) => item.id === id);
+    showToast(`WhatsApp reminder ${reminder?.type?.toLowerCase() || ""} untuk ${reminder?.customer || "pelanggan"} dibuka`);
     return;
   }
   if (action === "print") {
@@ -2667,7 +2796,7 @@ document.addEventListener("input", (event) => {
     return;
   }
 
-  const reportFilterInput = event.target.closest("#sales-date-from, #sales-date-to, #sales-branch-filter, #regular-date-from, #regular-date-to, #regular-branch-filter, #revenue-date-from, #revenue-date-to, #revenue-branch-filter, #stock-category-filter, #stock-supplier-filter, #stock-status-filter");
+  const reportFilterInput = event.target.closest("#sales-date-from, #sales-date-to, #sales-branch-filter, #regular-date-from, #regular-date-to, #regular-branch-filter, #revenue-date-from, #revenue-date-to, #revenue-branch-filter, #expense-date-from, #expense-date-to, #expense-branch-filter, #stock-category-filter, #stock-supplier-filter, #stock-status-filter");
   if (reportFilterInput) {
     updateReportFilter(reportFilterInput);
     return;

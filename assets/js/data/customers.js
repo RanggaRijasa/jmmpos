@@ -20,7 +20,6 @@ const customers = [
     lastVisit: "-",
     lastService: "-",
     lastVisitBranch: "",
-    reminderDate: "-",
     dp: 0,
     rewards: null,
   },
@@ -36,7 +35,6 @@ const customers = [
     lastVisit: "27 Jun 2026",
     lastService: "Gunting Rambut",
     lastVisitBranch: "Cabang Mulyosari",
-    reminderDate: "04 Jul 2026",
     dp: 0,
     rewards: [
       { membershipId: "member-detok-rontok", branch: "Cabang Kartini", progress: 4, target: 6 },
@@ -57,7 +55,6 @@ const customers = [
     lastVisit: "20 Jun 2026",
     lastService: "Hair Colour",
     lastVisitBranch: "Cabang Mulyosari",
-    reminderDate: "27 Jun 2026",
     dp: 0,
     rewards: [
       { serviceId: "cream", serviceName: "Creambath", branch: "Cabang Mulyosari", progress: 6, target: 10 },
@@ -74,7 +71,6 @@ const customers = [
     lastVisit: "13 Jun 2026",
     lastService: "Creambath",
     lastVisitBranch: "Cabang Kartini",
-    reminderDate: "20 Jun 2026",
     dp: 0,
     rewards: null,
   },
@@ -90,7 +86,6 @@ const customers = [
     lastVisit: "18 Jun 2026",
     lastService: "Keratin Treatment",
     lastVisitBranch: "Cabang Citraland",
-    reminderDate: "25 Jun 2026",
     dp: 150000,
     rewards: [
       { serviceId: "cut", serviceName: "Gunting Rambut", branch: "Cabang Kartini", progress: 6, target: 6 },
@@ -109,7 +104,6 @@ const customers = [
     lastVisit: "17 Jun 2026",
     lastService: "Smoothing",
     lastVisitBranch: "Cabang Kartini",
-    reminderDate: "24 Jun 2026",
     dp: 100000,
     rewards: [
       { serviceId: "hairwash", serviceName: "Hair Wash", branch: "Cabang Citraland", progress: 10, target: 10 },
@@ -127,7 +121,6 @@ const customers = [
     lastVisit: "15 Jun 2026",
     lastService: "Hair Spa",
     lastVisitBranch: "Cabang Citraland",
-    reminderDate: "22 Jun 2026",
     dp: 50000,
     rewards: [
       { serviceId: "keratin", serviceName: "Keratin Treatment", branch: "Cabang Mulyosari", progress: 8, target: 10 },
@@ -145,7 +138,6 @@ const customers = [
     lastVisit: "09 Jun 2026",
     lastService: "Blow Dry",
     lastVisitBranch: "Cabang Mulyosari",
-    reminderDate: "16 Jun 2026",
     dp: 0,
     rewards: null,
   },
@@ -161,7 +153,6 @@ const customers = [
     lastVisit: "08 Jun 2026",
     lastService: "Manicure",
     lastVisitBranch: "Cabang Kartini",
-    reminderDate: "15 Jun 2026",
     dp: 0,
     rewards: [
       { serviceId: "cream", serviceName: "Creambath", branch: "Cabang Kartini", progress: 8, target: 10 },
@@ -179,7 +170,6 @@ const customers = [
     lastVisit: "07 Jun 2026",
     lastService: "Pedicure",
     lastVisitBranch: "Cabang Citraland",
-    reminderDate: "14 Jun 2026",
     dp: 0,
     rewards: [
       { serviceId: "colour", serviceName: "Hair Colour", branch: "Cabang Citraland", progress: 10, target: 10 },
@@ -197,7 +187,6 @@ const customers = [
     lastVisit: "05 Jun 2026",
     lastService: "Make Up",
     lastVisitBranch: "Cabang Kartini",
-    reminderDate: "12 Jun 2026",
     dp: 0,
     reward: null,
   },
@@ -213,7 +202,6 @@ const customers = [
     lastVisit: "02 Jun 2026",
     lastService: "Hair Toning",
     lastVisitBranch: "Cabang Mulyosari",
-    reminderDate: "09 Jun 2026",
     dp: 200000,
     reward: { serviceId: "smoothing", serviceName: "Smoothing", branch: "Cabang Mulyosari", progress: 7, target: 10 },
   },
@@ -229,7 +217,6 @@ const customers = [
     lastVisit: "01 Jun 2026",
     lastService: "Digital Perm",
     lastVisitBranch: "Cabang Kartini",
-    reminderDate: "08 Jun 2026",
     dp: 0,
     reward: { serviceId: "hairspa", serviceName: "Hair Spa", branch: "Cabang Kartini", progress: 5, target: 6 },
   },

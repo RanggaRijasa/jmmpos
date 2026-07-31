@@ -33,6 +33,7 @@ function setView(id) {
     window.scrollTo({ top: 0, left: 0 });
   }
   if (id === "cashier-revenue-view") renderCashierRevenueReport();
+  if (id === "cashier-work-view") renderCashierWorkReport();
   if (id === "cashier-expense-view") renderCashierExpenses();
   if (id === "home-view") {
     setHomeOperationsMenuOpen(false);
@@ -61,6 +62,9 @@ document.addEventListener("click", (event) => {
     if (homeMenuAction.dataset.homeMenuAction === "revenue") {
       cashierRevenuePage = 1;
       setView("cashier-revenue-view");
+    } else if (homeMenuAction.dataset.homeMenuAction === "work") {
+      cashierWorkPage = 1;
+      setView("cashier-work-view");
     } else if (homeMenuAction.dataset.homeMenuAction === "expense") {
       setView("cashier-expense-view");
     }
@@ -638,6 +642,23 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const cashierWorkPageButton = event.target.closest("[data-cashier-work-page]");
+  if (cashierWorkPageButton) {
+    const entries = getCashierWorkEntries();
+    const totalPages = Math.max(1, Math.ceil(entries.length / cashierWorkRowsPerPage));
+    const action = cashierWorkPageButton.dataset.cashierWorkPage;
+    if (action === "prev") cashierWorkPage = Math.max(1, cashierWorkPage - 1);
+    else if (action === "next") cashierWorkPage = Math.min(totalPages, cashierWorkPage + 1);
+    else cashierWorkPage = Math.min(totalPages, Math.max(1, Number(action) || 1));
+    renderCashierWorkReport();
+    return;
+  }
+
+  if (event.target.closest("#cashier-work-reset")) {
+    resetCashierWorkReport();
+    return;
+  }
+
   const pendingRow = event.target.closest("[data-pending-id]");
   if (pendingRow) {
     loadPendingTransaction(pendingRow.dataset.pendingId);
@@ -700,6 +721,12 @@ document.addEventListener("change", (event) => {
     cashierRevenueBranch = document.querySelector("#cashier-revenue-branch")?.value || "";
     cashierRevenuePage = 1;
     renderCashierRevenueReport();
+    return;
+  }
+
+  const cashierWorkFilter = event.target.closest("#cashier-work-date-from, #cashier-work-date-to, #cashier-work-time-from, #cashier-work-time-to, #cashier-work-branch, #cashier-work-staff");
+  if (cashierWorkFilter) {
+    updateCashierWorkFilters();
     return;
   }
 

@@ -438,6 +438,18 @@ function getMembershipPlan(planId) {
   return membershipPlans.find((plan) => plan.id === planId) || null;
 }
 
+function getServiceReminderDays(serviceOrId) {
+  const service = typeof serviceOrId === "string"
+    ? items.find((item) => item.type === "service" && item.id === serviceOrId)
+    : serviceOrId;
+  return Math.max(1, Math.floor(Number(service?.reminderDays ?? service?.cmsMeta?.reminderDays) || DEFAULT_SERVICE_REMINDER_DAYS));
+}
+
+function getMembershipReminderDays(planOrId) {
+  const plan = typeof planOrId === "string" ? getMembershipPlan(planOrId) : planOrId;
+  return Math.max(1, Math.floor(Number(plan?.reminderDays) || DEFAULT_MEMBERSHIP_REMINDER_DAYS));
+}
+
 function getRewardPlan(reward) {
   if (!reward) return null;
   return (
@@ -716,6 +728,7 @@ function cloneReceiptItem(item) {
     flexibleDiscountRate: getLineFlexibleDiscountRate(item),
     memberFree: Boolean(item.memberFree),
     memberUpgrade: Boolean(item.memberUpgrade),
+    memberUsageRewardId: item.memberUsageRewardId || "",
     memberBranch: item.memberBranch || getMemberUsageBranch(item.memberUsageRewardId) || "",
     serviceLevel: item.serviceLevel?.name || "Normal",
     memberUseAmount: item.memberUseAmount || 0,
@@ -838,6 +851,7 @@ function saveCompletedTransaction(receipt) {
       type: item.type,
       memberFree: Boolean(item.memberFree),
       memberUpgrade: Boolean(item.memberUpgrade),
+      memberUsageRewardId: item.memberUsageRewardId || "",
       memberUseAmount: item.memberUseAmount || 0,
       memberBranch: item.memberBranch || "",
       memberUnitPrice: item.memberUnitPrice || 0,
@@ -852,6 +866,60 @@ function saveCompletedTransaction(receipt) {
     memberBranch: receipt.memberBranch || "",
   };
   salesTransactions.unshift(transaction);
+  const customer = customers.find((entry) => entry.name === transaction.customer);
+  if (customer && customer.id !== "umum") {
+    const serviceItems = transaction.items.filter((item) => item.type === "service");
+    const memberItems = transaction.items.filter((item) => item.type === "member");
+    const lastService = serviceItems[0];
+    customer.totalVisits = Math.max(0, Number(customer.totalVisits) || 0) + 1;
+    if (lastService) {
+      customer.lastVisit = transaction.date;
+      customer.lastVisitBranch = transaction.branch;
+      customer.lastService = lastService.name;
+    }
+
+    serviceItems
+      .filter((item) => item.memberFree || item.memberUpgrade)
+      .forEach((item) => {
+        const sourceServiceId = item.itemId || findCatalogItem(item)?.id || "";
+        const reward = getCustomerRewards(customer).find((entry) => (
+          item.memberUsageRewardId
+            ? getRewardId(entry) === item.memberUsageRewardId
+            : getRewardServiceId(entry) === sourceServiceId
+        ));
+        if (!reward) return;
+        reward.progress = Math.max(0, (Number(reward.progress) || 0) - Math.max(1, Number(item.qty) || 1));
+        reward.lastUsedDateRaw = transaction.dateRaw;
+      });
+
+    if (memberItems.length && !Array.isArray(customer.rewards)) customer.rewards = customer.reward ? [customer.reward] : [];
+    memberItems.forEach((item) => {
+      const plan = getMembershipPlan(item.itemId);
+      if (!plan) return;
+      const existingReward = customer.rewards.find((reward) => getRewardId(reward) === plan.id);
+      if (existingReward) {
+        existingReward.progress = plan.target;
+        existingReward.target = plan.target;
+        existingReward.branch = item.memberBranch || transaction.branch;
+        existingReward.activatedDateRaw = transaction.dateRaw;
+        existingReward.lastUsedDateRaw = "";
+        return;
+      }
+      customer.rewards.push({
+        membershipId: plan.id,
+        serviceId: plan.serviceId,
+        serviceName: plan.serviceName,
+        branch: item.memberBranch || transaction.branch,
+        progress: plan.target,
+        target: plan.target,
+        activatedDateRaw: transaction.dateRaw,
+      });
+    });
+    if (memberItems.length) {
+      customer.status = "Member";
+      customer.type = "member";
+    }
+  }
   return transaction;
 }
 

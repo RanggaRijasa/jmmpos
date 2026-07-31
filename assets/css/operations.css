@@ -296,7 +296,7 @@
 }
 
 .reminder-row {
-  grid-template-columns: 220px 1fr 90px 120px;
+  grid-template-columns: 200px minmax(0, 1fr) 105px 120px;
   padding: 0 20px;
   gap: 12px;
 }
@@ -318,6 +318,29 @@
   color: var(--muted);
 }
 
+.reminder-info .reminder-type {
+  display: inline-grid;
+  width: max-content;
+  min-width: 62px;
+  height: 22px;
+  place-items: center;
+  margin-top: 3px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.reminder-type.reguler {
+  background: #eee9e1;
+  color: var(--muted);
+}
+
+.reminder-type.member {
+  background: var(--gold-soft);
+  color: var(--gold-dark);
+}
+
 .reminder-last {
   display: grid;
   gap: 4px;
@@ -335,6 +358,10 @@
   color: var(--gold-dark);
   font-size: 11px;
   font-weight: 800;
+}
+
+.reminder-last strong {
+  color: var(--ink);
 }
 
 .reminder-row > b {
@@ -847,6 +874,39 @@
 .cashier-revenue-pagination button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
+}
+
+.cashier-work-filters {
+  grid-template-columns: 132px 132px 100px 100px minmax(165px, 1fr) minmax(145px, 0.9fr) 76px;
+  gap: 10px;
+}
+
+.cashier-work-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.cashier-work-list-head,
+.cashier-work-row {
+  grid-template-columns: 205px 190px minmax(170px, 1fr) minmax(155px, 0.85fr) 150px;
+  gap: 14px;
+}
+
+.cashier-work-row > span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.cashier-work-row > .cashier-work-activity {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  max-width: 100%;
+  min-height: 26px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  color: var(--gold-dark);
+  overflow-wrap: anywhere;
 }
 
 .cashier-expense-content {

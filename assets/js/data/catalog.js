@@ -1,3 +1,6 @@
+const DEFAULT_SERVICE_REMINDER_DAYS = 30;
+const DEFAULT_MEMBERSHIP_REMINDER_DAYS = 14;
+
 const membershipPlans = [
   {
     id: "member-detok-rontok",

@@ -213,38 +213,223 @@ function renderCustomerList() {
     .join("");
 }
 
+const CUSTOMER_REMINDER_MONTHS = {
+  Jan: 1,
+  Feb: 2,
+  Mar: 3,
+  Apr: 4,
+  Mei: 5,
+  Jun: 6,
+  Jul: 7,
+  Agu: 8,
+  Sep: 9,
+  Okt: 10,
+  Nov: 11,
+  Des: 12,
+};
+
+function customerReminderEscape(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function getLocalDateRaw(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function customerDateLabelToRaw(label = "") {
+  if (/^\d{4}-\d{2}-\d{2}/.test(label)) return label.slice(0, 10);
+  const [dayText, monthText, yearText] = String(label).trim().split(/\s+/);
+  const month = CUSTOMER_REMINDER_MONTHS[monthText];
+  const day = Number(dayText);
+  const year = Number(yearText);
+  if (!day || !month || !year) return "";
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+function formatCustomerReminderDate(dateRaw = "") {
+  if (!dateRaw) return "Tanggal tidak tersedia";
+  return new Date(`${dateRaw}T00:00:00`).toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function addCustomerReminderDays(dateRaw, days) {
+  if (!dateRaw) return "";
+  const date = new Date(`${dateRaw}T00:00:00`);
+  date.setDate(date.getDate() + Math.max(1, Number(days) || 1));
+  return getLocalDateRaw(date);
+}
+
+function getRecurringCustomerReminderDate(anchorDateRaw, intervalDays, todayRaw, includeUpcoming) {
+  if (!anchorDateRaw) return "";
+  const interval = Math.max(1, Number(intervalDays) || 1);
+  const anchorUtc = Date.parse(`${anchorDateRaw}T00:00:00Z`);
+  const todayUtc = Date.parse(`${todayRaw}T00:00:00Z`);
+  const elapsedDays = Math.max(0, Math.floor((todayUtc - anchorUtc) / 86400000));
+  if (elapsedDays < interval) return addCustomerReminderDays(anchorDateRaw, interval);
+  const cycle = includeUpcoming
+    ? Math.max(1, Math.ceil(elapsedDays / interval))
+    : Math.max(1, Math.floor(elapsedDays / interval));
+  return addCustomerReminderDays(anchorDateRaw, cycle * interval);
+}
+
+function getLatestMemberUsageDateRaw(customer, reward) {
+  const rewardId = getRewardId(reward);
+  const serviceId = getRewardServiceId(reward);
+  const candidates = [];
+  if (reward.lastUsedDateRaw) candidates.push(reward.lastUsedDateRaw);
+  if (reward.activatedDateRaw) candidates.push(reward.activatedDateRaw);
+
+  if (typeof getMembershipUsageHistory === "function") {
+    getMembershipUsageHistory(customer)
+      .filter((usage) => usage.serviceName === getRewardName(reward))
+      .forEach((usage) => candidates.push(String(usage.dateTime || "").slice(0, 10)));
+  }
+
+  salesTransactions
+    .filter((transaction) => transaction.status !== "Pending" && transaction.customer === customer.name)
+    .forEach((transaction) => {
+      const usedReward = transaction.items?.some((item) => {
+        if (!(item.memberFree || item.memberUpgrade || item.memberUsageRewardId)) return false;
+        const itemServiceId = item.itemId || findCatalogItem(item)?.id || "";
+        return item.memberUsageRewardId === rewardId || itemServiceId === serviceId;
+      });
+      if (usedReward && transaction.dateRaw) candidates.push(transaction.dateRaw);
+    });
+
+  if (!candidates.length) candidates.push(customerDateLabelToRaw(customer.lastVisit));
+  return candidates.filter(Boolean).sort().at(-1) || "";
+}
+
+function getCustomerReminderRecords({ includeUpcoming = false } = {}) {
+  const today = getLocalDateRaw();
+  return customers
+    .filter((customer) => customer.id !== "umum")
+    .flatMap((customer) => {
+      const rewards = getCustomerRewards(customer);
+      if (customer.type === "member" || customer.status === "Member") {
+        const activeRewards = rewards.filter((reward) => {
+          const plan = getRewardPlan(reward);
+          return Number(reward.progress) > 0 && (reward.status || plan?.status || "Aktif") === "Aktif";
+        });
+        if (!activeRewards.length) return [];
+
+        const memberSchedules = activeRewards.map((reward) => {
+          const plan = getRewardPlan(reward);
+          const intervalDays = getMembershipReminderDays(plan);
+          const anchorDateRaw = getLatestMemberUsageDateRaw(customer, reward);
+          return {
+            reward,
+            plan,
+            intervalDays,
+            anchorDateRaw,
+            dueDateRaw: getRecurringCustomerReminderDate(anchorDateRaw, intervalDays, today, includeUpcoming),
+          };
+        }).filter((schedule) => schedule.dueDateRaw);
+        return memberSchedules.map((schedule) => ({
+          id: `reminder-${customer.id}-${getRewardId(schedule.reward)}`,
+          customerId: customer.id,
+          customer: customer.name,
+          phone: customer.phone,
+          type: "Member",
+          source: schedule.plan?.name || getRewardName(schedule.reward, { withMember: true }),
+          intervalDays: schedule.intervalDays,
+          scheduleLabel: `Rutin setiap ${schedule.intervalDays} hari`,
+          anchorLabel: schedule.reward.lastUsedDateRaw
+            ? "Pemakaian terakhir"
+            : schedule.reward.activatedDateRaw
+              ? "Aktivasi paket"
+              : "Aktivitas terakhir",
+          anchorDateRaw: schedule.anchorDateRaw,
+          anchorDate: formatCustomerReminderDate(schedule.anchorDateRaw),
+          dueDateRaw: schedule.dueDateRaw,
+          dueDate: formatCustomerReminderDate(schedule.dueDateRaw),
+          branch: getRewardBranch(schedule.reward, customer),
+          customerRecord: customer,
+        }));
+      }
+
+      const service = findCatalogItem({ type: "service", name: customer.lastService });
+      const anchorDateRaw = customerDateLabelToRaw(customer.lastVisit);
+      if (!service || !anchorDateRaw) return [];
+      const intervalDays = getServiceReminderDays(service);
+      const dueDateRaw = addCustomerReminderDays(anchorDateRaw, intervalDays);
+      return [{
+        id: `reminder-${customer.id}`,
+        customerId: customer.id,
+        customer: customer.name,
+        phone: customer.phone,
+        type: "Reguler",
+        source: service.name,
+        intervalDays,
+        scheduleLabel: `Sekali setelah ${intervalDays} hari`,
+        anchorLabel: "Kunjungan terakhir",
+        anchorDateRaw,
+        anchorDate: formatCustomerReminderDate(anchorDateRaw),
+        dueDateRaw,
+        dueDate: formatCustomerReminderDate(dueDateRaw),
+        branch: getCustomerLastVisitBranch(customer),
+        customerRecord: customer,
+      }];
+    })
+    .filter((reminder) => includeUpcoming || reminder.dueDateRaw <= today)
+    .sort((left, right) => left.dueDateRaw.localeCompare(right.dueDateRaw) || left.customer.localeCompare(right.customer));
+}
+
+function getCustomerReminderContactState(record) {
+  const customerId = record.customerId || record.id;
+  const customerIndex = customers
+    .filter((customer) => customer.id !== "umum")
+    .findIndex((customer) => customer.id === customerId);
+  return customerIndex >= 0 && customerIndex % 3 === 0 ? "contacted" : "uncontacted";
+}
+
 function renderReminderList() {
   const list = document.querySelector("#reminder-list");
   if (!list) return;
-  const reminderCustomers = customers.filter((customer) => customer.id !== "umum");
-  const contactedCount = reminderCustomers.filter((_, index) => index % 3 === 0).length;
+  const reminders = getCustomerReminderRecords();
+  const contactedCount = reminders.filter((reminder) => getCustomerReminderContactState(reminder) === "contacted").length;
   const totalCount = document.querySelector("#reminder-total-count");
   const doneCount = document.querySelector("#reminder-done-count");
 
-  if (totalCount) totalCount.textContent = `${reminderCustomers.length} pelanggan`;
-  if (doneCount) doneCount.textContent = `${contactedCount} pelanggan`;
+  if (totalCount) totalCount.textContent = `${reminders.length} reminder`;
+  if (doneCount) doneCount.textContent = `${contactedCount} reminder`;
 
-  list.innerHTML = reminderCustomers
-    .map((customer, index) => {
-      const contacted = index % 3 === 0;
+  list.innerHTML = reminders.length
+    ? reminders.map((reminder) => {
+      const contacted = getCustomerReminderContactState(reminder) === "contacted";
       return `
         <div class="reminder-row">
-          <div class="reminder-info"><strong>${customer.name}</strong><small>${customer.phone}</small></div>
-          <div class="reminder-last">
-            <span>Terakhir: ${customer.lastService || "Jasa tidak tersedia"} · ${customer.lastVisit}</span>
-            <small>Terakhir berkunjung: ${getCustomerLastVisitBranch(customer) || "Cabang tidak tersedia"}</small>
+          <div class="reminder-info">
+            <strong>${customerReminderEscape(reminder.customer)}</strong>
+            <small>${customerReminderEscape(reminder.phone)}</small>
+            <span class="reminder-type ${reminder.type.toLowerCase()}">${reminder.type}</span>
           </div>
-          <b>${customer.reminderDate}</b>
+          <div class="reminder-last">
+            <span>Sumber: <strong>${customerReminderEscape(reminder.source)}</strong> · ${customerReminderEscape(reminder.scheduleLabel)}</span>
+            <small>${reminder.anchorLabel}: ${customerReminderEscape(reminder.anchorDate)} · ${customerReminderEscape(reminder.branch || "Cabang tidak tersedia")}</small>
+          </div>
+          <b>${customerReminderEscape(reminder.dueDate)}</b>
           <button class="reminder-action${contacted ? " done" : ""}" type="button">${contacted ? "Sudah Kontak" : "Kontak"}</button>
         </div>`;
     })
-    .join("");
+      .join("")
+    : `<div class="customer-empty"><strong>Tidak ada reminder aktif</strong><span>Reminder member berhenti saat seluruh kuota habis.</span></div>`;
 }
 
 function updateReminderDoneCount() {
   const doneCount = document.querySelector("#reminder-done-count");
   if (!doneCount) return;
-  doneCount.textContent = `${document.querySelectorAll("#reminder-list .reminder-action.done").length} pelanggan`;
+  doneCount.textContent = `${document.querySelectorAll("#reminder-list .reminder-action.done").length} reminder`;
 }
 
 function renderCustomerMemberSummary(customer) {
@@ -336,7 +521,10 @@ function renderCustomerDetail(customerId = activeDetailCustomerId) {
   document.querySelector("#detail-badge").innerHTML = getCustomerBadge(customer);
   document.querySelector("#detail-phone").textContent = `No HP: ${customer.phone}`;
   document.querySelector("#detail-member-list").innerHTML = renderCustomerMemberSummary(customer);
-  document.querySelector("#detail-reminder").textContent = `Hubungi 7 hari setelah jasa terakhir: ${customer.reminderDate}.`;
+  const reminder = getCustomerReminderRecords({ includeUpcoming: true }).find((entry) => entry.customerId === customer.id);
+  document.querySelector("#detail-reminder").textContent = reminder
+    ? `${reminder.type} · ${reminder.source} · ${reminder.scheduleLabel}. Jadwal berikutnya: ${reminder.dueDate}.`
+    : "Tidak ada reminder aktif. Paket member mungkin sudah tidak memiliki kuota.";
   hideCustomerTransactionDetail();
 
   const transactions = getCustomerTransactions(customer);

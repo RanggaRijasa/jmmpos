@@ -238,6 +238,17 @@ salesTransactions.forEach((transaction) => {
   transaction.branch = transaction.branch || getStaffBranch(transaction.staff);
 });
 
+const cashierOperationalExpenseFixtures = [
+  { id: "EXP-001", dateRaw: "2026-07-30", amount: 150000, note: "Pembelian perlengkapan kebersihan", branch: "Cabang Kartini" },
+  { id: "EXP-002", dateRaw: "2026-07-30", amount: 85000, note: "Air minum dan konsumsi petugas", branch: "Cabang Mulyosari" },
+  { id: "EXP-003", dateRaw: "2026-07-29", amount: 250000, note: "Servis hair dryer", branch: "Cabang Citraland" },
+  { id: "EXP-004", dateRaw: "2026-07-29", amount: 120000, note: "Pembelian tisu dan sabun", branch: "Cabang Kartini" },
+  { id: "EXP-005", dateRaw: "2026-07-28", amount: 300000, note: "Biaya kebersihan bulanan", branch: "Cabang Mulyosari" },
+  { id: "EXP-006", dateRaw: "2026-07-28", amount: 95000, note: "Isi ulang galon dan gas", branch: "Cabang Citraland" },
+  { id: "EXP-007", dateRaw: "2026-07-27", amount: 175000, note: "Penggantian lampu area salon", branch: "Cabang Kartini" },
+  { id: "EXP-008", dateRaw: "2026-07-27", amount: 65000, note: "Biaya parkir pengiriman stok", branch: "Cabang Mulyosari" },
+];
+
 let salesPage = 1;
 const salesPerPage = 5;
 let salesSearchTerm = "";

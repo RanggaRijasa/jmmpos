@@ -27,7 +27,7 @@ DOM IDs and `data-*` attributes form the contract with `partials/` and `core/eve
 
 - Every non-report CMS navigation page exposes a filter tailored to the data shown on that page. List pages place the filter immediately before search; dashboard, commission settings, and salon settings place it in the page header.
 - Non-report filter values live in `cmsListFilters[page]` and use delegated `data-cms-list-filter` controls. Changing a filter resets only that page's pagination and must not mutate source records.
-- Keep report filters (`sales-report`, `regular-report`, `revenue-report`, `stock-report`, and `commission-report`) independent. Do not route report state through `cmsListFilters` or change their established controls when adding operational filters.
+- Keep report filters (`sales-report`, `regular-report`, `revenue-report`, `expense-report`, `stock-report`, and `commission-report`) independent. Do not route report state through `cmsListFilters` or change their established controls when adding operational filters.
 - Resetting a non-report filter clears that page's filter values and search term. Filter panels reuse the report filter button, badge, panel, and reset/close styling so interaction stays consistent throughout CMS.
 
 ## Membership branch contract
@@ -43,6 +43,13 @@ DOM IDs and `data-*` attributes form the contract with `partials/` and `core/eve
 - `membershipPlans[].bonuses` is an optional array of `{ type, itemId, name, qty }` records. `type` is `product` or `service` (shown to users as treatment).
 - Package bonuses are available only when the package target is at least 10. CMS must preserve multiple bonus rows and copy them to the matching POS member catalog item.
 - Draft transactions, completed transactions, sales details, pending details, and receipt snapshots must store and render package bonuses from the transaction line so historical receipts do not change after a plan is edited.
+
+## Customer reminder contract
+
+- Regular-customer reminders use the single `service.reminderDays` interval from Master Jasa and are calculated once from the customer's latest completed service visit.
+- Member reminders use the single `membershipPlan.reminderDays` interval from Master Paket Member. They recur from the latest recorded use (or package activation before first use), reset after another use, and stop when the package is inactive or has no remaining quota.
+- Keep reminder schedules derived from service, package, transaction, and reward data. Do not add an independently editable reminder date back to customer records.
+- Cashier and CMS reminder lists must identify each record as `Reguler` or `Member` and show the treatment or package that produced the reminder.
 
 ## Treatment promotion contract
 
