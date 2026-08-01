@@ -145,6 +145,8 @@ function getPlanUnitPrice(plan) {
 }
 
 function getMemberUnitPrice(reward) {
+  const storedUnitPrice = Math.max(0, Number(reward?.memberUnitPrice) || 0);
+  if (storedUnitPrice) return storedUnitPrice;
   const plan = getRewardPlan(reward);
   return getPlanUnitPrice(plan);
 }
@@ -157,8 +159,9 @@ function getLineMemberUnitPrice(line) {
   if (line.type === "service" && (line.memberFree || line.memberUpgrade)) {
     const sourceId = line.itemId || line.id;
     const reward = line.memberUsageRewardId
-      ? null
-      : null;
+      ? getCustomerRewards(selectedCustomer).find((entry) => getRewardId(entry) === line.memberUsageRewardId)
+      : getMemberRewardForService(sourceId);
+    if (reward) return getMemberUnitPrice(reward);
     const plan = membershipPlans.find((entry) => entry.serviceId === sourceId) || null;
     if (plan) return getPlanUnitPrice(plan);
     if (line.memberUseAmount) return line.memberUseAmount;
@@ -901,6 +904,8 @@ function saveCompletedTransaction(receipt) {
         existingReward.progress = plan.target;
         existingReward.target = plan.target;
         existingReward.branch = item.memberBranch || transaction.branch;
+        existingReward.purchasePrice = plan.price;
+        existingReward.memberUnitPrice = getPlanUnitPrice(plan);
         existingReward.activatedDateRaw = transaction.dateRaw;
         existingReward.lastUsedDateRaw = "";
         return;
@@ -912,6 +917,8 @@ function saveCompletedTransaction(receipt) {
         branch: item.memberBranch || transaction.branch,
         progress: plan.target,
         target: plan.target,
+        purchasePrice: plan.price,
+        memberUnitPrice: getPlanUnitPrice(plan),
         activatedDateRaw: transaction.dateRaw,
       });
     });

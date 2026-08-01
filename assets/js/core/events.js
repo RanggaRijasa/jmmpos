@@ -570,6 +570,11 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  if (event.target.closest("#save-sales-detail-note")) {
+    saveSalesDetailNote();
+    return;
+  }
+
   if (event.target.closest("#sales-filter-apply")) {
     blurNativeDateTimePicker();
     salesPage = 1;
@@ -761,6 +766,13 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("input", (event) => {
+  const salesDetailNote = event.target.closest("#sales-detail-note");
+  if (salesDetailNote) {
+    const noteStatus = document.querySelector("#sales-detail-note-status");
+    if (noteStatus) noteStatus.textContent = "Perubahan belum disimpan";
+    return;
+  }
+
   const cashierRevenueSearch = event.target.closest("#cashier-revenue-search");
   if (cashierRevenueSearch) {
     cashierRevenueSearchTerm = cashierRevenueSearch.value;

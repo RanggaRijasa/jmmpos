@@ -2064,3 +2064,70 @@
   color: var(--gold-dark);
   font-size: 20px;
 }
+
+.detail-note-section {
+  display: grid;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+
+.detail-note-section > label {
+  display: grid;
+  gap: 3px;
+}
+
+.detail-note-section > label strong {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.detail-note-section > label span,
+.detail-note-actions small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.detail-note-section textarea {
+  width: 100%;
+  min-height: 72px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  outline: 0;
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.detail-note-section textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(225, 161, 30, 0.12);
+}
+
+.detail-note-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.detail-note-actions button {
+  min-width: 126px;
+  height: 36px;
+  padding: 0 15px;
+  border: 1px solid var(--gold);
+  border-radius: 9px;
+  background: var(--gold);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.detail-note-actions button:hover {
+  background: #c98c13;
+}

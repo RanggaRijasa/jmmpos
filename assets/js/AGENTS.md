@@ -43,6 +43,8 @@ DOM IDs and `data-*` attributes form the contract with `partials/` and `core/eve
 - `membershipPlans[].bonuses` is an optional array of `{ type, itemId, name, qty }` records. `type` is `product` or `service` (shown to users as treatment).
 - Package bonuses are available only when the package target is at least 10. CMS must preserve multiple bonus rows and copy them to the matching POS member catalog item.
 - Draft transactions, completed transactions, sales details, pending details, and receipt snapshots must store and render package bonuses from the transaction line so historical receipts do not change after a plan is edited.
+- CMS member purchases may contain multiple distinct packages in one transaction. Store every package as its own transaction item and use the sum of those item prices as the transaction amount.
+- Member Baru uses the current master package price. Member Lama may override each selected package price; persist the purchase price and derived unit price on the reward so later member usage keeps the value agreed at purchase time.
 
 ## Customer reminder contract
 

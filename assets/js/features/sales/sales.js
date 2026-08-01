@@ -235,8 +235,24 @@ function showSalesDetail(id) {
     adjustments: "#detail-adjustments",
     total: "#detail-total",
   });
+  const noteInput = document.querySelector("#sales-detail-note");
+  const noteStatus = document.querySelector("#sales-detail-note-status");
+  if (noteInput) noteInput.value = t.note || "";
+  if (noteStatus) noteStatus.textContent = t.note ? "Catatan tersimpan" : "Belum ada catatan";
 
   panel.hidden = false;
+}
+
+function saveSalesDetailNote() {
+  const transaction = salesTransactions.find((entry) => entry.id === selectedSalesId);
+  const noteInput = document.querySelector("#sales-detail-note");
+  const noteStatus = document.querySelector("#sales-detail-note-status");
+  if (!transaction || !noteInput) return false;
+  transaction.note = noteInput.value.trim().slice(0, 300);
+  noteInput.value = transaction.note;
+  if (noteStatus) noteStatus.textContent = transaction.note ? "Catatan tersimpan" : "Catatan dikosongkan";
+  showToast(transaction.note ? "Catatan transaksi berhasil disimpan" : "Catatan transaksi dikosongkan");
+  return true;
 }
 
 function hideSalesDetail() {
