@@ -296,7 +296,7 @@
 }
 
 .reminder-row {
-  grid-template-columns: 200px minmax(0, 1fr) 105px 120px;
+  grid-template-columns: 200px minmax(0, 1fr) 105px 174px;
   padding: 0 20px;
   gap: 12px;
 }
@@ -370,6 +370,13 @@
   line-height: 1.25;
 }
 
+.reminder-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .reminder-action {
   height: 38px;
   border: 0;
@@ -392,6 +399,42 @@
 
 .reminder-action:hover {
   filter: brightness(1.05);
+}
+
+.reminder-whatsapp {
+  display: inline-grid;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #28a96b;
+  border-radius: 12px;
+  background: #e4f6ed;
+  color: #168554;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.reminder-whatsapp svg {
+  width: 23px;
+  height: 23px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.reminder-whatsapp:hover {
+  transform: translateY(-1px);
+  background: #d5f2e4;
+  box-shadow: 0 8px 18px rgba(22, 133, 84, 0.18);
+}
+
+.reminder-whatsapp:focus-visible {
+  outline: 3px solid rgba(40, 169, 107, 0.24);
+  outline-offset: 2px;
 }
 
 .sales-layout {

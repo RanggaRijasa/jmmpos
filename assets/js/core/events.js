@@ -614,6 +614,12 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  const reminderWhatsapp = event.target.closest(".reminder-whatsapp");
+  if (reminderWhatsapp) {
+    showToast("Fitur WhatsApp belum tersedia");
+    return;
+  }
+
   const pageBtn = event.target.closest("[data-sales-page]");
   if (pageBtn) {
     const action = pageBtn.dataset.salesPage;
@@ -719,6 +725,13 @@ document.addEventListener("click", (event) => {
 });
 
 document.addEventListener("change", (event) => {
+  const cmsAnalysisBranchSelect = event.target.closest("#cms-analysis-branch");
+  if (cmsAnalysisBranchSelect) {
+    cmsAnalysisBranch = cmsAnalysisBranchSelect.value;
+    renderCmsCurrentView();
+    return;
+  }
+
   const cashierRevenueFilter = event.target.closest("#cashier-revenue-date-from, #cashier-revenue-date-to, #cashier-revenue-branch");
   if (cashierRevenueFilter) {
     cashierRevenueDateFrom = document.querySelector("#cashier-revenue-date-from")?.value || "";

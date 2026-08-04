@@ -1,5 +1,6 @@
 const CMS_PAGE_LABELS = {
   dashboard: "Dashboard",
+  analytics: "Grafik Analisis",
   customers: "Pelanggan",
   services: "Master Jasa",
   "service-activities": "Aktivitas Jasa",
@@ -509,6 +510,87 @@ function getCmsReminderContactStatus(record) {
   return getCustomerReminderContactState(record);
 }
 
+function getCmsReminderServiceOptions() {
+  return getCmsFilterOptions(salesTransactions
+    .filter((transaction) => transaction.status !== "Pending")
+    .flatMap((transaction) => (transaction.items || [])
+      .filter((item) => item.type === "service")
+      .map((item) => item.name)));
+}
+
+function getCmsCampaignReminderRecords(filters = {}) {
+  const recordsByCustomer = new Map();
+  const transactions = salesTransactions
+    .filter((transaction) => transaction.status !== "Pending" && transaction.dateRaw)
+    .filter((transaction) => {
+      if (filters.dateFrom && transaction.dateRaw < filters.dateFrom) return false;
+      if (filters.dateTo && transaction.dateRaw > filters.dateTo) return false;
+      if (filters.branch && getTransactionBranch(transaction) !== filters.branch) return false;
+      return true;
+    })
+    .sort((left, right) => `${left.dateRaw} ${left.time}`.localeCompare(`${right.dateRaw} ${right.time}`));
+
+  transactions.forEach((transaction) => {
+    const customer = customers.find((entry) => entry.id !== "umum" && entry.name === transaction.customer);
+    if (!customer) return;
+
+    const matchingItems = (transaction.items || []).filter((item) => {
+      if (item.type !== "service") return false;
+      if (filters.source && item.name !== filters.source) return false;
+      const itemType = item.memberFree || item.memberUpgrade ? "Member" : "Reguler";
+      if (filters.type && itemType !== filters.type) return false;
+      return true;
+    });
+    if (!matchingItems.length) return;
+
+    const usesMember = matchingItems.some((item) => item.memberFree || item.memberUpgrade);
+    const source = filters.source || [...new Set(matchingItems.map((item) => item.name))].join(" · ");
+    const service = findCatalogItem({ type: "service", name: matchingItems[0].name });
+    const memberPlan = usesMember
+      ? membershipPlans.find((plan) => matchingItems.some((item) => plan.serviceName === item.name))
+      : null;
+    const intervalDays = usesMember
+      ? getMembershipReminderDays(memberPlan)
+      : getServiceReminderDays(service);
+    const dueDateRaw = addCustomerReminderDays(transaction.dateRaw, intervalDays);
+
+    recordsByCustomer.set(customer.id, {
+      id: `campaign-reminder-${customer.id}`,
+      customerId: customer.id,
+      customer: customer.name,
+      phone: customer.phone,
+      type: usesMember ? "Member" : "Reguler",
+      source,
+      intervalDays,
+      scheduleLabel: usesMember
+        ? `Tindak lanjut ${intervalDays} hari setelah pemakaian`
+        : `Tindak lanjut ${intervalDays} hari setelah kunjungan`,
+      anchorLabel: usesMember ? "Pemakaian dalam periode" : "Kunjungan dalam periode",
+      anchorDateRaw: transaction.dateRaw,
+      anchorDate: formatCustomerReminderDate(transaction.dateRaw),
+      dueDateRaw,
+      dueDate: formatCustomerReminderDate(dueDateRaw),
+      branch: getTransactionBranch(transaction),
+      customerRecord: customer,
+      campaign: true,
+    });
+  });
+
+  return [...recordsByCustomer.values()]
+    .sort((left, right) => right.anchorDateRaw.localeCompare(left.anchorDateRaw) || left.customer.localeCompare(right.customer));
+}
+
+function getCmsReminderViewRecords() {
+  const filters = getCmsListFilterValues("reminders");
+  const campaignMode = Boolean(filters.source || filters.dateFrom || filters.dateTo);
+  return campaignMode ? getCmsCampaignReminderRecords(filters) : getCustomerReminderRecords();
+}
+
+function getFilteredCmsReminderRecords() {
+  return getCmsReminderViewRecords()
+    .filter((reminder, index) => cmsListRecordMatchesFilters("reminders", reminder, index));
+}
+
 function getCmsListFilterDefinitions(page) {
   if (page === "dashboard") {
     return [{ key: "branch", label: "Cabang Transaksi", options: getCmsFilterOptions(salonBranches.map((branch) => branch.name)) }];
@@ -593,6 +675,9 @@ function getCmsListFilterDefinitions(page) {
   if (page === "reminders") {
     const reminders = getCustomerReminderRecords();
     return [
+      { key: "source", label: "Jasa / Treatment", options: getCmsReminderServiceOptions() },
+      { key: "dateFrom", label: "Kunjungan Dari", type: "date" },
+      { key: "dateTo", label: "Kunjungan Sampai", type: "date" },
       { key: "branch", label: "Cabang", options: getCmsFilterOptions(reminders.map((reminder) => reminder.branch)) },
       { key: "type", label: "Tipe Reminder", options: [{ value: "Reguler", label: "Reguler" }, { value: "Member", label: "Member" }] },
       { key: "contactStatus", label: "Status Kontak", options: [{ value: "contacted", label: "Sudah Dihubungi" }, { value: "uncontacted", label: "Belum Dihubungi" }] },
@@ -688,6 +773,8 @@ function getCmsListRecordFilterValues(page, record, index = 0) {
       branch: record.branch,
       type: record.type,
       contactStatus: getCmsReminderContactStatus(record),
+      source: record.source,
+      date: record.anchorDateRaw,
     };
   }
   if (page === "members") {
@@ -807,7 +894,7 @@ function getCmsPageRows(page) {
     }));
   }
   if (page === "reminders") {
-    return getCustomerReminderRecords().filter((reminder, index) => cmsListRecordMatchesFilters(page, reminder, index)).map((reminder) => {
+    return getFilteredCmsReminderRecords().map((reminder) => {
       const contacted = getCmsReminderContactStatus(reminder) === "contacted";
       return {
         id: reminder.id,
@@ -902,7 +989,7 @@ function getCmsPageMeta(page) {
     staff: { subtitle: "Petugas beserta cabang penempatan yang dapat ditugaskan ke aktivitas jasa di POS.", headers: ["Kode", "Nama", "Nomor HP", "Cabang Petugas", "Status"], add: "Tambah Petugas", search: "Cari petugas, cabang, atau nomor HP..." },
     sales: { subtitle: "Seluruh transaksi kasir dengan cabang salon dan cabang membership yang digunakan.", headers: ["No. Nota", "Tanggal", "Pelanggan", "Petugas Utama", "Cabang Transaksi", "Pembayaran", "Cabang Membership", "Total", "Status"], search: "Cari no. nota, pelanggan, petugas, cabang, atau catatan..." },
     pending: { subtitle: "Draft transaksi kasir dengan cabang salon dan cabang membership yang dipakai.", headers: ["No. Draft", "Tanggal", "Pelanggan", "Petugas", "Cabang Transaksi", "Isi", "Cabang Membership", "DP", "Total", "Status"], search: "Cari draft, pelanggan, cabang, atau catatan..." },
-    reminders: { subtitle: "Reminder reguler mengikuti Master Jasa; reminder member berjalan rutin selama paket aktif dan kuota tersedia.", headers: ["Pelanggan", "Nomor HP", "Tipe", "Sumber Reminder", "Aktivitas Terakhir", "Jadwal Reminder", "Status Kontak"], search: "Cari pelanggan, tipe, sumber reminder, nomor HP, atau cabang..." },
+    reminders: { subtitle: "Reminder rutin serta pencarian pelanggan berdasarkan treatment dan periode kunjungan untuk kebutuhan follow-up.", headers: ["Pelanggan", "Nomor HP", "Tipe", "Sumber Reminder", "Aktivitas Terakhir", "Jadwal Reminder", "Status Kontak"], search: "Cari pelanggan, treatment, tipe, nomor HP, atau cabang..." },
     members: { subtitle: "Daftar pelanggan dengan paket member aktif dari satu atau beberapa cabang.", headers: ["Pelanggan", "Nomor HP", "Cabang Membership", "Paket Aktif", "Sisa Kuota", "Total Kunjungan", "Status"], add: "Tambah Member", search: "Cari pelanggan, cabang, atau paket member..." },
     "member-visits": { subtitle: "Riwayat penggunaan kuota membership per pelanggan, treatment, dan cabang.", headers: ["Tanggal & Waktu", "Pelanggan", "Membership", "Cabang Membership", "Pemakaian", "Status"], search: "Cari pelanggan, cabang, atau membership..." },
     "sales-report": { subtitle: "Ringkasan menyeluruh transaksi salon, mencakup transaksi selesai, pending, kas masuk, pendapatan reguler, dan pendapatan produk.", headers: ["No. Nota", "Tanggal / Waktu", "Pelanggan", "Cabang Transaksi", "Total Transaksi", "Status"], search: "Cari no. nota, pelanggan, petugas, pembayaran, cabang, atau catatan..." },
@@ -965,8 +1052,7 @@ function getCmsSummary(page, rows) {
   }
   if (page === "members") return [["Pelanggan member", rows.length], ["Paket aktif", customers.reduce((sum, customer) => sum + getCustomerRewards(customer).length, 0)], ["Kuota tersisa", customers.flatMap(getCustomerRewards).reduce((sum, reward) => sum + reward.progress, 0)], ["Kunjungan member", customers.filter((c) => getCustomerRewards(c).length).reduce((sum, c) => sum + c.totalVisits, 0)]];
   if (page === "reminders") {
-    const reminders = getCustomerReminderRecords()
-      .filter((reminder, index) => cmsListRecordMatchesFilters(page, reminder, index));
+    const reminders = getFilteredCmsReminderRecords();
     const contacted = reminders.filter((reminder) => getCmsReminderContactStatus(reminder) === "contacted").length;
     return [["Perlu dihubungi", reminders.length], ["Reguler", reminders.filter((reminder) => reminder.type === "Reguler").length], ["Member", reminders.filter((reminder) => reminder.type === "Member").length], ["Sudah dihubungi", contacted]];
   }
@@ -1036,7 +1122,7 @@ function renderCmsReportFilters(page) {
       </label>`;
   }
   return `
-    <div class="cms-filter-wrapper">
+    <div class="cms-filter-wrapper${page === "reminders" ? " cms-reminder-filter-wrapper" : ""}">
       <button class="cms-filter-toggle" type="button" data-cms-action="toggle-filter-panel">
         <span class="cms-filter-toggle-icon" aria-hidden="true">${cmsActionIcon("filter")}</span>
         <span>Filter</span>${activeCount ? ` <span class="cms-filter-badge">${activeCount}</span>` : ""}
@@ -1361,8 +1447,9 @@ function exportCmsRemindersExcel() {
   const filteredRows = query
     ? reminderRows.filter((row) => row.search.toLowerCase().includes(query))
     : reminderRows;
+  const reminderRecords = getCmsReminderViewRecords();
   const reminders = filteredRows
-    .map((row) => getCustomerReminderRecords().find((reminder) => reminder.id === row.id))
+    .map((row) => reminderRecords.find((reminder) => reminder.id === row.id))
     .filter(Boolean);
 
   if (!reminders.length) {
@@ -1524,7 +1611,7 @@ function renderCmsListPage(page) {
 }
 
 function getCmsRecord(page, id) {
-  if (page === "reminders") return getCustomerReminderRecords().find((item) => item.id === id);
+  if (page === "reminders") return getCmsReminderViewRecords().find((item) => item.id === id);
   if (page === "customers" || page === "members") return customers.find((item) => item.id === id);
   if (page === "services" || page === "service-activities") return getCmsServices().find((item) => item.id === id);
   if (page === "products-stock" || page === "stock-report") return getCmsProducts().find((item) => item.id === id);
@@ -2437,6 +2524,342 @@ function renderCmsSettings() {
     </form>`;
 }
 
+function formatCmsAnalysisDate(dateRaw, short = false) {
+  if (!dateRaw) return "—";
+  const date = new Date(`${dateRaw}T00:00:00`);
+  return new Intl.DateTimeFormat("id-ID", short
+    ? { day: "2-digit", month: "short" }
+    : { day: "2-digit", month: "short", year: "numeric" }).format(date);
+}
+
+function formatCmsAnalysisCompactMoney(value) {
+  const amount = Math.max(0, Number(value) || 0);
+  if (amount >= 1000000000) return `Rp ${(amount / 1000000000).toFixed(amount >= 10000000000 ? 0 : 1).replace(".", ",")} M`;
+  if (amount >= 1000000) return `Rp ${(amount / 1000000).toFixed(amount >= 10000000 ? 0 : 1).replace(".", ",")} jt`;
+  if (amount >= 1000) return `Rp ${(amount / 1000).toFixed(0)} rb`;
+  return `Rp ${amount}`;
+}
+
+function getCmsAnalysisDataset() {
+  const datedTransactions = salesTransactions.filter((transaction) => transaction.dateRaw);
+  const latestDateRaw = datedTransactions.reduce((latest, transaction) => (
+    !latest || transaction.dateRaw > latest ? transaction.dateRaw : latest
+  ), "");
+  let cutoffDateRaw = "";
+
+  if (latestDateRaw && cmsAnalysisPeriod !== "all") {
+    const days = Math.max(1, Number(cmsAnalysisPeriod) || 7);
+    const cutoff = new Date(`${latestDateRaw}T00:00:00`);
+    cutoff.setDate(cutoff.getDate() - (days - 1));
+    cutoffDateRaw = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, "0")}-${String(cutoff.getDate()).padStart(2, "0")}`;
+  }
+
+  const all = datedTransactions.filter((transaction) => {
+    if (cutoffDateRaw && transaction.dateRaw < cutoffDateRaw) return false;
+    if (cmsAnalysisBranch && getTransactionBranch(transaction) !== cmsAnalysisBranch) return false;
+    return true;
+  });
+  const completed = all.filter((transaction) => transaction.status !== "Pending");
+  const dates = [...new Set(all.map((transaction) => transaction.dateRaw))].sort();
+
+  return {
+    all,
+    completed,
+    dates,
+    latestDateRaw,
+    firstDateRaw: dates[0] || "",
+    lastDateRaw: dates.at(-1) || "",
+  };
+}
+
+function getCmsAnalysisTotals(transactions) {
+  return transactions
+    .map(getCmsDashboardTransactionMetrics)
+    .reduce((totals, metrics) => ({
+      cashIn: totals.cashIn + metrics.cashIn,
+      memberUsed: totals.memberUsed + metrics.memberUsed,
+      regularRevenue: totals.regularRevenue + metrics.regularRevenue,
+      productRevenue: totals.productRevenue + metrics.productRevenue,
+      memberSales: totals.memberSales + metrics.memberSales,
+      membersSold: totals.membersSold + metrics.membersSold,
+      transactionTotal: totals.transactionTotal + metrics.transactionTotal,
+    }), {
+      cashIn: 0,
+      memberUsed: 0,
+      regularRevenue: 0,
+      productRevenue: 0,
+      memberSales: 0,
+      membersSold: 0,
+      transactionTotal: 0,
+    });
+}
+
+function getCmsAnalysisTrend(dataset) {
+  const byDate = new Map(dataset.dates.map((dateRaw) => [dateRaw, {
+    dateRaw,
+    cashIn: 0,
+    regularRevenue: 0,
+    productRevenue: 0,
+  }]));
+
+  dataset.completed.forEach((transaction) => {
+    const point = byDate.get(transaction.dateRaw);
+    if (!point) return;
+    const metrics = getCmsDashboardTransactionMetrics(transaction);
+    point.cashIn += metrics.cashIn;
+    point.regularRevenue += metrics.regularRevenue;
+    point.productRevenue += metrics.productRevenue;
+  });
+
+  return [...byDate.values()];
+}
+
+function renderCmsAnalysisLineChart(points) {
+  if (!points.length) return '<div class="cms-analysis-empty">Belum ada transaksi pada filter ini.</div>';
+
+  const metricOptions = {
+    cashIn: { label: "Kas Masuk", color: "#d99b16" },
+    regularRevenue: { label: "Pendapatan Reguler", color: "#7d5bb5" },
+    productRevenue: { label: "Pendapatan Produk", color: "#2f9b78" },
+  };
+  const metric = metricOptions[cmsAnalysisMetric] || metricOptions.cashIn;
+  const width = 760;
+  const height = 270;
+  const left = 76;
+  const right = 20;
+  const top = 20;
+  const bottom = 42;
+  const chartWidth = width - left - right;
+  const chartHeight = height - top - bottom;
+  const values = points.map((point) => Math.max(0, Number(point[cmsAnalysisMetric]) || 0));
+  const maxValue = Math.max(...values, 1);
+  const plotted = points.map((point, index) => {
+    const x = points.length === 1 ? left + (chartWidth / 2) : left + ((chartWidth * index) / (points.length - 1));
+    const y = top + chartHeight - ((values[index] / maxValue) * chartHeight);
+    return { ...point, value: values[index], x, y };
+  });
+  const linePath = plotted.map((point, index) => `${index ? "L" : "M"} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+  const areaPath = `${linePath} L ${plotted.at(-1).x.toFixed(1)} ${(top + chartHeight).toFixed(1)} L ${plotted[0].x.toFixed(1)} ${(top + chartHeight).toFixed(1)} Z`;
+  const gridLines = Array.from({ length: 5 }, (_, index) => {
+    const y = top + ((chartHeight * index) / 4);
+    const value = maxValue * (1 - (index / 4));
+    return `
+      <line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" class="cms-analysis-grid-line"></line>
+      <text x="${left - 10}" y="${y + 4}" text-anchor="end" class="cms-analysis-axis-value">${formatCmsAnalysisCompactMoney(value)}</text>`;
+  }).join("");
+  const labelStep = Math.max(1, Math.ceil(points.length / 7));
+  const xLabels = plotted.map((point, index) => (
+    index % labelStep === 0 || index === plotted.length - 1
+      ? `<text x="${point.x}" y="${height - 12}" text-anchor="middle" class="cms-analysis-axis-label">${cmsEscape(formatCmsAnalysisDate(point.dateRaw, true))}</text>`
+      : ""
+  )).join("");
+  const circles = plotted.map((point) => `
+    <circle cx="${point.x}" cy="${point.y}" r="5" class="cms-analysis-line-point" tabindex="0">
+      <title>${cmsEscape(`${formatCmsAnalysisDate(point.dateRaw)} · ${metric.label}: ${formatMoney(point.value)}`)}</title>
+    </circle>`).join("");
+
+  return `
+    <svg class="cms-analysis-line-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafik tren ${metric.label}">
+      <defs>
+        <linearGradient id="cms-analysis-area-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${metric.color}" stop-opacity="0.26"></stop>
+          <stop offset="100%" stop-color="${metric.color}" stop-opacity="0.02"></stop>
+        </linearGradient>
+      </defs>
+      ${gridLines}
+      <path d="${areaPath}" fill="url(#cms-analysis-area-gradient)"></path>
+      <path d="${linePath}" class="cms-analysis-line-path" style="stroke:${metric.color}"></path>
+      <g style="fill:${metric.color}">${circles}</g>
+      ${xLabels}
+    </svg>`;
+}
+
+function renderCmsAnalysisDonut(segments) {
+  const total = segments.reduce((sum, segment) => sum + segment.value, 0);
+  if (!total) return '<div class="cms-analysis-empty">Belum ada nilai transaksi untuk ditampilkan.</div>';
+  let offset = 0;
+  const circles = segments.map((segment) => {
+    const percentage = (segment.value / total) * 100;
+    const circle = `
+      <circle class="cms-analysis-donut-segment" cx="70" cy="70" r="52" pathLength="100"
+        stroke="${segment.color}" stroke-dasharray="${percentage} ${100 - percentage}" stroke-dashoffset="${-offset}" tabindex="0">
+        <title>${cmsEscape(`${segment.label}: ${formatMoney(segment.value)} (${percentage.toFixed(1).replace(".", ",")}%)`)}</title>
+      </circle>`;
+    offset += percentage;
+    return circle;
+  }).join("");
+  const legend = segments.map((segment) => {
+    const percentage = (segment.value / total) * 100;
+    return `
+      <div class="cms-analysis-legend-item" tabindex="0" data-chart-tooltip="${cmsEscape(`${segment.label}: ${formatMoney(segment.value)}`)}">
+        <i style="background:${segment.color}"></i>
+        <span><strong>${cmsEscape(segment.label)}</strong><small>${percentage.toFixed(1).replace(".", ",")}%</small></span>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="cms-analysis-donut-layout">
+      <div class="cms-analysis-donut">
+        <svg viewBox="0 0 140 140" role="img" aria-label="Komposisi nilai transaksi">
+          <circle class="cms-analysis-donut-track" cx="70" cy="70" r="52"></circle>
+          ${circles}
+        </svg>
+        <div><strong>${formatCmsAnalysisCompactMoney(total)}</strong><small>Total nilai</small></div>
+      </div>
+      <div class="cms-analysis-legend">${legend}</div>
+    </div>`;
+}
+
+function renderCmsAnalysisBranchBars(transactions) {
+  const rows = new Map();
+  transactions.forEach((transaction) => {
+    const branch = getTransactionBranch(transaction);
+    const current = rows.get(branch) || { branch, cashIn: 0, transactions: 0 };
+    current.cashIn += getCmsDashboardTransactionMetrics(transaction).cashIn;
+    current.transactions += 1;
+    rows.set(branch, current);
+  });
+  const branches = [...rows.values()].sort((left, right) => right.cashIn - left.cashIn);
+  if (!branches.length) return '<div class="cms-analysis-empty">Belum ada performa cabang pada filter ini.</div>';
+  const maxValue = Math.max(...branches.map((branch) => branch.cashIn), 1);
+  return `<div class="cms-analysis-horizontal-bars">${branches.map((branch) => `
+    <div class="cms-analysis-bar-row" tabindex="0" data-chart-tooltip="${cmsEscape(`${branch.branch}: ${formatMoney(branch.cashIn)} dari ${branch.transactions} transaksi`)}">
+      <div><strong>${cmsEscape(branch.branch.replace("Cabang ", ""))}</strong><small>${branch.transactions} transaksi</small></div>
+      <div class="cms-analysis-bar-track"><i style="width:${(branch.cashIn / maxValue) * 100}%"></i></div>
+      <b>${formatCmsAnalysisCompactMoney(branch.cashIn)}</b>
+    </div>`).join("")}</div>`;
+}
+
+function renderCmsAnalysisTopTreatments(transactions) {
+  const rows = new Map();
+  transactions.forEach((transaction) => {
+    (transaction.items || []).filter((item) => item.type === "service").forEach((item) => {
+      const current = rows.get(item.name) || { name: item.name, qty: 0, value: 0 };
+      const quantity = Math.max(1, Number(item.qty) || 1);
+      current.qty += quantity;
+      current.value += (item.memberFree || item.memberUpgrade)
+        ? (Number(item.memberUnitPrice) || Number(item.memberUseAmount) || Number(item.price) || 0) * quantity
+        : getCmsDashboardLinePayable(item);
+      rows.set(item.name, current);
+    });
+  });
+  const treatments = [...rows.values()].sort((left, right) => right.qty - left.qty || right.value - left.value).slice(0, 5);
+  if (!treatments.length) return '<div class="cms-analysis-empty">Belum ada treatment pada filter ini.</div>';
+  const maxQty = Math.max(...treatments.map((treatment) => treatment.qty), 1);
+  return `<div class="cms-analysis-horizontal-bars treatment">${treatments.map((treatment, index) => `
+    <div class="cms-analysis-bar-row" tabindex="0" data-chart-tooltip="${cmsEscape(`${treatment.name}: ${treatment.qty} kali · ${formatMoney(treatment.value)}`)}">
+      <div><strong>${index + 1}. ${cmsEscape(treatment.name)}</strong><small>${formatCmsAnalysisCompactMoney(treatment.value)}</small></div>
+      <div class="cms-analysis-bar-track"><i style="width:${(treatment.qty / maxQty) * 100}%"></i></div>
+      <b>${treatment.qty}x</b>
+    </div>`).join("")}</div>`;
+}
+
+function renderCmsAnalysisPaymentChart(transactions) {
+  const paymentRows = new Map();
+  transactions.forEach((transaction) => {
+    const payment = transaction.payment || "Lainnya";
+    const current = paymentRows.get(payment) || { payment, value: 0, count: 0 };
+    current.value += Math.max(0, Number(transaction.amount) || 0);
+    current.count += 1;
+    paymentRows.set(payment, current);
+  });
+  const rows = [...paymentRows.values()].sort((left, right) => right.value - left.value);
+  if (!rows.length) return '<div class="cms-analysis-empty">Belum ada metode pembayaran pada filter ini.</div>';
+  const maxValue = Math.max(...rows.map((row) => row.value), 1);
+  return `<div class="cms-analysis-column-chart">${rows.map((row) => `
+    <div class="cms-analysis-column" tabindex="0" data-chart-tooltip="${cmsEscape(`${row.payment}: ${formatMoney(row.value)} · ${row.count} transaksi`)}">
+      <strong>${formatCmsAnalysisCompactMoney(row.value)}</strong>
+      <div><i style="height:${Math.max(12, (row.value / maxValue) * 100)}%"></i></div>
+      <span>${cmsEscape(row.payment)}</span>
+      <small>${row.count} transaksi</small>
+    </div>`).join("")}</div>`;
+}
+
+function renderCmsAnalytics() {
+  const dataset = getCmsAnalysisDataset();
+  const totals = getCmsAnalysisTotals(dataset.completed);
+  const trend = getCmsAnalysisTrend(dataset);
+  const pendingCount = dataset.all.filter((transaction) => transaction.status === "Pending").length;
+  const averageTransaction = dataset.completed.length ? Math.round(totals.transactionTotal / dataset.completed.length) : 0;
+  const periodLabel = cmsAnalysisPeriod === "all" ? "Semua data" : `${cmsAnalysisPeriod} hari data terbaru`;
+  const dateRangeLabel = dataset.firstDateRaw
+    ? `${formatCmsAnalysisDate(dataset.firstDateRaw)} – ${formatCmsAnalysisDate(dataset.lastDateRaw)}`
+    : "Tidak ada data";
+  const metricLabels = {
+    cashIn: "Kas Masuk",
+    regularRevenue: "Pendapatan Reguler",
+    productRevenue: "Pendapatan Produk",
+  };
+  const composition = [
+    { label: "Reguler diterima", value: Math.max(0, totals.regularRevenue - totals.memberUsed), color: "#d99b16" },
+    { label: "Produk", value: totals.productRevenue, color: "#2f9b78" },
+    { label: "Penjualan member", value: totals.memberSales, color: "#d56e62" },
+    { label: "Pemakaian member", value: totals.memberUsed, color: "#7d5bb5" },
+  ].filter((segment) => segment.value > 0);
+
+  return `
+    <section class="cms-page-head cms-analysis-page-head">
+      <div>
+        <h3>Grafik Analisis</h3>
+        <p>Analisis interaktif transaksi, pendapatan, cabang, treatment, dan metode pembayaran berdasarkan data operasional CMS.</p>
+        <span class="cms-analysis-range">${periodLabel} · ${dateRangeLabel}</span>
+      </div>
+      <div class="cms-analysis-controls">
+        <div class="cms-analysis-period" role="group" aria-label="Pilih periode analisis">
+          ${[["7", "7 Hari"], ["30", "30 Hari"], ["all", "Semua"]].map(([value, label]) => `
+            <button class="${cmsAnalysisPeriod === value ? "active" : ""}" type="button" data-cms-action="analysis-period" data-cms-id="${value}">${label}</button>`).join("")}
+        </div>
+        <label class="cms-analysis-branch-filter">
+          <span>Cabang</span>
+          <select id="cms-analysis-branch">
+            <option value="">Semua Cabang</option>
+            ${salonBranches.map((branch) => `<option value="${cmsEscape(branch.name)}" ${cmsAnalysisBranch === branch.name ? "selected" : ""}>${cmsEscape(branch.name)}</option>`).join("")}
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="cms-analysis-kpis" aria-label="Ringkasan analisis">
+      <article><span>Nilai Transaksi</span><strong>${formatMoney(totals.transactionTotal)}</strong><small>Termasuk nilai pemakaian member</small></article>
+      <article><span>Kas Masuk</span><strong>${formatMoney(totals.cashIn)}</strong><small>Pembayaran yang benar-benar diterima</small></article>
+      <article><span>Transaksi</span><strong>${dataset.completed.length}</strong><small>${pendingCount} transaksi masih pending</small></article>
+      <article><span>Rata-rata Transaksi</span><strong>${formatMoney(averageTransaction)}</strong><small>Rata-rata transaksi selesai</small></article>
+    </section>
+
+    <section class="cms-analysis-grid">
+      <article class="cms-analysis-card cms-analysis-trend-card">
+        <header>
+          <div><span>Tren Harian</span><h4>${metricLabels[cmsAnalysisMetric]}</h4></div>
+          <div class="cms-analysis-metric-tabs" role="group" aria-label="Metrik grafik tren">
+            ${Object.entries(metricLabels).map(([value, label]) => `
+              <button class="${cmsAnalysisMetric === value ? "active" : ""}" type="button" data-cms-action="analysis-metric" data-cms-id="${value}">${label}</button>`).join("")}
+          </div>
+        </header>
+        <div class="cms-analysis-chart-body">${renderCmsAnalysisLineChart(trend)}</div>
+      </article>
+
+      <article class="cms-analysis-card cms-analysis-composition-card">
+        <header><div><span>Komposisi</span><h4>Nilai Transaksi</h4></div></header>
+        <div class="cms-analysis-chart-body">${renderCmsAnalysisDonut(composition)}</div>
+      </article>
+
+      <article class="cms-analysis-card">
+        <header><div><span>Perbandingan</span><h4>Performa Cabang</h4></div><small>Berdasarkan kas masuk</small></header>
+        <div class="cms-analysis-chart-body">${renderCmsAnalysisBranchBars(dataset.completed)}</div>
+      </article>
+
+      <article class="cms-analysis-card">
+        <header><div><span>Peringkat</span><h4>Treatment Terlaris</h4></div><small>Berdasarkan jumlah pemakaian</small></header>
+        <div class="cms-analysis-chart-body">${renderCmsAnalysisTopTreatments(dataset.completed)}</div>
+      </article>
+
+      <article class="cms-analysis-card cms-analysis-payment-card">
+        <header><div><span>Distribusi</span><h4>Metode Pembayaran</h4></div><small>Arahkan kursor ke grafik untuk melihat detail</small></header>
+        <div class="cms-analysis-chart-body">${renderCmsAnalysisPaymentChart(dataset.completed)}</div>
+      </article>
+    </section>`;
+}
+
 function renderCmsDashboard() {
   const dashboardBranchFilter = getCmsListFilterValues("dashboard").branch || "";
   const completedTransactions = salesTransactions.filter((t) => t.status !== "Pending");
@@ -2643,6 +3066,7 @@ function renderCmsCurrentView() {
 
   if (!content) return;
   if (page === "dashboard") content.innerHTML = renderCmsDashboard();
+  else if (page === "analytics") content.innerHTML = renderCmsAnalytics();
   else if (page === "salon-settings") content.innerHTML = renderCmsSettings();
   else if (page === "staff-commission") content.innerHTML = renderCmsStaffCommission();
   else if (cmsViewMode === "detail") content.innerHTML = renderCmsDetailPage(page, getCmsRecord(page, cmsSelectedRecordId));
@@ -2651,6 +3075,16 @@ function renderCmsCurrentView() {
 }
 
 function handleCmsAction(action, id) {
+  if (action === "analysis-period") {
+    cmsAnalysisPeriod = ["7", "30", "all"].includes(id) ? id : "all";
+    renderCmsCurrentView();
+    return;
+  }
+  if (action === "analysis-metric") {
+    cmsAnalysisMetric = ["cashIn", "regularRevenue", "productRevenue"].includes(id) ? id : "cashIn";
+    renderCmsCurrentView();
+    return;
+  }
   if (action === "toggle-filter-panel") {
     cmsFilterPanelOpen = !cmsFilterPanelOpen;
     renderCmsCurrentView();
@@ -2845,7 +3279,7 @@ function handleCmsAction(action, id) {
     return;
   }
   if (action === "whatsapp") {
-    const reminder = getCustomerReminderRecords().find((item) => item.id === id);
+    const reminder = getCmsReminderViewRecords().find((item) => item.id === id);
     showToast(`WhatsApp reminder ${reminder?.type?.toLowerCase() || ""} untuk ${reminder?.customer || "pelanggan"} dibuka`);
     return;
   }
