@@ -8,6 +8,7 @@ const salesTransactions = [
       { name: "Hair Colour", qty: 1, price: 450000, staff: "Siska", type: "service" },
     ],
     status: "Selesai", dp: 0, reward: 160000, memberBranch: "Cabang Mulyosari",
+    note: "Formula Hair Colour: cokelat ash level 6. Kulit kepala sensitif, hindari air terlalu panas.",
   },
   {
     id: "POS-088045", time: "10:33", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Sapriti", staff: "Kartini", amount: 450000, payment: "QRIS",
@@ -15,6 +16,7 @@ const salesTransactions = [
       { name: "Keratin Treatment", qty: 1, price: 450000, staff: "Kartini", type: "service" },
     ],
     status: "Selesai", dp: 0, reward: 0,
+    note: "Minta dihubungi kembali 14 hari setelah Keratin Treatment.",
   },
   {
     id: "POS-088044", time: "10:28", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Priscila Tan", staff: "Priscila", amount: 1120000, payment: "Tunai",
@@ -23,6 +25,7 @@ const salesTransactions = [
       { name: "Hair Spa", qty: 1, price: 280000, staff: "Nadya", type: "service" },
     ],
     status: "Selesai", dp: 0, reward: 0,
+    note: "Hasil curl dibuat natural. Pelanggan tidak ingin styling terlalu bervolume.",
   },
   {
     id: "POS-088043", time: "10:15", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Linda Permata", staff: "Wira", amount: 320000, payment: "QRIS",
@@ -33,6 +36,7 @@ const salesTransactions = [
       { name: "Hair Tonic", qty: 1, price: 125000, type: "product" },
     ],
     status: "Selesai", dp: 0, reward: 0,
+    note: "Manicure tanpa pemotongan kutikula. Hair Tonic dibawa pulang.",
   },
   {
     id: "POS-088042", time: "09:51", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Rika Amelia", staff: "Kartini", amount: 780000, payment: "Tunai",
@@ -41,6 +45,7 @@ const salesTransactions = [
       { name: "Hair Mask Aloe", qty: 1, price: 150000, type: "product" },
     ],
     status: "Selesai", dp: 0, reward: 0,
+    note: "Pelanggan sensitif terhadap aroma menyengat. Gunakan produk aloe.",
   },
   {
     id: "POS-088041", time: "09:30", date: "27 Jun 2026", dateRaw: "2026-06-27", customer: "Siti Rahma", staff: "Wira", amount: 669000, payment: "QRIS",
@@ -50,6 +55,7 @@ const salesTransactions = [
       { name: "Shampoo Keratin", qty: 1, price: 95000, type: "product" },
     ],
     status: "Selesai", dp: 0, reward: 0,
+    note: "Formula warna terakhir: dark chocolate. Lebih nyaman ditangani Wira.",
   },
   {
     id: "POS-088040", time: "17:22", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Nina Septiani", staff: "Priscila", amount: 1250000, payment: "Tunai",
@@ -58,6 +64,7 @@ const salesTransactions = [
       { name: "Hair Wash", qty: 1, price: 60000, staff: "Wira", type: "service" },
     ],
     status: "Selesai", dp: 150000, reward: 0,
+    note: "Hair extension dipasang 40 helai. Jadwalkan kontrol sambungan dalam 30 hari.",
   },
   {
     id: "POS-088039", time: "16:45", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Maya Putri", staff: "Siska", amount: 540000, payment: "QRIS",
@@ -66,6 +73,7 @@ const salesTransactions = [
       { name: "Hair Tonic", qty: 1, price: 125000, type: "product" },
     ],
     status: "Selesai", dp: 50000, reward: 0,
+    note: "Keratin hanya diaplikasikan pada bagian tengah hingga ujung rambut.",
   },
   {
     id: "POS-088038", time: "15:10", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Dewi Anggraini", staff: "Kartini", amount: 0, payment: "Tunai",
@@ -73,6 +81,7 @@ const salesTransactions = [
       { name: "Gunting Rambut", qty: 1, price: 160000, staff: "Kartini", type: "service", memberFree: true, memberBranch: "Cabang Mulyosari", memberUnitPrice: 135000 },
     ],
     status: "Selesai", dp: 0, reward: 160000, memberBranch: "Cabang Mulyosari",
+    note: "Pemakaian kuota member. Model guntingan dipertahankan seperti kunjungan sebelumnya.",
   },
   {
     id: "POS-088037", time: "14:55", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Lia Kartika", staff: "Wira", amount: 60000, payment: "QRIS",
@@ -80,6 +89,7 @@ const salesTransactions = [
       { name: "Hair Wash", qty: 1, price: 60000, staff: "Wira", type: "service" },
     ],
     status: "Selesai", dp: 0, reward: 0,
+    note: "Hair Wash menggunakan air hangat dan tanpa pijat kepala.",
   },
   {
     id: "POS-088036", time: "13:20", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Sapriti", staff: "Priscila", amount: 670000, payment: "Tunai",
@@ -89,6 +99,7 @@ const salesTransactions = [
       { name: "Conditioner Silk", qty: 1, price: 90000, type: "product" },
     ],
     status: "Selesai", dp: 0, reward: 0,
+    note: "Highlight tipis pada bagian depan. Conditioner Silk dibawa pulang.",
   },
   {
     id: "POS-088035", time: "12:05", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Rika Amelia", staff: "Kartini", amount: 295000, payment: "QRIS",
@@ -97,6 +108,7 @@ const salesTransactions = [
       { name: "Serum Anti Frizz", qty: 1, price: 175000, type: "product" },
     ],
     status: "Selesai", dp: 100000, reward: 0,
+    note: "Pelanggan menggunakan DP Rp 100.000. Hindari suhu catokan terlalu tinggi.",
   },
   {
     id: "POS-088034", time: "11:40", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Siti Rahma", staff: "Wira", amount: 730000, payment: "Tunai",
@@ -106,6 +118,7 @@ const salesTransactions = [
       { name: "Hair Spa", qty: 1, price: 280000, staff: "Nadya", type: "service" },
     ],
     status: "Pending", dp: 0, reward: 230000, memberBranch: "Cabang Mulyosari",
+    note: "Menunggu konfirmasi jadwal petugas Nadya untuk Hair Spa.",
   },
   {
     id: "POS-088033", time: "10:15", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Priscila Tan", staff: "Priscila", amount: 410000, payment: "QRIS",
@@ -114,6 +127,7 @@ const salesTransactions = [
       { name: "Keratin Treatment", qty: 1, price: 250000, staff: "Siska", type: "service" },
     ],
     status: "Pending", dp: 0, reward: 0,
+    note: "Pelanggan masih memilih antara Keratin Treatment atau perawatan reguler.",
   },
   {
     id: "POS-088032", time: "09:45", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Dewi Anggraini", staff: "Kartini", amount: 150000, payment: "Tunai",
@@ -121,6 +135,7 @@ const salesTransactions = [
       { name: "Hair Colour", qty: 1, price: 600000, staff: "Kartini", type: "service", memberUpgrade: true, memberUseAmount: 450000, memberBranch: "Cabang Citraland", memberUnitPrice: 405000 },
     ],
     status: "Pending", dp: 0, reward: 450000, memberBranch: "Cabang Citraland",
+    note: "Upgrade member ke Hair Colour menunggu persetujuan selisih harga.",
   },
   {
     id: "POS-088031", time: "09:10", date: "26 Jun 2026", dateRaw: "2026-06-26", customer: "Nina Septiani", staff: "Priscila", amount: 750000, payment: "QRIS",
